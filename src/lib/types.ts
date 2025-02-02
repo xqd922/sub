@@ -22,12 +22,33 @@ export interface Proxy {
   sni?: string
 }
 
+export interface DnsConfig {
+  enable: boolean
+  ipv6: boolean
+  'default-nameserver': string[]
+  'enhanced-mode': string
+  'fake-ip-range': string
+  'use-hosts': boolean
+  nameserver: string[]
+  fallback: string[]
+  'fallback-filter': {
+    geoip: boolean
+    ipcidr: string[]
+  }
+}
+
 export interface ClashConfig {
-  port: number
-  'socks-port': number
+  port?: number
+  'mixed-port'?: number
+  'socks-port'?: number
   'allow-lan': boolean
+  'bind-address'?: string
   mode: string
   'log-level': string
+  ipv6?: boolean
+  'tcp-concurrent'?: boolean
+  'external-controller'?: string
+  dns?: DnsConfig
   proxies: Proxy[]
   'proxy-groups': ProxyGroup[]
   rules: string[]
@@ -37,4 +58,7 @@ export interface ProxyGroup {
   name: string
   type: string
   proxies: string[]
+  url?: string
+  interval?: number
+  tolerance?: number
 } 
