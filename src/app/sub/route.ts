@@ -73,14 +73,19 @@ export async function GET(request: Request) {
           type: 'url-test',
           proxies: proxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name),
           url: 'http://www.gstatic.com/generate_204',
-          interval: 300
+          interval: 300,
+          tolerance: 50
         },
         {
           name: 'Min',
           type: 'url-test',
-          proxies: proxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name),
+          proxies: (() => {
+            const filtered = proxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
+            return filtered.length > 0 ? filtered : ['DIRECT']
+          })(),
           url: 'http://www.gstatic.com/generate_204',
-          interval: 300
+          interval: 300,
+          tolerance: 50
         }
       ],
       rules: defaultConfig?.rules || [
