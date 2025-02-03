@@ -14,7 +14,7 @@ export default function ApiStatus() {
           cache: 'no-cache'
         })
         setStatus(response.ok ? 'online' : 'offline')
-      } catch (error) {
+      } catch {
         setStatus('offline')
       }
     }

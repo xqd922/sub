@@ -34,18 +34,18 @@ cd clash-sub-api
 
 2. 安装依赖
 ```bash
-pnpm install
+npm install
 ```
 
 3. 开发环境运行
 ```bash
-pnpm dev
+npm dev
 ```
 
 4. 生产环境部署
 ```bash
-pnpm build
-pnpm start
+npm build
+npm start
 ```
 
 ## API 使用说明
