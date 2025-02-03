@@ -8,8 +8,8 @@ export default function ApiStatus() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        // 尝试调用 API 进行健康检查
-        const response = await fetch('https://subapi.xqd.us.kg/sub?url=healthcheck', {
+        // 使用 API 健康检查端点
+        const response = await fetch('/api/health', {
           method: 'GET',
           cache: 'no-cache'
         })
