@@ -18,24 +18,9 @@ export default function Home() {
             <div className="space-y-2">
               <h3 className="text-lg font-medium">API 端点</h3>
               <code className="block bg-gray-100 dark:bg-gray-800 p-3 rounded">
-                POST /api/convert
+                GET /sub?url=订阅链接
               </code>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">请求格式</h2>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto">
-{`{
-  "url": "订阅链接",
-  "configType": "custom",  // basic | custom | microsoft | google | full
-  "emoji": true,          // 是否启用 Emoji
-  "udp": true,           // 开启 UDP
-  "expand": true,        // 展开规则
-  "appendType": true,    // 添加节点类型
-  "newName": true        // 使用新的节点命名
-}`}
-            </pre>
           </div>
 
           <div className="space-y-4">
@@ -53,11 +38,30 @@ export default function Home() {
             <div className="space-y-2">
               <p className="text-sm text-gray-500">使用 curl 请求:</p>
               <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto">
-{`curl -X POST http://localhost:3000/api/convert \\
-  -H "Content-Type: application/json" \\
-  -d '{"url":"你的订阅链接"}'`}
+{`curl "https://subapi.xqd.us.kg/sub?url=你的订阅链接"`}
               </pre>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">客户端配置</h2>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                在 Clash 客户端中添加以下订阅地址:
+              </p>
+              <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto break-all">
+{`https://subapi.xqd.us.kg/sub?url=你的订阅链接`}
+              </pre>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">注意事项</h2>
+            <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
+              <li>订阅链接需要 URL 编码</li>
+              <li>支持批量转换多个订阅链接，使用 | 分隔</li>
+              <li>转换后配置包含我自己书写的分流规则</li>
+            </ul>
           </div>
         </div>
       </div>
