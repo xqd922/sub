@@ -3,52 +3,54 @@
 import { useState, useEffect } from 'react'
 
 export default function ApiStatus() {
-  const [apiStatus, setApiStatus] = useState<'loading' | 'online' | 'offline'>('loading')
+  const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking')
 
   useEffect(() => {
-    const checkApiStatus = async () => {
+    const checkStatus = async () => {
       try {
-        const response = await fetch('/api/health')
-        if (response.ok) {
-          setApiStatus('online')
-        } else {
-          setApiStatus('offline')
-        }
-      } catch {
-        setApiStatus('offline')
+        // 尝试调用 API 进行健康检查
+        const response = await fetch('https://subapi.xqd.us.kg/sub?url=healthcheck', {
+          method: 'GET',
+          cache: 'no-cache'
+        })
+        setStatus(response.ok ? 'online' : 'offline')
+      } catch (error) {
+        setStatus('offline')
       }
     }
 
-    checkApiStatus()
-    const interval = setInterval(checkApiStatus, 30000)
+    // 立即检查一次
+    checkStatus()
+
+    // 每 5 分钟检查一次
+    const interval = setInterval(checkStatus, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
-  const statusDisplay = {
-    loading: {
-      text: 'API 状态检测中',
-      className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+  const statusConfig = {
+    checking: {
+      text: '检测中...',
+      dotColor: 'bg-yellow-500',
+      textColor: 'text-gray-500'
     },
     online: {
       text: 'API 运行正常',
-      className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      dotColor: 'bg-green-500',
+      textColor: 'text-gray-500'
     },
     offline: {
       text: 'API 服务异常',
-      className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      dotColor: 'bg-red-500',
+      textColor: 'text-red-500'
     }
   }
 
+  const config = statusConfig[status]
+
   return (
-    <span 
-      suppressHydrationWarning 
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusDisplay[apiStatus].className}`}
-    >
-      <span 
-        suppressHydrationWarning
-        className={`h-1.5 w-1.5 rounded-full ${apiStatus === 'online' ? 'animate-pulse' : ''} ${apiStatus === 'loading' ? 'animate-ping' : ''} bg-current`}
-      />
-      <span suppressHydrationWarning>{statusDisplay[apiStatus].text}</span>
-    </span>
+    <div className="flex items-center justify-center gap-2">
+      <div className={`h-2 w-2 rounded-full ${config.dotColor} ${status === 'checking' ? 'animate-pulse' : ''}`}></div>
+      <p className={`text-sm ${config.textColor}`}>{config.text}</p>
+    </div>
   )
 } 
