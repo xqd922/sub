@@ -80,25 +80,28 @@ const FLAG_MAP: Record<string, string> = {
 const counters: Record<string, number> = {}
 
 function formatProxyName(proxy: Proxy): Proxy {
-  // 提取国家/地区信息
+  // 只从原始节点名称中提取地区信息
   const regionMatch = Object.keys(FLAG_MAP).find(key => 
-    proxy.name.toLowerCase().includes(key.toLowerCase()) ||
-    proxy.server.toLowerCase().includes(key.toLowerCase())
+    proxy.name.toLowerCase().includes(key.toLowerCase())
   )
   
-  const flag = regionMatch ? FLAG_MAP[regionMatch] : '🏁'
-  const region = regionMatch || '其他'
+  // 如果找不到匹配的地区，保持原始名称
+  if (!regionMatch) {
+    return proxy;
+  }
+  
+  const flag = FLAG_MAP[regionMatch]
   
   // 提取倍率信息
   const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/);
   const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : '';
   
-  // 使用计数器生成序号（从1开始）
-  counters[region] = (counters[region] || 0) + 1
-  const num = String(counters[region]).padStart(2, '0')
+  // 使用计数器生成序号
+  counters[regionMatch] = (counters[regionMatch] || 0) + 1
+  const num = String(counters[regionMatch]).padStart(2, '0')
   
   // 组合新名称
-  const newName = `${flag} ${region} ${num}${multiplier}`
+  const newName = `${flag} ${regionMatch} ${num}${multiplier}`
   
   return {
     ...proxy,
