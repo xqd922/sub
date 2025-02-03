@@ -91,7 +91,7 @@ function formatProxyName(proxy: Proxy): Proxy {
   
   // 提取倍率信息
   const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/);
-  const multiplier = multiplierMatch ? ` |${multiplierMatch[1]}x` : '';
+  const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : '';
   
   // 使用计数器生成序号（从1开始）
   counters[region] = (counters[region] || 0) + 1
