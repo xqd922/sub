@@ -145,6 +145,26 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
 
+    // 获取原始订阅信息
+    const response = await fetch(url || '', {
+      headers: {
+        'User-Agent': 'ClashX/1.95.1'
+      }
+    });
+    
+    // 获取订阅到期时间和流量信息
+    const subscription = {
+      upload: response.headers.get('subscription-userinfo')?.match(/upload=(\d+)/)?.[1] || 0,
+      download: response.headers.get('subscription-userinfo')?.match(/download=(\d+)/)?.[1] || 0,
+      total: response.headers.get('subscription-userinfo')?.match(/total=(\d+)/)?.[1] || 0,
+      expire: response.headers.get('subscription-userinfo')?.match(/expire=(\d+)/)?.[1] || 
+              response.headers.get('profile-expire') || 
+              response.headers.get('expires') || 
+              response.headers.get('expire') || 
+              response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
+              ''
+    }
+
     // 解析订阅
     const originalProxies = await parseSubscription(url || '')
     
@@ -778,14 +798,20 @@ export async function GET(request: Request) {
       ]
     }
 
-    // 返回 YAML 格式的配置
+    // 返回 YAML 格式的配置，添加响应头
     const yamlConfig = yaml.dump(clashConfig)
     
     return new NextResponse(yamlConfig, {
       headers: {
         'Content-Type': 'text/yaml; charset=utf-8',
         'Cache-Control': 'no-cache',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        // 添加订阅信息头
+        'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
+        'profile-expire': subscription.expire,
+        'profile-update-interval': '24',
+        'profile-title': 'Xqd Sub',
+        'expires': subscription.expire
       }
     })
 
