@@ -810,7 +810,7 @@ export async function GET(request: Request) {
         'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
         'profile-expire': subscription.expire,
         'profile-update-interval': '24',
-        'profile-title': 'Xqd Sub',
+        'profile-title': 'xqd sub',
         'expires': subscription.expire
       }
     })
