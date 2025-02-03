@@ -7,39 +7,98 @@ export const runtime = 'edge'
 
 // 国家/地区表情映射
 const FLAG_MAP: Record<string, string> = {
+  // 东亚地区
   '香港': '🇭🇰',
   'HK': '🇭🇰',
   '台湾': '🇹🇼',
   'TW': '🇹🇼',
   '日本': '🇯🇵',
   'JP': '🇯🇵',
-  '美国': '🇺🇸',
-  'US': '🇺🇸',
   '韩国': '🇰🇷',
   'KR': '🇰🇷',
+  
+  // 东南亚地区
   '新加坡': '🇸🇬',
   'SG': '🇸🇬',
+  '马来西亚': '🇲🇾',
+  'MY': '🇲🇾',
+  '印度尼西亚': '🇮🇩',
+  'ID': '🇮🇩',
+  '菲律宾': '🇵🇭',
+  'PH': '🇵🇭',
+  '越南': '🇻🇳',
+  'VN': '🇻🇳',
+  '泰国': '🇹🇭',
+  'TH': '🇹🇭',
+
+  // 欧洲地区
   '英国': '🇬🇧',
   'UK': '🇬🇧',
   '德国': '🇩🇪',
   'DE': '🇩🇪',
-  '泰国': '🇹🇭',
-  'TH': '🇹🇭'
+  '法国': '🇫🇷',
+  'FR': '🇫🇷',
+  '意大利': '🇮🇹',
+  'IT': '🇮🇹',
+  '西班牙': '🇪🇸',
+  'ES': '🇪🇸',
+  '荷兰': '🇳🇱',
+  'NL': '🇳🇱',
+  '俄罗斯': '🇷🇺',
+  'RU': '🇷🇺',
+
+  // 北美地区
+  '美国': '🇺🇸',
+  'US': '🇺🇸',
+  '加拿大': '🇨🇦',
+  'CA': '🇨🇦',
+  '墨西哥': '🇲🇽',
+  'MX': '🇲🇽',
+
+  // 大洋洲
+  '澳大利亚': '🇦🇺',
+  'AU': '🇦🇺',
+  '新西兰': '🇳🇿',
+  'NZ': '🇳🇿',
+
+  // 其他地区
+  '印度': '🇮🇳',
+  'IN': '🇮🇳',
+  '巴西': '🇧🇷',
+  'BR': '🇧🇷',
+  '阿根廷': '🇦🇷',
+  'AR': '🇦🇷',
+  '土耳其': '🇹🇷',
+  'TR': '🇹🇷',
+  '以色列': '🇮🇱',
+  'IL': '🇮🇱',
+  '南非': '🇿🇦',
+  'ZA': '🇿🇦'
 }
+
+// 在每次请求开始时重置计数器
+const counters: Record<string, number> = {}
 
 function formatProxyName(proxy: Proxy): Proxy {
   // 提取国家/地区信息
   const regionMatch = Object.keys(FLAG_MAP).find(key => 
-    proxy.name.toLowerCase().includes(key.toLowerCase())
+    proxy.name.toLowerCase().includes(key.toLowerCase()) ||
+    proxy.server.toLowerCase().includes(key.toLowerCase())
   )
-  const flag = regionMatch ? FLAG_MAP[regionMatch] : ''
   
-  // 提取序号（如果有）
-  const numMatch = proxy.name.match(/\d+/)
-  const num = numMatch ? ` ${numMatch[0]}` : ''
+  const flag = regionMatch ? FLAG_MAP[regionMatch] : '🏁'
+  const region = regionMatch || '其他'
   
-  // 组合新名称，只包含 [国旗表情] 地区名称 序号
-  const newName = `${flag} ${regionMatch || '未知'}${num}`
+  // 提取倍率信息
+  const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/);
+  const multiplier = multiplierMatch ? ` |${multiplierMatch[1]}x` : '';
+  
+  // 使用计数器生成序号（从1开始）
+  counters[region] = (counters[region] || 0) + 1
+  const num = String(counters[region]).padStart(2, '0')
+  
+  // 组合新名称
+  const newName = `${flag} ${region} ${num}${multiplier}`
   
   return {
     ...proxy,
@@ -61,6 +120,9 @@ async function getDefaultConfig(): Promise<ClashConfig | null> {
 
 export async function GET(request: Request) {
   try {
+    // 在处理每个新请求前重置计数器
+    Object.keys(counters).forEach(key => delete counters[key])
+    
     // 从 URL 获取参数
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
