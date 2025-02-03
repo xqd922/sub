@@ -1,9 +1,51 @@
 import { NextResponse } from 'next/server'
 import yaml from 'js-yaml'
 import { parseSubscription } from '@/lib/parsers'
-import type { ClashConfig } from '@/lib/types'
+import type { ClashConfig, Proxy } from '@/lib/types'
 
 export const runtime = 'edge'
+
+// 国家/地区表情映射
+const FLAG_MAP: Record<string, string> = {
+  '香港': '🇭🇰',
+  'HK': '🇭🇰',
+  '台湾': '🇹🇼',
+  'TW': '🇹🇼',
+  '日本': '🇯🇵',
+  'JP': '🇯🇵',
+  '美国': '🇺🇸',
+  'US': '🇺🇸',
+  '韩国': '🇰🇷',
+  'KR': '🇰🇷',
+  '新加坡': '🇸🇬',
+  'SG': '🇸🇬',
+  '英国': '🇬🇧',
+  'UK': '🇬🇧',
+  '德国': '🇩🇪',
+  'DE': '🇩🇪',
+  '泰国': '🇹🇭',
+  'TH': '🇹🇭'
+}
+
+function formatProxyName(proxy: Proxy): Proxy {
+  // 提取国家/地区信息
+  const regionMatch = Object.keys(FLAG_MAP).find(key => 
+    proxy.name.toLowerCase().includes(key.toLowerCase())
+  )
+  const flag = regionMatch ? FLAG_MAP[regionMatch] : ''
+  
+  // 提取序号（如果有）
+  const numMatch = proxy.name.match(/\d+/)
+  const num = numMatch ? ` ${numMatch[0]}` : ''
+  
+  // 组合新名称，只包含 [国旗表情] 地区名称 序号
+  const newName = `${flag} ${regionMatch || '未知'}${num}`
+  
+  return {
+    ...proxy,
+    name: newName.trim()
+  }
+}
 
 // 获取默认配置
 async function getDefaultConfig(): Promise<ClashConfig | null> {
@@ -23,8 +65,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
 
-    // 尝试转换
-    const proxies = await parseSubscription(url || '')
+    // 解析订阅
+    const originalProxies = await parseSubscription(url || '')
+    
+    // 格式化节点名称
+    const proxies = originalProxies.map(formatProxyName)
     
     // 获取默认配置
     const defaultConfig = await getDefaultConfig()
