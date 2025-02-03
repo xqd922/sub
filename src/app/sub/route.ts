@@ -7,73 +7,85 @@ export const runtime = 'edge'
 
 // 国家/地区表情映射
 const FLAG_MAP: Record<string, string> = {
-  // 东亚地区
+  // 主流地区
   '香港': '🇭🇰',
   'HK': '🇭🇰',
   '台湾': '🇹🇼',
   'TW': '🇹🇼',
   '日本': '🇯🇵',
   'JP': '🇯🇵',
-  '韩国': '🇰🇷',
-  'KR': '🇰🇷',
-  
-  // 东南亚地区
+  '美国': '🇺🇸',
+  'US': '🇺🇸',
+  '狮城': '🇸🇬',
   '新加坡': '🇸🇬',
   'SG': '🇸🇬',
+  '澳门': '🇲🇴',
+  'MO': '🇲🇴',
+  'MACAU': '🇲🇴',
+
+  // 冷门地区
+  '荷兰': '🇳🇱',
+  'NL': '🇳🇱',
+  '意大利': '🇮🇹',
+  'IT': '🇮🇹',
+  '乌克兰': '🇺🇦',
+  'UA': '🇺🇦',
+  '波兰': '🇵🇱',
+  'PL': '🇵🇱',
+  '土耳其': '🇹🇷',
+  'TR': '🇹🇷',
+  '泰国': '🇹🇭',
+  'TH': '🇹🇭',
+  '菲律宾': '🇵🇭',
+  'PH': '🇵🇭',
   '马来西亚': '🇲🇾',
   'MY': '🇲🇾',
   '印度尼西亚': '🇮🇩',
   'ID': '🇮🇩',
-  '菲律宾': '🇵🇭',
-  'PH': '🇵🇭',
   '越南': '🇻🇳',
   'VN': '🇻🇳',
-  '泰国': '🇹🇭',
-  'TH': '🇹🇭',
-
-  // 欧洲地区
   '英国': '🇬🇧',
   'UK': '🇬🇧',
   '德国': '🇩🇪',
   'DE': '🇩🇪',
   '法国': '🇫🇷',
   'FR': '🇫🇷',
-  '意大利': '🇮🇹',
-  'IT': '🇮🇹',
   '西班牙': '🇪🇸',
   'ES': '🇪🇸',
-  '荷兰': '🇳🇱',
-  'NL': '🇳🇱',
   '俄罗斯': '🇷🇺',
   'RU': '🇷🇺',
-
-  // 北美地区
-  '美国': '🇺🇸',
-  'US': '🇺🇸',
   '加拿大': '🇨🇦',
   'CA': '🇨🇦',
   '墨西哥': '🇲🇽',
   'MX': '🇲🇽',
-
-  // 大洋洲
   '澳大利亚': '🇦🇺',
   'AU': '🇦🇺',
   '新西兰': '🇳🇿',
   'NZ': '🇳🇿',
-
-  // 其他地区
   '印度': '🇮🇳',
   'IN': '🇮🇳',
   '巴西': '🇧🇷',
   'BR': '🇧🇷',
   '阿根廷': '🇦🇷',
   'AR': '🇦🇷',
-  '土耳其': '🇹🇷',
-  'TR': '🇹🇷',
   '以色列': '🇮🇱',
   'IL': '🇮🇱',
   '南非': '🇿🇦',
-  'ZA': '🇿🇦'
+  'ZA': '🇿🇦',
+  '韩国': '🇰🇷',
+  'KR': '🇰🇷',
+  '柬埔寨': '🇰🇭',
+  'KH': '🇰🇭',
+  'CAMBODIA': '🇰🇭',
+  '冰岛': '🇮🇸',
+  'IS': '🇮🇸',
+  'ICELAND': '🇮🇸',
+  '南极': '🇦🇶',
+  'AQ': '🇦🇶',
+  'ANTARCTICA': '🇦🇶',
+  '尼日利亚': '🇳🇬',
+  'NG': '🇳🇬',
+  'NIGERIA': '🇳🇬',
 }
 
 // 在每次请求开始时重置计数器
@@ -92,6 +104,9 @@ function formatProxyName(proxy: Proxy): Proxy {
   
   const flag = FLAG_MAP[regionMatch]
   
+  // 将新加坡显示为狮城
+  const displayRegion = (regionMatch === '新加坡' || regionMatch === 'SG') ? '狮城' : regionMatch
+  
   // 提取倍率信息
   const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/);
   const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : '';
@@ -101,7 +116,7 @@ function formatProxyName(proxy: Proxy): Proxy {
   const num = String(counters[regionMatch]).padStart(2, '0')
   
   // 组合新名称
-  const newName = `${flag} ${regionMatch} ${num}${multiplier}`
+  const newName = `${flag} ${displayRegion} ${num}${multiplier}`
   
   return {
     ...proxy,
