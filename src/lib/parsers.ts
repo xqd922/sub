@@ -76,8 +76,26 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 // 节点去重函数
 function removeDuplicates(proxies: Proxy[]): Proxy[] {
   const seen = new Set<string>()
+  let infoNodesCount = 0
   
-  return proxies.filter(proxy => {
+  // 先过滤掉信息节点
+  const filteredProxies = proxies.filter(proxy => {
+    // 排除包含以下关键词的节点
+    const excludeKeywords = [
+      '官网',
+      '剩余流量',
+      '距离下次重置',
+      '套餐到期',
+      '官网'
+    ]
+    
+    // 如果节点名称包含任何排除关键词，则跳过
+    if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
+      console.log(`排除信息节点: ${proxy.name}`)
+      infoNodesCount++
+      return false
+    }
+
     // 生成更详细的唯一标识
     let key = `${proxy.type}:${proxy.server}:${proxy.port}`
     
@@ -118,6 +136,12 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     seen.add(key)
     return true
   })
+
+  console.log(`总节点数: ${proxies.length}`)
+  console.log(`排除信息节点: ${infoNodesCount} 个`)
+  console.log(`去重后节点数: ${filteredProxies.length}`)
+  
+  return filteredProxies
 }
 
 export function parseSS(line: string): Proxy {

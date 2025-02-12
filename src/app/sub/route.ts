@@ -126,7 +126,6 @@ const REGION_MAP: Record<string, { flag: string, name: string }> = {
   'MA': { flag: '🇲🇦', name: '摩洛哥' },
   '肯尼亚': { flag: '🇰🇪', name: '肯尼亚' },
   'KE': { flag: '🇰🇪', name: '肯尼亚' },
-
   // 特殊地区
   '直布罗陀': { flag: '🇬🇮', name: '直布罗陀' },
   'GI': { flag: '🇬🇮', name: '直布罗陀' },
@@ -181,13 +180,65 @@ function formatProxyName(proxy: Proxy): Proxy {
 
 // 获取默认配置
 async function getDefaultConfig(): Promise<ClashConfig | null> {
+  const configUrl = 'https://raw.githubusercontent.com/xqd922/Xqd-Sub/main/Xqd-Sub/clash%20base.yml'
+  
+  // 添加重试逻辑
+  const fetchWithRetry = async (retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(configUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0',
+            'Accept': '*/*',
+            'Cache-Control': 'no-cache'
+          },
+          next: { revalidate: 0 }
+        })
+
+        if (!response.ok) {
+          throw new Error(`获取配置失败: ${response.status}`)
+        }
+
+        return await response.text()
+      } catch (e) {
+        console.error(`第 ${i + 1} 次获取配置失败:`, e)
+        if (i === retries - 1) throw e
+        // 等待后重试
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+      }
+    }
+    throw new Error('获取配置重试次数已用完')
+  }
+
   try {
-    const response = await fetch('https://raw.githubusercontent.com/xqd922/Xqd-Sub/main/Xqd-Sub/clash%20base.yml')
-    const text = await response.text()
+    const text = await fetchWithRetry()
     return yaml.load(text) as ClashConfig
   } catch (error) {
     console.error('获取默认配置失败:', error)
-    return null
+    // 返回一个基础配置而不是 null
+    return {
+      port: 7890,
+      'allow-lan': true,
+      'bind-address': '*',
+      mode: 'rule',
+      'log-level': 'info',
+      ipv6: true,
+      'tcp-concurrent': true,
+      dns: {
+        enable: true,
+        ipv6: false,
+        'default-nameserver': ['223.5.5.5', '119.29.29.29'],
+        'enhanced-mode': 'fake-ip',
+        'fake-ip-range': '198.18.0.1/16',
+        'use-hosts': true,
+        nameserver: ['https://dns.alidns.com/dns-query'],
+        fallback: ['https://dns.cloudflare.com/dns-query'],
+        'fallback-filter': { geoip: true, ipcidr: ['240.0.0.0/4', '0.0.0.0/32'] }
+      },
+      proxies: [],
+      'proxy-groups': [],
+      rules: []
+    }
   }
 }
 
@@ -200,19 +251,18 @@ export async function GET(request: Request) {
       return new NextResponse('Missing subscription url', { status: 400 })
     }
 
-    console.log('处理订阅:', url)
-    const proxies = await parseSubscription(url)
-    console.log(`解析到 ${proxies.length} 个节点`)
-
+    console.log('开始处理订阅:', url)
+    
     // 在处理每个新请求前重置计数器
     Object.keys(counters).forEach(key => delete counters[key])
     
     // 获取原始订阅信息
-    const response = await fetch(url || '', {
+    console.log('获取订阅信息...')
+    const response = await fetch(url, {
       headers: {
         'User-Agent': 'ClashX/1.95.1'
       }
-    });
+    })
     
     // 获取订阅到期时间和流量信息
     const subscription = {
@@ -226,13 +276,25 @@ export async function GET(request: Request) {
               response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
               ''
     }
+    console.log('订阅信息:', subscription)
+
+    // 解析节点
+    console.log('开始解析节点...')
+    const proxies = await parseSubscription(url)
+    console.log(`解析到 ${proxies.length} 个原始节点`)
 
     // 格式化节点名称
+    console.log('开始格式化节点名称...')
     const formattedProxies = proxies.map(formatProxyName)
+    console.log(`格式化完成，共 ${formattedProxies.length} 个节点`)
     
     // 获取默认配置
+    console.log('获取默认配置...')
     const defaultConfig = await getDefaultConfig()
-    
+    console.log('默认配置获取完成')
+
+    // 生成最终配置
+    console.log('生成 Clash 配置...')
     const clashConfig: ClashConfig = {
       'mixed-port': 7890,
       'allow-lan': true,
@@ -859,16 +921,17 @@ export async function GET(request: Request) {
         'MATCH,Manual'
       ]
     }
-
-    // 返回 YAML 格式的配置，添加响应头
-    const yamlConfig = yaml.dump(clashConfig)
     
+    // 转换为 YAML
+    console.log('转换为 YAML 格式...')
+    const yamlConfig = yaml.dump(clashConfig)
+    console.log('转换完成')
+
     return new NextResponse(yamlConfig, {
       headers: {
         'Content-Type': 'text/yaml; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Access-Control-Allow-Origin': '*',
-        // 添加订阅信息头
         'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
         'profile-expire': subscription.expire,
         'profile-update-interval': '24',
@@ -879,6 +942,10 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('转换错误:', error)
+    if (error instanceof Error) {
+      console.error('错误详情:', error.message)
+      console.error('错误堆栈:', error.stack)
+    }
     return new NextResponse(error instanceof Error ? error.message : '转换失败', {
       status: 500,
       headers: {
