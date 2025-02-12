@@ -7,6 +7,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [convertedUrl, setConvertedUrl] = useState('')
+  const [shortUrl, setShortUrl] = useState('')
 
   const handleConvert = async () => {
     if (!inputUrl) {
@@ -16,6 +17,7 @@ export default function Home() {
     
     setError('')
     setLoading(true)
+    setShortUrl('') // 重置短链接
     
     try {
       const baseUrl = window.location.origin
@@ -23,25 +25,51 @@ export default function Home() {
       const convertedUrl = `${baseUrl}/sub?url=${encodedUrl}`
       setConvertedUrl(convertedUrl)
       
-      // 自动复制
+      // 生成短链接
       try {
-        await navigator.clipboard.writeText(convertedUrl)
-        const toast = document.createElement('div')
-        toast.className = 'fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-up'
-        toast.textContent = '已自动复制到剪贴板'
-        document.body.appendChild(toast)
-        setTimeout(() => {
-          toast.classList.add('animate-fade-out')
-          setTimeout(() => document.body.removeChild(toast), 300)
-        }, 2000)
-      } catch {
-        // 如果自动复制失败，不显示错误
+        const response = await fetch('/api/shorten', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: convertedUrl })
+        })
+        
+        if (!response.ok) {
+          throw new Error('短链接生成失败')
+        }
+        
+        const data = await response.json()
+        console.log('短链接响应:', data) // 添加调试日志
+        
+        if (data.shortUrl) {
+          setShortUrl(data.shortUrl)
+          showToast('短链接生成成功')
+        }
+      } catch (err) {
+        console.error('短链接生成失败:', err)
+        showToast('短链接生成失败')
       }
+
+      // 复制转换后的链接
+      await navigator.clipboard.writeText(convertedUrl)
+      showToast('已复制到剪贴板')
     } catch {
       setError('转换失败，请稍后重试')
     } finally {
       setLoading(false)
     }
+  }
+
+  const showToast = (message: string) => {
+    const toast = document.createElement('div')
+    toast.className = 'fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-up'
+    toast.textContent = message
+    document.body.appendChild(toast)
+    setTimeout(() => {
+      toast.classList.add('animate-fade-out')
+      setTimeout(() => document.body.removeChild(toast), 300)
+    }, 2000)
   }
 
   return (
@@ -83,13 +111,36 @@ export default function Home() {
             </div>
           )}
 
-          {convertedUrl && (
+          {(convertedUrl || shortUrl) && (
             <div className="space-y-3 sm:space-y-4">
+              {shortUrl && (
+                <div className="space-y-1.5 sm:space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shortUrl)
+                        showToast('已复制短链接')
+                      }}
+                      className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    >
+                      复制
+                    </button>
+                  </div>
+                  <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
+                    {shortUrl}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">转换结果</span>
+                  <span className="text-[10px] sm:text-xs text-gray-400">原始链接</span>
                   <button
-                    onClick={() => navigator.clipboard.writeText(convertedUrl)}
+                    onClick={() => {
+                      navigator.clipboard.writeText(convertedUrl)
+                      showToast('已复制原始链接')
+                    }}
                     className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                   >
                     复制
