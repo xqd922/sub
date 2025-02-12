@@ -886,11 +886,14 @@ export async function GET(request: Request) {
         'Content-Type': 'text/yaml; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Access-Control-Allow-Origin': '*',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('订阅')}`,
         'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
-        'profile-expire': subscription.expire,
         'profile-update-interval': '24',
         'profile-title': 'xqd sub',
-        'expires': subscription.expire
+        'expires': subscription.expire,
+        'profile-web-page-url': 'https://sub.xqd.us.kg',
+        'profile-expire': subscription.expire,
+        'profile-status': 'active'
       }
     })
 
