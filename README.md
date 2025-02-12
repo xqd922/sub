@@ -86,7 +86,6 @@ NODE_ENV=production
 ### 自定义规则
 可以在 `src/app/sub/route.ts` 中修改：
 - DNS 配置
-- 分流规则
 - 代理组设置
 - 节点命名格式
 
