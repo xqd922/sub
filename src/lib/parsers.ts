@@ -7,17 +7,33 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
     urlObj.searchParams.set('flag', 'meta')
     urlObj.searchParams.set('types', 'all')
     
-    const response = await fetch(urlObj.toString(), {
-      headers: {
-        'User-Agent': 'ClashX/1.95.1'
-      }
-    })
+    // 添加重试逻辑
+    const fetchWithRetry = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(urlObj.toString(), {
+            headers: {
+              'User-Agent': 'ClashX/1.95.1',
+              'Accept': '*/*',
+              'Cache-Control': 'no-cache'
+            },
+            next: { revalidate: 0 } // 禁用缓存
+          })
 
-    if (!response.ok) {
-      throw new Error('订阅获取失败')
+          if (!response.ok) {
+            throw new Error(`订阅获取失败: ${response.status}`)
+          }
+
+          return await response.text()
+        } catch (e) {
+          if (i === retries - 1) throw e
+          await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+        }
+      }
+      throw new Error('所有重试都失败了')
     }
 
-    const text = await response.text()
+    const text = await fetchWithRetry()
     
     if (text.includes('proxies:')) {
       const config = yaml.load(text) as ProxyConfig

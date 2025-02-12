@@ -193,13 +193,20 @@ async function getDefaultConfig(): Promise<ClashConfig | null> {
 
 export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const url = searchParams.get('url')
+    
+    if (!url) {
+      return new NextResponse('Missing subscription url', { status: 400 })
+    }
+
+    console.log('处理订阅:', url)
+    const proxies = await parseSubscription(url)
+    console.log(`解析到 ${proxies.length} 个节点`)
+
     // 在处理每个新请求前重置计数器
     Object.keys(counters).forEach(key => delete counters[key])
     
-    // 从 URL 获取参数
-    const { searchParams } = new URL(request.url)
-    const url = searchParams.get('url')
-
     // 获取原始订阅信息
     const response = await fetch(url || '', {
       headers: {
@@ -220,11 +227,8 @@ export async function GET(request: Request) {
               ''
     }
 
-    // 解析订阅
-    const originalProxies = await parseSubscription(url || '')
-    
     // 格式化节点名称
-    const proxies = originalProxies.map(formatProxyName)
+    const formattedProxies = proxies.map(formatProxyName)
     
     // 获取默认配置
     const defaultConfig = await getDefaultConfig()
@@ -249,30 +253,30 @@ export async function GET(request: Request) {
         fallback: ['https://doh.dns.sb/dns-query', 'https://dns.cloudflare.com/dns-query', 'https://dns.twnic.tw/dns-query', 'tls://8.8.4.4:853'],
         'fallback-filter': { geoip: true, ipcidr: ['240.0.0.0/4', '0.0.0.0/32'] }
       },
-      proxies,
+      proxies: formattedProxies,
       'proxy-groups': [
         {
           name: 'Manual',
           type: 'select',
-          proxies: ['Auto', 'DIRECT', 'HK', 'Min', ...proxies.map(p => p.name)]
+          proxies: ['Auto', 'DIRECT', 'HK', 'Min', ...formattedProxies.map(p => p.name)]
         },
         {
           name: 'Auto',
           type: 'url-test',
-          proxies: proxies.map(p => p.name),
+          proxies: formattedProxies.map(p => p.name),
           url: 'http://www.gstatic.com/generate_204',
           interval: 300
         },
         {
           name: 'Emby',
           type: 'select',
-          proxies: ['Manual', 'Min', ...proxies.map(p => p.name)]
+          proxies: ['Manual', 'Min', ...formattedProxies.map(p => p.name)]
         },
         {
           name: 'HK',
           type: 'url-test',
           proxies: (() => {
-            const filtered = proxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
+            const filtered = formattedProxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
             return filtered.length > 0 ? filtered : ['DIRECT']
           })(),
           url: 'http://www.gstatic.com/generate_204',
@@ -283,7 +287,7 @@ export async function GET(request: Request) {
           name: 'Min',
           type: 'url-test',
           proxies: (() => {
-            const filtered = proxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
+            const filtered = formattedProxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
             return filtered.length > 0 ? filtered : ['DIRECT']
           })(),
           url: 'http://www.gstatic.com/generate_204',
@@ -875,7 +879,7 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('转换错误:', error)
-    return new NextResponse('转换失败', { 
+    return new NextResponse(error instanceof Error ? error.message : '转换失败', {
       status: 500,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
