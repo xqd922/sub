@@ -3,7 +3,11 @@ import yaml from 'js-yaml'
 
 export async function parseSubscription(url: string): Promise<Proxy[]> {
   try {
-    const response = await fetch(url, {
+    const urlObj = new URL(url)
+    urlObj.searchParams.set('flag', 'meta')
+    urlObj.searchParams.set('types', 'all')
+    
+    const response = await fetch(urlObj.toString(), {
       headers: {
         'User-Agent': 'ClashX/1.95.1'
       }
