@@ -21,7 +21,13 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
     
     if (text.includes('proxies:')) {
       const config = yaml.load(text) as ProxyConfig
-      return config.proxies || []
+      const proxies = config.proxies || []
+      
+      // 节点去重
+      const uniqueProxies = removeDuplicates(proxies)
+      console.log(`去重前节点数: ${proxies.length}, 去重后节点数: ${uniqueProxies.length}`)
+      
+      return uniqueProxies
     }
     
     const decodedText = Buffer.from(text, 'base64').toString()
@@ -49,6 +55,53 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
     console.error('解析订阅失败:', error)
     throw error
   }
+}
+
+// 节点去重函数
+function removeDuplicates(proxies: Proxy[]): Proxy[] {
+  const seen = new Set<string>()
+  
+  return proxies.filter(proxy => {
+    // 生成更详细的唯一标识
+    let key = `${proxy.type}:${proxy.server}:${proxy.port}`
+    
+    // 根据不同协议添加额外的识别字段
+    switch (proxy.type) {
+      case 'hysteria2':
+        // hysteria2 需要考虑 ports, mport, password, sni
+        key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
+        break
+      case 'vless':
+        // vless 需要考虑 uuid, flow, reality-opts
+        key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
+        if (proxy['reality-opts']) {
+          key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
+        }
+        break
+      case 'vmess':
+        // vmess 需要考虑 uuid, network, path
+        key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
+        break
+      case 'ss':
+        // ss 需要考虑 cipher, password
+        key += `:${proxy.cipher || ''}:${proxy.password || ''}`
+        break
+      case 'trojan':
+        // trojan 需要考虑 password, sni
+        key += `:${proxy.password || ''}:${proxy.sni || ''}`
+        break
+    }
+
+    // 如果已存在相同节点，则过滤掉
+    if (seen.has(key)) {
+      console.log(`发现重复节点: ${proxy.name}`)
+      return false
+    }
+    
+    // 记录新节点
+    seen.add(key)
+    return true
+  })
 }
 
 export function parseSS(line: string): Proxy {

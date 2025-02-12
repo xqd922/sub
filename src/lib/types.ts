@@ -20,6 +20,15 @@ export interface Proxy {
   tls?: boolean
   skipCertVerify?: boolean
   sni?: string
+  'reality-opts'?: {
+    'public-key'?: string
+    'short-id'?: string
+  }
+  ports?: string
+  mport?: string
+  udp?: boolean
+  'skip-cert-verify'?: boolean
+  flow?: string
 }
 
 export interface DnsConfig {
