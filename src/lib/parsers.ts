@@ -86,7 +86,7 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
       '剩余流量',
       '距离下次重置',
       '套餐到期',
-      '官网'
+      '订阅'
     ]
     
     // 如果节点名称包含任何排除关键词，则跳过
