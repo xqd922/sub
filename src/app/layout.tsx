@@ -2,20 +2,18 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Clash 订阅转换",
-  description: "基于 ACL4SSR 规则的 Clash 订阅转换 API 服务",
+  title: "XQD订阅转换",
+  description: "将订阅链接转换为Clash配置",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="zh" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        {children}
-      </body>
+    <html lang="zh">
+      <body>{children}</body>
     </html>
   );
 }
