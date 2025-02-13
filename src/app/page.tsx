@@ -82,7 +82,7 @@ export default function Home() {
       <section className="w-full max-w-xl mt-24">
         <div className="text-center space-y-1 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-light tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            订阅转换
+            Clash 订阅转换
           </h1>
         </div>
 
