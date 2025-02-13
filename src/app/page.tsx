@@ -113,6 +113,24 @@ export default function Home() {
 
           {(convertedUrl || shortUrl) && (
             <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-[10px] sm:text-xs text-gray-400">原始链接</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(convertedUrl)
+                      showToast('已复制原始链接')
+                    }}
+                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    复制
+                  </button>
+                </div>
+                <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
+                  {convertedUrl}
+                </div>
+              </div>
+
               {shortUrl && (
                 <div className="space-y-1.5 sm:space-y-2">
                   <div className="flex justify-between items-center px-1">
@@ -132,24 +150,6 @@ export default function Home() {
                   </div>
                 </div>
               )}
-
-              <div className="space-y-1.5 sm:space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">原始链接</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(convertedUrl)
-                      showToast('已复制原始链接')
-                    }}
-                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                  >
-                    复制
-                  </button>
-                </div>
-                <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
-                  {convertedUrl}
-                </div>
-              </div>
             </div>
           )}
         </div>
