@@ -50,32 +50,24 @@ async function cleanLinks() {
     let deletedCount = 0;
     for (const link of allLinks) {
       try {
-        // 生成一个随机的 URL 来避免冲突
-        const timestamp = Date.now();
-        const randomStr = Math.random().toString(36).substring(7);
-        const deleteUrl = `https://deleted-${timestamp}-${randomStr}.link`;
-
-        const deleteResponse = await fetch(`${SINK_URL}/api/link/create`, {
+        // 使用官方的删除 API
+        const deleteResponse = await fetch(`${SINK_URL}/api/link/delete`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${SINK_TOKEN}`
           },
           body: JSON.stringify({
-            url: deleteUrl,
-            slug: link.slug,
-            title: '已删除',
-            description: `删除于 ${new Date().toLocaleString()}`
+            slug: link.slug
           })
         });
 
-        if (deleteResponse.ok || deleteResponse.status === 409) {
-          // 无论是创建成功还是已存在都算成功
+        if (deleteResponse.ok) {
           deletedCount++;
-          console.log(`已处理: ${link.slug}`);
+          console.log(`已删除: ${link.slug}`);
         } else {
           const errorText = await deleteResponse.text();
-          console.error(`处理失败 ${link.slug}:`, {
+          console.error(`删除失败 ${link.slug}:`, {
             status: deleteResponse.status,
             statusText: deleteResponse.statusText,
             body: errorText
@@ -83,9 +75,9 @@ async function cleanLinks() {
         }
 
         // 添加延迟避免请求过快
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
-        console.error(`处理失败 ${link.slug}:`, error);
+        console.error(`删除失败 ${link.slug}:`, error);
       }
     }
 
