@@ -56,7 +56,9 @@ export default function HomeContent() {
       const data = await response.json()
       if (data.shortUrl) {
         setShortUrl(data.shortUrl)
-        showToast('短链接生成成功')
+        // 自动复制短链接
+        await navigator.clipboard.writeText(data.shortUrl)
+        showToast('短链接已生成并复制到剪贴板')
       }
     } catch (err) {
       console.error('短链接生成失败:', err)
