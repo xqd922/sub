@@ -2,6 +2,43 @@
 
 import { useState } from 'react'
 
+// 安全的复制函数
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    // 优先使用现代 API
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text)
+        return true
+      } catch {
+        // 如果 clipboard API 失败，回退到传统方法
+      }
+    }
+
+    // 传统方法作为回退
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    // 确保文本区域在视口内但不可见
+    textArea.style.cssText = 'position:fixed;top:50%;left:50%;opacity:0;'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    
+    try {
+      document.execCommand('copy')
+      textArea.remove()
+      return true
+    } catch (err) {
+      console.error('复制失败:', err)
+      textArea.remove()
+      return false
+    }
+  } catch (err) {
+    console.error('复制失败:', err)
+    return false
+  }
+}
+
 export default function HomeContent() {
   const [inputUrl, setInputUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,9 +63,9 @@ export default function HomeContent() {
       const convertedUrl = `${baseUrl}/sub?url=${encodedUrl}`
       setConvertedUrl(convertedUrl)
 
-      // 复制转换后的链接
-      await navigator.clipboard.writeText(convertedUrl)
-      showToast('已复制到剪贴板')
+      // 尝试自动复制
+      const copied = await copyToClipboard(convertedUrl)
+      showToast(copied ? '已复制到剪贴板' : '转换成功')
     } catch {
       setError('转换失败，请稍后重试')
     } finally {
@@ -56,16 +93,22 @@ export default function HomeContent() {
       const data = await response.json()
       if (data.shortUrl) {
         setShortUrl(data.shortUrl)
-        // 自动复制短链接
-        await navigator.clipboard.writeText(data.shortUrl)
-        showToast('短链接已生成并复制到剪贴板')
+        // 尝试自动复制短链接
+        const copied = await copyToClipboard(data.shortUrl)
+        showToast(copied ? '短链接已生成并复制到剪贴板' : '短链接已生成')
       }
     } catch (err) {
-      console.error('短链接生成失败:', err)
-      showToast('短链接生成失败')
+      console.error('生成短链接失败:', err)
+      showToast('生成短链接失败')
     } finally {
       setShortenLoading(false)
     }
+  }
+
+  // 处理复制按钮点击
+  const handleCopy = async (text: string) => {
+    const copied = await copyToClipboard(text)
+    showToast(copied ? '已复制到剪贴板' : '复制失败')
   }
 
   const showToast = (message: string) => {
@@ -124,10 +167,7 @@ export default function HomeContent() {
                 <div className="flex justify-between items-center px-1">
                   <span className="text-[10px] sm:text-xs text-gray-400">转换结果</span>
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(convertedUrl)
-                      showToast('已复制链接')
-                    }}
+                    onClick={() => handleCopy(convertedUrl)}
                     className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                   >
                     复制

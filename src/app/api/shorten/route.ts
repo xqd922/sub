@@ -27,21 +27,20 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SINK_TOKEN}`
         },
-        body: JSON.stringify({ 
-          url,
-          // slug 可选，让系统自动生成
-        })
+        body: JSON.stringify({ url })
       });
 
       if (sinkResponse.ok) {
         const data = await sinkResponse.json();
-        console.log('Sink API 生成成功:', data.shortLink);
+        // 直接使用 slug 构建短链接
+        const shortUrl = `${SINK_URL}/${data.link.slug}`;
+        console.log('Sink API 生成成功:', shortUrl);
         console.log('响应数据:', data);
         console.log(`处理耗时: ${Date.now() - startTime}ms`);
         console.log('=== 处理完成 ===\n');
         
         return NextResponse.json({ 
-          shortUrl: data.shortLink,
+          shortUrl,
           provider: 'sink',
           id: data.link.id
         });
