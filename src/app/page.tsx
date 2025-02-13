@@ -5,6 +5,7 @@ import { useState } from 'react'
 export default function Home() {
   const [inputUrl, setInputUrl] = useState('')
   const [loading, setLoading] = useState(false)
+  const [shortenLoading, setShortenLoading] = useState(false)
   const [error, setError] = useState('')
   const [convertedUrl, setConvertedUrl] = useState('')
   const [shortUrl, setShortUrl] = useState('')
@@ -24,32 +25,6 @@ export default function Home() {
       const encodedUrl = encodeURIComponent(inputUrl)
       const convertedUrl = `${baseUrl}/sub?url=${encodedUrl}`
       setConvertedUrl(convertedUrl)
-      
-      // 生成短链接
-      try {
-        const response = await fetch('/api/shorten', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: convertedUrl })
-        })
-        
-        if (!response.ok) {
-          throw new Error('短链接生成失败')
-        }
-        
-        const data = await response.json()
-        console.log('短链接响应:', data) // 添加调试日志
-        
-        if (data.shortUrl) {
-          setShortUrl(data.shortUrl)
-          showToast('短链接生成成功')
-        }
-      } catch (err) {
-        console.error('短链接生成失败:', err)
-        showToast('短链接生成失败')
-      }
 
       // 复制转换后的链接
       await navigator.clipboard.writeText(convertedUrl)
@@ -58,6 +33,36 @@ export default function Home() {
       setError('转换失败，请稍后重试')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGenerateShortUrl = async () => {
+    if (!convertedUrl) return
+    
+    setShortenLoading(true)
+    try {
+      const response = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: convertedUrl })
+      })
+      
+      if (!response.ok) {
+        throw new Error('短链接生成失败')
+      }
+      
+      const data = await response.json()
+      if (data.shortUrl) {
+        setShortUrl(data.shortUrl)
+        showToast('短链接生成成功')
+      }
+    } catch (err) {
+      console.error('短链接生成失败:', err)
+      showToast('短链接生成失败')
+    } finally {
+      setShortenLoading(false)
     }
   }
 
@@ -111,15 +116,15 @@ export default function Home() {
             </div>
           )}
 
-          {(convertedUrl || shortUrl) && (
+          {convertedUrl && (
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">原始链接</span>
+                  <span className="text-[10px] sm:text-xs text-gray-400">转换结果</span>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(convertedUrl)
-                      showToast('已复制原始链接')
+                      showToast('已复制链接')
                     }}
                     className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                   >
@@ -130,6 +135,19 @@ export default function Home() {
                   {convertedUrl}
                 </div>
               </div>
+
+              {!shortUrl && (
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
+                  <button
+                    onClick={handleGenerateShortUrl}
+                    disabled={shortenLoading}
+                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    {shortenLoading ? '生成中...' : '生成短链接'}
+                  </button>
+                </div>
+              )}
 
               {shortUrl && (
                 <div className="space-y-1.5 sm:space-y-2">
