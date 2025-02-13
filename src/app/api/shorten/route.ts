@@ -1,8 +1,73 @@
 import { NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 
 // Sink 配置
 const SINK_URL = process.env.SINK_URL || 'https://link.xqd.us.kg';
 const SINK_TOKEN = process.env.SINK_TOKEN || 'x20030922';
+
+// 从原始订阅 URL 中提取名称
+function getNameFromUrl(url: string): string | undefined {
+  try {
+    const urlObj = new URL(url);
+    // 获取 name 参数
+    const name = urlObj.searchParams.get('name');
+    if (name) {
+      return decodeURIComponent(name);
+    }
+    // 获取 remarks 参数
+    const remarks = urlObj.searchParams.get('remarks');
+    if (remarks) {
+      return decodeURIComponent(remarks);
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// 生成固定的短链接标识
+function generateSlug(url: string): string {
+  try {
+    // 从原始订阅链接中提取 token
+    const urlObj = new URL(url);
+    const token = urlObj.searchParams.get('token');
+    if (token) {
+      // 使用 token 的前6位作为标识
+      return token.slice(0, 6);
+    }
+
+    // 如果没有 token，使用 URL 的 MD5 前6位
+    const hash = createHash('md5').update(url).digest('hex');
+    return hash.slice(0, 6);
+  } catch {
+    return '';
+  }
+}
+
+// 检查是否存在相同的链接
+async function findExistingLink(url: string): Promise<string | null> {
+  try {
+    // 先查询是否已存在相同链接
+    const searchResponse = await fetch(`${SINK_URL}/api/links/search?url=${encodeURIComponent(url)}`, {
+      headers: {
+        'Authorization': `Bearer ${SINK_TOKEN}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (searchResponse.ok) {
+      const data = await searchResponse.json();
+      if (data.links?.length > 0) {
+        // 返回已存在的短链接
+        return `${SINK_URL}/${data.links[0].slug}`;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('查询短链接失败:', error);
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -19,25 +84,41 @@ export async function POST(request: Request) {
     }
 
     try {
-      // 使用 Sink API
-      console.log('尝试使用 Sink API...');
+      // 从转换后的 URL 中提取原始订阅链接
+      const convertedUrl = new URL(url);
+      const originalUrl = convertedUrl.searchParams.get('url');
+      if (!originalUrl) {
+        throw new Error('无法获取原始订阅链接');
+      }
+
+      // 使用原始订阅链接生成标识
+      const slug = generateSlug(originalUrl);
+      if (!slug) {
+        throw new Error('无法生成短链接标识');
+      }
+      console.log('生成短链接标识:', slug);
+
+      // 提取订阅名称
+      const name = getNameFromUrl(originalUrl);
+      console.log('订阅名称:', name || '未找到');
+
+      // 使用 Sink API 创建短链接
+      console.log('创建短链接...');
       const sinkResponse = await fetch(`${SINK_URL}/api/link/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SINK_TOKEN}`,
           'Accept': 'application/json',
-          // 使用更简单的 User-Agent
           'User-Agent': 'Mozilla/5.0',
-          // 移除可能导致问题的头部
           'Host': new URL(SINK_URL).host
         },
         body: JSON.stringify({ 
           url,
-          title: '订阅链接',
-          description: '由订阅转换服务生成'
+          title: name || '订阅链接',
+          description: '由订阅转换服务生成',
+          slug
         }),
-        // 禁用所有自动行为
         cache: 'no-store',
         credentials: 'omit',
         redirect: 'follow',
@@ -57,6 +138,19 @@ export async function POST(request: Request) {
           shortUrl,
           provider: 'sink',
           id: data.link.id
+        });
+      } else if (sinkResponse.status === 409) {
+        // 如果链接已存在，直接返回该链接
+        console.log('短链接已存在，返回已有链接');
+        const shortUrl = `${SINK_URL}/${slug}`;
+        console.log('短链接:', shortUrl);
+        console.log(`处理耗时: ${Date.now() - startTime}ms`);
+        console.log('=== 处理完成 ===\n');
+        
+        return NextResponse.json({ 
+          shortUrl,
+          provider: 'sink',
+          reused: true
         });
       } else {
         const errorText = await sinkResponse.text();
