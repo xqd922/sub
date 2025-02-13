@@ -100,9 +100,144 @@ async function cleanLinks() {
 export async function POST() {
   try {
     const result = await cleanLinks();
-    return NextResponse.json(result);
+    
+    const html = `
+      <!DOCTYPE html>
+      <html lang="zh-CN">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>短链接清理结果</title>
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(to bottom right, #EEF2FF, #FFFFFF, #F3E8FF);
+            margin: 0;
+            padding: 20px;
+            color: #1f2937;
+          }
+          .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            text-align: center;
+          }
+          h1 {
+            margin: 0 0 30px;
+            font-size: 28px;
+            font-weight: 300;
+            background: linear-gradient(to right, #1f2937, #4b5563);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+          }
+          .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+          }
+          .stat-card {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+          }
+          .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 8px;
+          }
+          .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+          }
+          .success {
+            padding: 12px;
+            background: rgba(220, 252, 231, 0.7);
+            color: #166534;
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+          }
+          .back {
+            display: block;
+            margin-top: 24px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+          }
+          .back:hover {
+            color: #374151;
+          }
+          @media (prefers-color-scheme: dark) {
+            body {
+              background: linear-gradient(to bottom right, #1f2937, #000000, #1f2937);
+              color: #e5e7eb;
+            }
+            .container {
+              background: rgba(0, 0, 0, 0.3);
+            }
+            h1 {
+              background: linear-gradient(to right, #e5e7eb, #9ca3af);
+              -webkit-background-clip: text;
+            }
+            .stat-card {
+              background: rgba(0, 0, 0, 0.3);
+            }
+            .stat-value {
+              color: #60a5fa;
+            }
+            .stat-label {
+              color: #9ca3af;
+            }
+            .success {
+              background: rgba(6, 78, 59, 0.7);
+              color: #6ee7b7;
+            }
+            .back {
+              color: #9ca3af;
+            }
+            .back:hover {
+              color: #e5e7eb;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>短链接清理结果</h1>
+          ${result.success ? 
+            `<div class="success">清理成功</div>` : 
+            `<div class="error">清理过程中出现错误</div>`
+          }
+          <div class="stats">
+            <div class="stat-card">
+              <div class="stat-value">${result.total}</div>
+              <div class="stat-label">总链接数</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${result.deleted}</div>
+              <div class="stat-label">已清理数量</div>
+            </div>
+          </div>
+          <a href="/" class="back">返回首页</a>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return new NextResponse(html, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8'
+      }
+    });
   } catch (err) {
-    console.error('API 错误:', err); // 使用 err 变量记录错误
+    console.error('API 错误:', err);
     return NextResponse.json(
       { error: '清理失败' },
       { status: 500 }
@@ -110,102 +245,109 @@ export async function POST() {
   }
 }
 
-// GET 请求处理
+// GET 请求处理 - 显示初始页面
 export async function GET() {
-  // 返回一个带有清理按钮的 HTML 页面
-  return new NextResponse(
-    `
+  const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <title>清理短链接</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>清理短链接</title>
+      <style>
+        body {
+          font-family: system-ui, -apple-system, sans-serif;
+          min-height: 100vh;
+          background: linear-gradient(to bottom right, #EEF2FF, #FFFFFF, #F3E8FF);
+          margin: 0;
+          padding: 20px;
+          color: #1f2937;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          padding: 30px;
+          background: rgba(255, 255, 255, 0.3);
+          backdrop-filter: blur(10px);
+          text-align: center;
+        }
+        h1 {
+          margin: 0 0 30px;
+          font-size: 28px;
+          font-weight: 300;
+          background: linear-gradient(to right, #1f2937, #4b5563);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          letter-spacing: -0.5px;
+        }
+        .btn {
+          display: inline-block;
+          padding: 12px 28px;
+          background: linear-gradient(to right, #1f2937, #4b5563);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 500;
+          cursor: pointer;
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+        .btn:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+        .back {
+          display: block;
+          margin-top: 24px;
+          color: #6b7280;
+          text-decoration: none;
+          font-size: 14px;
+          transition: color 0.2s;
+        }
+        .back:hover {
+          color: #374151;
+        }
+        @media (prefers-color-scheme: dark) {
           body {
-            font-family: system-ui, -apple-system, sans-serif;
-            max-width: 600px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            line-height: 1.5;
-            text-align: center;
+            background: linear-gradient(to bottom right, #1f2937, #000000, #1f2937);
+            color: #e5e7eb;
           }
-          .success { color: #16a34a; }
-          .error { color: #dc2626; }
-          button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: opacity 0.2s;
+          .container {
+            background: rgba(0, 0, 0, 0.5);
           }
-          button:hover {
-            opacity: 0.9;
+          h1 {
+            background: linear-gradient(to right, #e5e7eb, #9ca3af);
+            -webkit-background-clip: text;
           }
-          button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+          .btn {
+            background: linear-gradient(to right, #e5e7eb, #9ca3af);
+            color: #1f2937;
           }
-          #result {
-            margin-top: 1rem;
+          .back {
+            color: #9ca3af;
           }
-        </style>
-      </head>
-      <body>
+          .back:hover {
+            color: #e5e7eb;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
         <h1>清理短链接</h1>
-        <button onclick="cleanLinks()" id="cleanBtn">开始清理</button>
-        <div id="result"></div>
-        <p>
-          <a href="/">返回首页</a>
-        </p>
-
-        <script>
-          async function cleanLinks() {
-            const btn = document.getElementById('cleanBtn');
-            const result = document.getElementById('result');
-            
-            try {
-              btn.disabled = true;
-              btn.textContent = '清理中...';
-              result.innerHTML = '';
-
-              const response = await fetch('/api/shorten/clean', {
-                method: 'POST'
-              });
-              
-              const data = await response.json();
-              
-              if (response.ok) {
-                result.innerHTML = \`
-                  <p class="success">
-                    清理完成！共删除 \${data.deleted}/\${data.total} 个短链接
-                  </p>
-                \`;
-              } else {
-                throw new Error(data.error || '清理失败');
-              }
-            } catch (error) {
-              result.innerHTML = \`
-                <p class="error">
-                  \${error.message || '清理失败'}
-                </p>
-              \`;
-            } finally {
-              btn.disabled = false;
-              btn.textContent = '开始清理';
-            }
-          }
-        </script>
-      </body>
+        <form method="POST">
+          <button type="submit" class="btn">开始清理</button>
+        </form>
+        <a href="/" class="back">返回首页</a>
+      </div>
+    </body>
     </html>
-    `,
-    {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8'
-      }
+  `;
+
+  return new NextResponse(html, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8'
     }
-  );
+  });
 } 
