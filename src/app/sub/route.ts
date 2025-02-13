@@ -23,7 +23,7 @@ const REGION_MAP: Record<string, { flag: string, name: string }> = {
   '马来西亚': { flag: '🇲🇾', name: '马来西亚' },
   'MY': { flag: '🇲🇾', name: '马来西亚' },
   '印度尼西亚': { flag: '🇮🇩', name: '印尼' },
-  'ID': { flag: '🇮🇩', name: '印尼' },
+  'ID': { flag: '🇮🇩', name: '印度尼西亚' },
   '泰国': { flag: '🇹🇭', name: '泰国' },
   'TH': { flag: '🇹🇭', name: '泰国' },
   '越南': { flag: '🇻🇳', name: '越南' },
@@ -142,7 +142,19 @@ const REGION_MAP: Record<string, { flag: string, name: string }> = {
   '牙买加': { flag: '🇯🇲', name: '牙买加' },
   'JM': { flag: '🇯🇲', name: '牙买加' },
   '巴巴多斯': { flag: '🇧🇧', name: '巴巴多斯' },
-  'BB': { flag: '🇧🇧', name: '巴巴多斯' }
+  'BB': { flag: '🇧🇧', name: '巴巴多斯' },
+  
+  // 尼日利亚
+  '尼日利亚': { flag: '🇳🇬', name: '尼日利亚' },
+  'NG': { flag: '🇳🇬', name: '尼日利亚' },
+
+  // 其他地区
+  '澳门': { flag: '🇲🇴', name: '澳门' },
+  'MO': { flag: '🇲🇴', name: '澳门' },
+  
+  // 伊拉克
+  '伊拉克': { flag: '🇮🇶', name: '伊拉克' },
+  'IQ': { flag: '🇮🇶', name: '伊拉克' }
 }
 
 // 在每次请求开始时重置计数器
