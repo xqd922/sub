@@ -76,8 +76,8 @@ async function cleanLinks() {
 
         // 添加延迟避免请求过快
         await new Promise(resolve => setTimeout(resolve, 300));
-      } catch (error) {
-        console.error(`删除失败 ${link.slug}:`, error);
+      } catch (err) {
+        console.error(`删除失败 ${link.slug}:`, err);
       }
     }
 
@@ -90,9 +90,9 @@ async function cleanLinks() {
       deleted: deletedCount
     };
 
-  } catch (error) {
-    console.error('清理失败:', error);
-    throw error;
+  } catch (err) {
+    console.error('清理失败:', err);
+    throw err;
   }
 }
 
@@ -101,7 +101,8 @@ export async function POST() {
   try {
     const result = await cleanLinks();
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (err) {
+    console.error('API 错误:', err); // 使用 err 变量记录错误
     return NextResponse.json(
       { error: '清理失败' },
       { status: 500 }

@@ -74,7 +74,7 @@ GET /api/health
 ## 配置说明
 
 ### 环境变量
-创建 `.env.local` 文件：
+创建 `.env.local` 文件
 ```env
 # API 配置
 PORT=3001

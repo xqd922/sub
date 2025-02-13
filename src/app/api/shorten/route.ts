@@ -44,31 +44,6 @@ function generateSlug(url: string): string {
   }
 }
 
-// 检查是否存在相同的链接
-async function findExistingLink(url: string): Promise<string | null> {
-  try {
-    // 先查询是否已存在相同链接
-    const searchResponse = await fetch(`${SINK_URL}/api/links/search?url=${encodeURIComponent(url)}`, {
-      headers: {
-        'Authorization': `Bearer ${SINK_TOKEN}`,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (searchResponse.ok) {
-      const data = await searchResponse.json();
-      if (data.links?.length > 0) {
-        // 返回已存在的短链接
-        return `${SINK_URL}/${data.links[0].slug}`;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error('查询短链接失败:', error);
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
   const startTime = Date.now();
   console.log('\n=== 开始处理短链接请求 ===');
