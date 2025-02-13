@@ -115,13 +115,36 @@ export async function POST(request: Request) {
           id: data.link.id
         });
       } else if (sinkResponse.status === 409) {
-        // 如果链接已存在，直接返回该链接
-        console.log('短链接已存在，返回已有链接');
-        const shortUrl = `${SINK_URL}/${slug}`;
-        console.log('短链接:', shortUrl);
-        console.log(`处理耗时: ${Date.now() - startTime}ms`);
-        console.log('=== 处理完成 ===\n');
+        console.log('短链接已存在，尝试更新...');
+        // 调用更新接口
+        const updateResponse = await fetch(`${SINK_URL}/api/link/update/${slug}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SINK_TOKEN}`,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ 
+            url,
+            title: name || '订阅链接',
+            description: '由订阅转换服务生成'
+          })
+        });
+
+        if (updateResponse.ok) {
+          const data = await updateResponse.json();
+          const shortUrl = `${SINK_URL}/${data.link.slug}`;
+          console.log('短链接已更新:', shortUrl);
+          return NextResponse.json({ 
+            shortUrl,
+            provider: 'sink',
+            updated: true
+          });
+        }
         
+        // 如果更新失败，返回已有链接
+        console.log('更新失败，返回已有链接');
+        const shortUrl = `${SINK_URL}/${slug}`;
         return NextResponse.json({ 
           shortUrl,
           provider: 'sink',
