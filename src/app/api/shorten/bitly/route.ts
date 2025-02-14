@@ -13,7 +13,35 @@ export async function POST(request: Request) {
     const { url } = await request.json()
     console.log('原始URL:', url)
 
-    // 使用 Bitly v4 API
+    // 先检查该长链接是否已经有对应的短链接
+    const checkResponse = await fetch('https://api-ssl.bitly.com/v4/bitlinks/by_url', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${BITLY_TOKEN}`
+      },
+      body: JSON.stringify({
+        long_url: url
+      })
+    }).catch(error => {
+      console.error('检查短链接错误:', error)
+      return null
+    })
+
+    // 如果找到已存在的短链接，直接返回
+    if (checkResponse?.ok) {
+      const existingData = await checkResponse.json()
+      const shortUrl = existingData.link
+      console.log('找到已存在的短链接:', shortUrl)
+      console.log(`处理耗时: ${Date.now() - startTime}ms`)
+      console.log('=== 处理完成 ===\n')
+      return NextResponse.json({ 
+        shortUrl,
+        provider: 'Bitly'
+      })
+    }
+
+    // 如果没有找到，创建新的短链接
+    console.log('创建新的短链接...')
     const response = await fetch('https://api-ssl.bitly.com/v4/shorten', {
       method: 'POST',
       headers: {
