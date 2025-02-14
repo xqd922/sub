@@ -842,8 +842,32 @@ export async function GET(request: Request) {
       ipv6: true,
       'tcp-concurrent': true,
       'external-controller': '127.0.0.1:9090',
-      dns: defaultConfig.dns,
-      proxies: formattedProxies,
+      
+      // DNS 配置
+      dns: {
+        enable: true,
+        ipv6: false,
+        'default-nameserver': ['223.5.5.5', '119.29.29.29'],
+        'enhanced-mode': 'fake-ip',
+        'fake-ip-range': '198.18.0.1/16',
+        'use-hosts': true,
+        nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+        fallback: ['https://doh.dns.sb/dns-query', 'https://dns.cloudflare.com/dns-query', 'https://dns.twnic.tw/dns-query', 'tls://8.8.4.4:853'],
+        'fallback-filter': { geoip: true, ipcidr: ['240.0.0.0/4', '0.0.0.0/32'] }
+      },
+
+      // 代理节点
+      proxies: formattedProxies.map(p => ({
+        name: p.name,
+        type: p.type,
+        server: p.server,
+        port: p.port,
+        cipher: p.cipher,
+        password: p.password,
+        udp: true
+      })),
+
+      // 代理组
       'proxy-groups': [
         {
           name: 'Manual',
@@ -865,10 +889,7 @@ export async function GET(request: Request) {
         {
           name: 'HK',
           type: 'url-test',
-          proxies: (() => {
-            const filtered = formattedProxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
-            return filtered.length > 0 ? filtered : ['DIRECT']
-          })(),
+          proxies: formattedProxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name),
           url: 'http://www.gstatic.com/generate_204',
           interval: 300,
           tolerance: 50
@@ -876,21 +897,32 @@ export async function GET(request: Request) {
         {
           name: 'Min',
           type: 'url-test',
-          proxies: (() => {
-            const filtered = formattedProxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
-            return filtered.length > 0 ? filtered : ['DIRECT']
-          })(),
+          proxies: formattedProxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name),
           url: 'http://www.gstatic.com/generate_204',
           interval: 300,
           tolerance: 50
         }
       ],
+
+      // 规则
       rules: defaultConfig.rules
     }
     
-    // 转换为 YAML
+    // 转换为 YAML，使用紧凑格式
     console.log('转换为 YAML 格式...')
-    const yamlConfig = yaml.dump(clashConfig)
+    const yamlConfig = yaml.dump(clashConfig, {
+      flowLevel: 2,      // 对对象使用流式格式
+      lineWidth: 1000,   // 设置较大的行宽，确保在一行内
+      indent: 2,         // 设置缩进
+      noRefs: true,      // 避免引用标记
+      quotingType: '"',  // 使用双引号
+      forceQuotes: true, // 强制使用引号
+      styles: {
+        '!!null': 'empty',  // null 值显示为空
+        '!!map': 'flow',    // 对象使用流式格式
+        '!!seq': 'flow'     // 数组使用流式格式
+      }
+    })
     console.log('转换完成')
 
     return new NextResponse(yamlConfig, {
