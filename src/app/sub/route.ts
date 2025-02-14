@@ -857,15 +857,49 @@ export async function GET(request: Request) {
       },
 
       // 代理节点
-      proxies: formattedProxies.map(p => ({
-        name: p.name,
-        type: p.type,
-        server: p.server,
-        port: p.port,
-        cipher: p.cipher,
-        password: p.password,
-        udp: true
-      })),
+      proxies: formattedProxies.map(p => {
+        const base = {
+          name: p.name,
+          type: p.type,
+          server: p.server,
+          port: p.port,
+          udp: true
+        }
+
+        // 根据不同类型添加特定配置
+        switch (p.type) {
+          case 'ss':
+            return {
+              ...base,
+              cipher: p.cipher,
+              password: p.password
+            }
+          case 'hysteria2':
+            return {
+              ...base,
+              port: p.port,
+              ports: p.ports,
+              mport: p.mport,
+              password: p.password,
+              'skip-cert-verify': p['skip-cert-verify'],
+              sni: p.sni,
+              udp: true
+            }
+          case 'vless':
+            return {
+              ...base,
+              uuid: p.uuid,
+              tls: p.tls,
+              'skip-cert-verify': p['skip-cert-verify'],
+              flow: p.flow,
+              'client-fingerprint': p['client-fingerprint'],
+              servername: p.servername,
+              'reality-opts': p['reality-opts']
+            }
+          default:
+            return base
+        }
+      }),
 
       // 代理组
       'proxy-groups': [
@@ -889,7 +923,10 @@ export async function GET(request: Request) {
         {
           name: 'HK',
           type: 'url-test',
-          proxies: formattedProxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name),
+          proxies: (() => {
+            const filtered = formattedProxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
+            return filtered.length > 0 ? filtered : ['DIRECT']
+          })(),
           url: 'http://www.gstatic.com/generate_204',
           interval: 300,
           tolerance: 50
@@ -897,7 +934,10 @@ export async function GET(request: Request) {
         {
           name: 'Min',
           type: 'url-test',
-          proxies: formattedProxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name),
+          proxies: (() => {
+            const filtered = formattedProxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
+            return filtered.length > 0 ? filtered : ['DIRECT']
+          })(),
           url: 'http://www.gstatic.com/generate_204',
           interval: 300,
           tolerance: 50

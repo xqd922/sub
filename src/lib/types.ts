@@ -29,6 +29,8 @@ export interface Proxy {
   udp?: boolean
   'skip-cert-verify'?: boolean
   flow?: string
+  'client-fingerprint'?: string
+  servername?: string
 }
 
 export interface DnsConfig {
