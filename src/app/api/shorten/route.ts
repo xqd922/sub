@@ -10,7 +10,7 @@ const SERVICES = {
 
 type ServiceType = 'tinyurl' | 'sink'
 
-const PRIMARY_SERVICE: ServiceType = 'tinyurl'
+const PRIMARY_SERVICE: ServiceType = 'sink'
 
 export async function POST(request: Request) {
   try {
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
         const data = await primaryResponse.json();
         return NextResponse.json(data);
       }
-    } catch (error) {
-      console.error(`${PRIMARY_SERVICE} 服务失败:`, error);
+    } catch {
+      console.error(`${PRIMARY_SERVICE} 服务失败`);
     }
 
     // 主服务失败，使用备选服务
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const data = await backupResponse.json();
     return NextResponse.json(data, { status: backupResponse.status });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: '请求处理失败' }, { status: 500 });
   }
 }
