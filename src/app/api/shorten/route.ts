@@ -10,7 +10,7 @@ const SERVICES = {
 
 type ServiceType = 'tinyurl' | 'sink'
 
-const PRIMARY_SERVICE: ServiceType = 'sink'
+const PRIMARY_SERVICE: ServiceType = 'tinyurl'
 
 export async function POST(request: Request) {
   try {
