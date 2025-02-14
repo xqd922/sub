@@ -805,19 +805,12 @@ export async function GET(request: Request) {
     Object.keys(counters).forEach(key => delete counters[key])
     
     // 获取原始订阅信息
-    console.log('获取订阅信息...')
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'ClashX/1.95.1'
       }
     })
 
-    // 打印完整的响应头
-    console.log('\n===== 响应头信息 =====')
-    const headers = Object.fromEntries(response.headers.entries())
-    console.log(headers)
-    console.log('=====================\n')
-    
     // 从 content-disposition 获取订阅名称
     const contentDisposition = response.headers.get('content-disposition') || ''
     const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
@@ -851,27 +844,9 @@ export async function GET(request: Request) {
     console.log('===================\n')
 
     // 解析节点
-    console.log('=== 节点处理信息 ===')
     const proxies = await parseSubscription(url)
-    console.log(`原始节点数: ${proxies.length}`)
-
-    // 格式化节点名称
-    console.log('开始格式化节点名称...')
     const formattedProxies = proxies.map(formatProxyName)
-    console.log(`去重后节点数: ${formattedProxies.length}`)
-    
-    // 获取默认配置
-    console.log('获取默认配置...')
     const defaultConfig = await getDefaultConfig()
-    console.log('默认配置获取完成')
-
-    // 生成最终配置
-    console.log('=== 配置生成信息 ===')
-    console.log('1. 获取默认配置')
-    console.log('2. 格式化节点名称')
-    console.log('3. 生成代理组')
-    console.log('4. 转换为 YAML')
-    console.log('===================\n')
 
     // 生成最终配置
     const clashConfig: ClashConfig = {
