@@ -2,15 +2,32 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-// 短链接服务配置
-const SERVICES = {
-  tinyurl: '/api/shorten/tinyurl',
-  sink: '/api/shorten/sink',
-  bitly: '/api/shorten/bitly'
+// 服务配置
+const SERVICE_CONFIG = {
+  bitly: {
+    path: '/api/shorten/bitly',
+    order: 3,
+    retries: 2,
+    timeout: 5000
+  },
+  tinyurl: {
+    path: '/api/shorten/tinyurl',
+    order: 2,
+    retries: 1,
+    timeout: 3000
+  },
+  sink: {
+    path: '/api/shorten/sink',
+    order: 1,
+    retries: 1,
+    timeout: 3000
+  }
 } as const
 
-type ServiceType = keyof typeof SERVICES
-const PRIMARY_SERVICE: ServiceType = 'bitly'  // 使用 Bitly 作为主服务
+// 获取排序后的服务列表
+const SERVICE_ORDER = Object.entries(SERVICE_CONFIG)
+  .sort(([, a], [, b]) => a.order - b.order)
+  .map(([key]) => key as keyof typeof SERVICE_CONFIG)
 
 export async function POST(request: Request) {
   const startTime = Date.now()
@@ -36,44 +53,32 @@ export async function POST(request: Request) {
     
     console.log('目标URL:', targetUrl)
 
-    // 使用主服务
-    console.log(`尝试使用主服务: ${PRIMARY_SERVICE}`)
-    try {
-      const primaryResponse = await fetch(new URL(SERVICES[PRIMARY_SERVICE], request.url), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl })
-      });
+    // 按顺序尝试服务
+    for (const service of SERVICE_ORDER) {
+      console.log(`尝试使用服务 [${SERVICE_ORDER.indexOf(service) + 1}/${SERVICE_ORDER.length}]: ${service}`)
+      try {
+        const response = await fetch(new URL(SERVICE_CONFIG[service].path, request.url), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: targetUrl })
+        });
 
-      if (primaryResponse.ok) {
-        const data = await primaryResponse.json();
-        console.log(`${PRIMARY_SERVICE} 服务成功:`, data)
-        console.log(`处理耗时: ${Date.now() - startTime}ms`)
-        console.log('=== 处理完成 ===\n')
-        return NextResponse.json(data);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`${service} 服务成功:`, data)
+          console.log(`处理耗时: ${Date.now() - startTime}ms`)
+          console.log('=== 处理完成 ===\n')
+          return NextResponse.json(data);
+        }
+
+        console.log(`${service} 服务返回错误:`, response.status)
+      } catch (error) {
+        console.error(`${service} 服务失败:`, error)
       }
-      
-      console.log(`${PRIMARY_SERVICE} 服务返回错误:`, primaryResponse.status)
-    } catch (error) {
-      console.error(`${PRIMARY_SERVICE} 服务失败:`, error)
     }
 
-    // 主服务失败，使用备选服务
-    const backupService = PRIMARY_SERVICE === 'tinyurl' ? 'sink' : 'tinyurl';
-    console.log(`尝试使用备选服务: ${backupService}`);
-    
-    const backupResponse = await fetch(new URL(SERVICES[backupService], request.url), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: targetUrl })
-    });
-
-    const data = await backupResponse.json();
-    console.log(`${backupService} 服务结果:`, data)
-    console.log(`处理耗时: ${Date.now() - startTime}ms`)
-    console.log('=== 处理完成 ===\n')
-    
-    return NextResponse.json(data, { status: backupResponse.status });
+    console.log('所有服务尝试失败')
+    return new NextResponse('所有短链接服务都不可用', { status: 503 })
 
   } catch (error) {
     console.error('请求处理失败:', error)
