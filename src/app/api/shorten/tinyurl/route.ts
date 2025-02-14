@@ -10,14 +10,15 @@ export async function POST(request: Request) {
     const { url } = await request.json()
     console.log('原始URL:', url)
 
-    if (!url || typeof url !== 'string' || !/^https?:\/\//.test(url)) {
-      console.warn('无效的URL格式:', url)
+    if (!url) {
       return NextResponse.json({ error: '无效的 URL' }, { status: 400 })
     }
 
     // 使用 TinyURL API 生成短链接
     console.log('调用 TinyURL API...')
-    const response = await fetch(
+    
+    // 使用 Promise.race 和超时
+    const fetchPromise = fetch(
       `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`,
       {
         headers: {
@@ -25,24 +26,35 @@ export async function POST(request: Request) {
         }
       }
     )
-    
-    if (!response.ok) {
-      throw new Error('TinyURL API 响应错误')
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), 3000)
+    })
+
+    const response = await Promise.race([fetchPromise, timeoutPromise])
+      .catch(error => {
+        console.error('TinyURL 请求失败:', error)
+        return null
+      }) as Response | null
+
+    if (!response?.ok) {
+      return NextResponse.json({ error: 'TinyURL 服务不可用' }, { status: 503 })
     }
-    
+
     const shortUrl = await response.text()
-    
-    if (shortUrl) {
-      console.log('短链接生成成功:', shortUrl)
-      console.log(`处理耗时: ${Date.now() - startTime}ms`)
-      console.log('=== 处理完成 ===\n')
-      return NextResponse.json({ 
-        shortUrl,
-        provider: 'TinyURL'
-      })
-    } else {
-      throw new Error('短链接生成失败')
+    if (!shortUrl) {
+      return NextResponse.json({ error: '生成短链接失败' }, { status: 500 })
     }
+
+    console.log('短链接生成成功:', shortUrl)
+    console.log(`处理耗时: ${Date.now() - startTime}ms`)
+    console.log('=== 处理完成 ===\n')
+
+    return NextResponse.json({ 
+      shortUrl,
+      provider: 'TinyURL'
+    })
+
   } catch (error) {
     console.error('短链接生成错误:', error)
     console.log(`处理失败，耗时: ${Date.now() - startTime}ms`)

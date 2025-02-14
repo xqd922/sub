@@ -6,7 +6,11 @@ export const runtime = 'edge';
 const SERVICES = {
   tinyurl: '/api/shorten/tinyurl',
   sink: '/api/shorten/sink'
-};
+} as const
+
+type ServiceType = 'tinyurl' | 'sink'
+
+const PRIMARY_SERVICE: ServiceType = 'tinyurl'
 
 export async function POST(request: Request) {
   try {
@@ -15,33 +19,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '无效的 URL' }, { status: 400 });
     }
 
-    // 优先尝试 TinyURL
+    // 使用主服务
     try {
-      const tinyResponse = await fetch(new URL(SERVICES.tinyurl, request.url), {
+      const primaryResponse = await fetch(new URL(SERVICES[PRIMARY_SERVICE], request.url), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
       });
 
-      if (tinyResponse.ok) {
-        return tinyResponse;
+      // 如果主服务成功，直接返回结果
+      if (primaryResponse.ok) {
+        const data = await primaryResponse.json();
+        return NextResponse.json(data);
       }
     } catch (error) {
-      console.error('TinyURL 服务失败:', error);
+      console.error(`${PRIMARY_SERVICE} 服务失败:`, error);
     }
 
-    // 备选使用 Sink
-    const sinkResponse = await fetch(new URL(SERVICES.sink, request.url), {
+    // 主服务失败，使用备选服务
+    const backupService = PRIMARY_SERVICE === 'tinyurl' ? 'sink' : 'tinyurl';
+    console.log(`尝试使用备选服务: ${backupService}`);
+    
+    const backupResponse = await fetch(new URL(SERVICES[backupService], request.url), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
 
-    if (sinkResponse.ok) {
-      return sinkResponse;
-    }
+    // 返回备选服务的结果
+    const data = await backupResponse.json();
+    return NextResponse.json(data, { status: backupResponse.status });
 
-    return NextResponse.json({ error: '短链接生成失败' }, { status: 500 });
   } catch (error) {
     return NextResponse.json({ error: '请求处理失败' }, { status: 500 });
   }
