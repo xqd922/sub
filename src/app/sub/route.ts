@@ -834,7 +834,8 @@ export async function GET(request: Request) {
               response.headers.get('expires') || 
               response.headers.get('expire') || 
               response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
-              ''
+              '',
+      homepage: response.headers.get('profile-web-page-url') || 'https://sub.xqd.us.kg'  // 获取原始订阅的首页
     }
 
     // 打印格式化的订阅信息
@@ -1048,7 +1049,7 @@ export async function GET(request: Request) {
         'profile-update-interval': '24',
         'profile-title': Buffer.from(subscription.name).toString('base64'),
         'expires': subscription.expire,
-        'profile-web-page-url': 'https://sub.xqd.us.kg',
+        'profile-web-page-url': subscription.homepage,  // 使用原始订阅的首页
         'profile-expire': subscription.expire,
         'profile-status': 'active'
       }
