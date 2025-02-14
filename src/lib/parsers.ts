@@ -75,25 +75,24 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 
 // 节点去重函数
 function removeDuplicates(proxies: Proxy[]): Proxy[] {
-  const seen = new Map<string, Proxy>()  // 改用 Map 来存储节点
+  const seen = new Map<string, Proxy>()
   let infoNodesCount = 0
   
-  // 先过滤掉信息节点
-  const filteredProxies = proxies.filter(proxy => {
+  // 处理所有节点
+  proxies.forEach(proxy => {
     // 排除包含以下关键词的节点
     const excludeKeywords = [
       '官网',
       '剩余流量',
       '距离下次重置',
-      '套餐到期',
-      '订阅'
+      '套餐到期'
     ]
     
     // 如果节点名称包含任何排除关键词，则跳过
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
       console.log(`排除信息节点: ${proxy.name}`)
       infoNodesCount++
-      return false
+      return
     }
 
     // 生成更详细的唯一标识
@@ -123,7 +122,6 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
 
     // 存储节点，如果是重复的会覆盖之前的
     seen.set(key, proxy)
-    return true
   })
 
   console.log(`总节点数: ${proxies.length}`)
