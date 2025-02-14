@@ -75,7 +75,7 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 
 // 节点去重函数
 function removeDuplicates(proxies: Proxy[]): Proxy[] {
-  const seen = new Set<string>()
+  const seen = new Map<string, Proxy>()  // 改用 Map 来存储节点
   let infoNodesCount = 0
   
   // 先过滤掉信息节点
@@ -102,46 +102,36 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     // 根据不同协议添加额外的识别字段
     switch (proxy.type) {
       case 'hysteria2':
-        // hysteria2 需要考虑 ports, mport, password, sni
         key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
         break
       case 'vless':
-        // vless 需要考虑 uuid, flow, reality-opts
         key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
         if (proxy['reality-opts']) {
           key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
         }
         break
       case 'vmess':
-        // vmess 需要考虑 uuid, network, path
         key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
         break
       case 'ss':
-        // ss 需要考虑 cipher, password
         key += `:${proxy.cipher || ''}:${proxy.password || ''}`
         break
       case 'trojan':
-        // trojan 需要考虑 password, sni
         key += `:${proxy.password || ''}:${proxy.sni || ''}`
         break
     }
 
-    // 如果已存在相同节点，则过滤掉
-    if (seen.has(key)) {
-      console.log(`发现重复节点: ${proxy.name}`)
-      return false
-    }
-    
-    // 记录新节点
-    seen.add(key)
+    // 存储节点，如果是重复的会覆盖之前的
+    seen.set(key, proxy)
     return true
   })
 
   console.log(`总节点数: ${proxies.length}`)
   console.log(`排除信息节点: ${infoNodesCount} 个`)
-  console.log(`去重后节点数: ${filteredProxies.length}`)
+  console.log(`去重后节点数: ${seen.size}`)
   
-  return filteredProxies
+  // 返回 Map 中的所有值（最后遇到的节点）
+  return Array.from(seen.values())
 }
 
 export function parseSS(line: string): Proxy {
