@@ -31,6 +31,15 @@ export interface Proxy {
   flow?: string
   'client-fingerprint'?: string
   servername?: string
+  path?: string
+  host?: string
+  alpn?: string[]
+  'ws-opts'?: {
+    path?: string
+    headers?: {
+      Host?: string
+    }
+  }
 }
 
 export interface DnsConfig {

@@ -892,7 +892,8 @@ export async function GET(request: Request) {
           name: p.name,
           type: p.type,
           server: p.server,
-          port: p.port
+          port: p.port,
+          password: p.password
         }
 
         // 根据不同类型添加特定配置
@@ -902,6 +903,45 @@ export async function GET(request: Request) {
               ...base,
               cipher: p.cipher,
               password: p.password,
+              ...(p.udp && { udp: true })
+            }
+          case 'vmess':
+            return {
+              ...base,
+              uuid: p.uuid,
+              alterId: p.alterId || 0,
+              cipher: p.cipher || 'auto',
+              tls: p.tls,
+              'skip-cert-verify': p['skip-cert-verify'],
+              servername: p.servername || p.sni,
+              network: p.network,
+              ...(p.network === 'ws' && {
+                'ws-opts': {
+                  path: p.path || '/',
+                  headers: {
+                    Host: p.host || p.server
+                  }
+                }
+              }),
+              ...(p.udp && { udp: true })
+            }
+          case 'trojan':
+            return {
+              ...base,
+              password: p.password,
+              tls: true,
+              'skip-cert-verify': p['skip-cert-verify'],
+              sni: p.sni,
+              alpn: p.alpn,
+              network: p.network,
+              ...(p.network === 'ws' && {
+                'ws-opts': {
+                  path: p.path || '/',
+                  headers: {
+                    Host: p.host || p.server
+                  }
+                }
+              }),
               ...(p.udp && { udp: true })
             }
           case 'hysteria2':
@@ -1013,19 +1053,8 @@ export async function GET(request: Request) {
         'profile-status': 'active'
       }
     })
-
   } catch (error) {
-    console.error('转换错误:', error)
-    if (error instanceof Error) {
-      console.error('错误详情:', error.message)
-      console.error('错误堆栈:', error.stack)
-    }
-    return new NextResponse(error instanceof Error ? error.message : '转换失败', {
-      status: 500,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Access-Control-Allow-Origin': '*'
-      }
-    })
+    console.error('处理订阅时出错:', error)
+    return new NextResponse('处理订阅时出错', { status: 500 })
   }
-} 
+}
