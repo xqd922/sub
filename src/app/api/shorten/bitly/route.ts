@@ -3,7 +3,17 @@ import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 
 // Bitly API Token
-const BITLY_TOKEN = '0b5d4ec2f8b685271b45d2463daff8023e4ba9b1'
+const BITLY_TOKENS = [
+  '0b5d4ec2f8b685271b45d2463daff8023e4ba9b1',
+  // 添加其他 token...
+]
+
+let currentTokenIndex = 0
+
+function getNextToken() {
+  currentTokenIndex = (currentTokenIndex + 1) % BITLY_TOKENS.length
+  return BITLY_TOKENS[currentTokenIndex]
+}
 
 export async function POST(request: Request) {
   const startTime = Date.now()
@@ -22,23 +32,46 @@ export async function POST(request: Request) {
     const checkResponse = await fetch(`https://api-ssl.bitly.com/v4/bitlinks/by_url?long_url=${encodedUrl}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${BITLY_TOKEN}`
+        'Authorization': `Bearer ${getNextToken()}`
       }
     }).catch(error => {
       console.error('检查短链接错误:', error)
       return null
     })
 
-    // 如果找到已存在的短链接，直接返回
+    // 如果找到已存在的短链接，更新它
     if (checkResponse?.ok) {
       const existingData = await checkResponse.json()
-      const shortUrl = existingData.link
-      console.log('找到已存在的短链接:', shortUrl)
+      const bitlink = existingData.id // 获取现有短链接的 ID
+
+      // 更新现有短链接
+      console.log('更新已存在的短链接...')
+      const updateResponse = await fetch(`https://api-ssl.bitly.com/v4/bitlinks/${bitlink}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getNextToken()}`
+        },
+        body: JSON.stringify({
+          long_url: fullUrl,
+          title: `Updated Subscription Link ${new Date().toISOString()}`
+        })
+      })
+
+      if (!updateResponse.ok) {
+        console.error('更新短链接失败:', await updateResponse.text())
+        return NextResponse.json({ error: '更新短链接失败' }, { status: 500 })
+      }
+
+      const updatedData = await updateResponse.json()
+      console.log('短链接更新成功:', updatedData.link)
       console.log(`处理耗时: ${Date.now() - startTime}ms`)
       console.log('=== 处理完成 ===\n')
+      
       return NextResponse.json({ 
-        shortUrl,
-        provider: 'Bitly'
+        shortUrl: updatedData.link,
+        provider: 'Bitly',
+        updated: true
       })
     }
 
@@ -48,11 +81,12 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${BITLY_TOKEN}`
+        'Authorization': `Bearer ${getNextToken()}`
       },
       body: JSON.stringify({
         long_url: fullUrl,
-        domain: "bit.ly"
+        domain: "bit.ly",
+        title: `New Subscription Link ${new Date().toISOString()}`
       })
     }).catch(error => {
       console.error('Fetch 错误:', error)
@@ -65,20 +99,20 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json()
-    const shortUrl = data.link
-    console.log('短链接生成成功:', shortUrl)
+    console.log('新短链接生成成功:', data.link)
     console.log(`处理耗时: ${Date.now() - startTime}ms`)
     console.log('=== 处理完成 ===\n')
 
     return NextResponse.json({ 
-      shortUrl,
-      provider: 'Bitly'
+      shortUrl: data.link,
+      provider: 'Bitly',
+      created: true
     })
 
   } catch (error) {
-    console.error('短链接生成错误:', error)
+    console.error('短链接处理错误:', error)
     console.log(`处理失败，耗时: ${Date.now() - startTime}ms`)
     console.log('=== 处理失败 ===\n')
-    return NextResponse.json({ error: '短链接生成失败' }, { status: 500 })
+    return NextResponse.json({ error: '短链接处理失败' }, { status: 500 })
   }
 } 
