@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: 'Cuttly 服务不可用' }, { status: 503 })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: '短链接生成失败' }, { status: 500 })
   }
 } 

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
+// Bitly API Token
+const BITLY_TOKEN = '0b5d4ec2f8b685271b45d2463daff8023e4ba9b1'
+
 export async function POST(request: Request) {
   const startTime = Date.now()
   console.log('\n=== 开始处理 Bitly 短链接请求 ===')
@@ -15,7 +18,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BITLY_TOKEN}`
+        'Authorization': `Bearer ${BITLY_TOKEN}`
       },
       body: JSON.stringify({
         long_url: url,
