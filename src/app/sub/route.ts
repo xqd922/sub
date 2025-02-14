@@ -915,7 +915,6 @@ export async function GET(request: Request) {
       lineWidth: 1000,   // 设置较大的行宽，确保在一行内
       indent: 2,         // 设置缩进
       noRefs: true,      // 避免引用标记
-      quotingType: '',   // 不使用引号
       forceQuotes: false,// 不强制使用引号
       styles: {
         '!!null': 'empty',  // null 值显示为空
