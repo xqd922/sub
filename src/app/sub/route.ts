@@ -862,8 +862,7 @@ export async function GET(request: Request) {
           name: p.name,
           type: p.type,
           server: p.server,
-          port: p.port,
-          udp: true
+          port: p.port
         }
 
         // 根据不同类型添加特定配置
@@ -872,7 +871,8 @@ export async function GET(request: Request) {
             return {
               ...base,
               cipher: p.cipher,
-              password: p.password
+              password: p.password,
+              ...(p.udp && { udp: true })
             }
           case 'hysteria2':
             return {
@@ -883,7 +883,7 @@ export async function GET(request: Request) {
               password: p.password,
               'skip-cert-verify': p['skip-cert-verify'],
               sni: p.sni,
-              udp: true
+              ...(p.udp && { udp: true })
             }
           case 'vless':
             return {
@@ -894,10 +894,14 @@ export async function GET(request: Request) {
               flow: p.flow,
               'client-fingerprint': p['client-fingerprint'],
               servername: p.servername,
-              'reality-opts': p['reality-opts']
+              'reality-opts': p['reality-opts'],
+              ...(p.udp && { udp: true })
             }
           default:
-            return base
+            return {
+              ...base,
+              ...(p.udp && { udp: true })
+            }
         }
       }),
 
