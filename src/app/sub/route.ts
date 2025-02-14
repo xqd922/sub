@@ -780,6 +780,15 @@ async function getDefaultConfig(): Promise<ClashConfig> {
   }
 }
 
+// 格式化字节数
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -801,20 +810,41 @@ export async function GET(request: Request) {
         'User-Agent': 'ClashX/1.95.1'
       }
     })
+
+    // 打印完整的响应头
+    console.log('\n===== 响应头信息 =====')
+    const headers = Object.fromEntries(response.headers.entries())
+    console.log(headers)
+    console.log('=====================\n')
+    
+    // 从 content-disposition 获取订阅名称
+    const contentDisposition = response.headers.get('content-disposition') || ''
+    const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
+    const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : '未知订阅'
     
     // 获取订阅到期时间和流量信息
+    const userInfo = response.headers.get('subscription-userinfo') || ''
     const subscription = {
-      upload: response.headers.get('subscription-userinfo')?.match(/upload=(\d+)/)?.[1] || 0,
-      download: response.headers.get('subscription-userinfo')?.match(/download=(\d+)/)?.[1] || 0,
-      total: response.headers.get('subscription-userinfo')?.match(/total=(\d+)/)?.[1] || 0,
-      expire: response.headers.get('subscription-userinfo')?.match(/expire=(\d+)/)?.[1] || 
+      name: subName,
+      upload: userInfo.match(/upload=(\d+)/)?.[1] || 0,
+      download: userInfo.match(/download=(\d+)/)?.[1] || 0,
+      total: userInfo.match(/total=(\d+)/)?.[1] || 0,
+      expire: userInfo.match(/expire=(\d+)/)?.[1] || 
               response.headers.get('profile-expire') || 
               response.headers.get('expires') || 
               response.headers.get('expire') || 
               response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
               ''
     }
-    console.log('订阅信息:', subscription)
+
+    // 打印格式化的订阅信息
+    console.log('\n===== 订阅信息 =====')
+    console.log('名称:', subscription.name)
+    console.log('上传流量:', formatBytes(Number(subscription.upload)))
+    console.log('下载流量:', formatBytes(Number(subscription.download)))
+    console.log('总流量:', formatBytes(Number(subscription.total)))
+    console.log('到期时间:', subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知')
+    console.log('===================\n')
 
     // 解析节点
     console.log('开始解析节点...')
@@ -973,10 +1003,10 @@ export async function GET(request: Request) {
         'Content-Type': 'text/yaml; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Access-Control-Allow-Origin': '*',
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('订阅')}`,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
         'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
         'profile-update-interval': '24',
-        'profile-title': 'xqd sub',
+        'profile-title': Buffer.from(subscription.name).toString('base64'),
         'expires': subscription.expire,
         'profile-web-page-url': 'https://sub.xqd.us.kg',
         'profile-expire': subscription.expire,
