@@ -13,15 +13,17 @@ export async function POST(request: Request) {
     const { url } = await request.json()
     console.log('原始URL:', url)
 
+    // 替换 localhost 为实际域名
+    const fullUrl = url.replace('http://localhost:3001', 'https://sub.xqd.us.kg')
+    console.log('处理后的URL:', fullUrl)
+
     // 先检查该长链接是否已经有对应的短链接
-    const checkResponse = await fetch('https://api-ssl.bitly.com/v4/bitlinks/by_url', {
+    const encodedUrl = encodeURIComponent(fullUrl)
+    const checkResponse = await fetch(`https://api-ssl.bitly.com/v4/bitlinks/by_url?long_url=${encodedUrl}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${BITLY_TOKEN}`
-      },
-      body: JSON.stringify({
-        long_url: url
-      })
+      }
     }).catch(error => {
       console.error('检查短链接错误:', error)
       return null
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
         'Authorization': `Bearer ${BITLY_TOKEN}`
       },
       body: JSON.stringify({
-        long_url: url,
+        long_url: fullUrl,
         domain: "bit.ly"
       })
     }).catch(error => {
