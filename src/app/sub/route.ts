@@ -260,6 +260,7 @@ async function getDefaultConfig(): Promise<ClashConfig> {
       'DOMAIN,cfemby.lilyya.xyz,Emby',
       'DOMAIN-SUFFIX,emby.awatv.de,Emby',
       'DOMAIN-SUFFIX,jsq.mooguu.top,Emby',
+      'DOMAIN-SUFFIX,sfcj.org,Emby',
       'DOMAIN-KEYWORD,mius,Emby',
       'DOMAIN,embymv.link,Emby',
       'DOMAIN-KEYWORD,emby,Emby',
