@@ -77,10 +77,12 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 function removeDuplicates(proxies: Proxy[]): Proxy[] {
   const seen = new Map<string, Proxy>()
   let infoNodesCount = 0
+  let duplicateCount = 0
   
-  // 处理所有节点
+  console.log('\n节点处理详情:')
+  console.log('1. 开始过滤信息节点...')
+  
   proxies.forEach(proxy => {
-    // 排除包含以下关键词的节点
     const excludeKeywords = [
       '官网',
       '剩余流量',
@@ -88,14 +90,12 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
       '套餐到期'
     ]
     
-    // 如果节点名称包含任何排除关键词，则跳过
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
-      console.log(`排除信息节点: ${proxy.name}`)
+      console.log(`  [信息] 排除节点: ${proxy.name}`)
       infoNodesCount++
       return
     }
 
-    // 生成更详细的唯一标识
     let key = `${proxy.type}:${proxy.server}:${proxy.port}`
     
     // 根据不同协议添加额外的识别字段
@@ -120,15 +120,28 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
         break
     }
 
-    // 存储节点，如果是重复的会覆盖之前的
+    if (seen.has(key)) {
+      console.log(`  [重复] 发现重复节点: ${proxy.name}`)
+      duplicateCount++
+    }
     seen.set(key, proxy)
   })
 
-  console.log(`总节点数: ${proxies.length}`)
-  console.log(`排除信息节点: ${infoNodesCount} 个`)
-  console.log(`去重后节点数: ${seen.size}`)
+  console.log('\n节点统计信息:')
+  console.log(`  ├─ 原始节点总数: ${proxies.length}`)
+  console.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
+  console.log(`  ├─ 重复节点数量: ${duplicateCount}`)
+  console.log(`  └─ 有效节点数量: ${seen.size}`)
   
-  // 返回 Map 中的所有值（最后遇到的节点）
+  console.log('\n节点类型分布:')
+  const typeStats = new Map<string, number>()
+  seen.forEach(proxy => {
+    typeStats.set(proxy.type, (typeStats.get(proxy.type) || 0) + 1)
+  })
+  typeStats.forEach((count, type) => {
+    console.log(`  ├─ ${type}: ${count}`)
+  })
+  
   return Array.from(seen.values())
 }
 

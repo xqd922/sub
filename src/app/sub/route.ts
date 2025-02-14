@@ -839,23 +839,25 @@ export async function GET(request: Request) {
     }
 
     // 打印格式化的订阅信息
-    console.log('\n===== 订阅信息 =====')
-    console.log('名称:', subscription.name)
-    console.log('上传流量:', formatBytes(Number(subscription.upload)))
-    console.log('下载流量:', formatBytes(Number(subscription.download)))
-    console.log('总流量:', formatBytes(Number(subscription.total)))
-    console.log('到期时间:', subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知')
+    console.log('\n=== 订阅基本信息 ===')
+    console.log(`名称: ${subscription.name}`)
+    console.log(`首页: ${subscription.homepage}`)
+    console.log(`流量信息:`)
+    console.log(`  ├─ 上传: ${formatBytes(Number(subscription.upload))}`)
+    console.log(`  ├─ 下载: ${formatBytes(Number(subscription.download))}`)
+    console.log(`  └─ 总量: ${formatBytes(Number(subscription.total))}`)
+    console.log(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
     console.log('===================\n')
 
     // 解析节点
-    console.log('开始解析节点...')
+    console.log('=== 节点处理信息 ===')
     const proxies = await parseSubscription(url)
-    console.log(`解析到 ${proxies.length} 个原始节点`)
+    console.log(`原始节点数: ${proxies.length}`)
 
     // 格式化节点名称
     console.log('开始格式化节点名称...')
     const formattedProxies = proxies.map(formatProxyName)
-    console.log(`格式化完成，共 ${formattedProxies.length} 个节点`)
+    console.log(`去重后节点数: ${formattedProxies.length}`)
     
     // 获取默认配置
     console.log('获取默认配置...')
@@ -863,7 +865,14 @@ export async function GET(request: Request) {
     console.log('默认配置获取完成')
 
     // 生成最终配置
-    console.log('生成 Clash 配置...')
+    console.log('=== 配置生成信息 ===')
+    console.log('1. 获取默认配置')
+    console.log('2. 格式化节点名称')
+    console.log('3. 生成代理组')
+    console.log('4. 转换为 YAML')
+    console.log('===================\n')
+
+    // 生成最终配置
     const clashConfig: ClashConfig = {
       'mixed-port': 7890,
       'allow-lan': true,
