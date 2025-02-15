@@ -215,8 +215,8 @@ async function getDefaultConfig(): Promise<ClashConfig> {
     proxies: [],
     'proxy-groups': [],
     rules: [
-      'DOMAIN,blog.xqd.us.kg,DIRECT',
-      'DOMAIN-SUFFIX,yushe.org,Manual',
+      //'DOMAIN,blog.xqd.us.kg,DIRECT',
+      //'DOMAIN-SUFFIX,yushe.org,Manual',
       'DOMAIN-SUFFIX,985211.link,DIRECT',
       'DOMAIN-SUFFIX,edu.cn,DIRECT',
       'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
@@ -791,6 +791,8 @@ function formatBytes(bytes: number): string {
 }
 
 export async function GET(request: Request) {
+  const startTime = Date.now()
+  
   try {
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
@@ -1030,6 +1032,16 @@ export async function GET(request: Request) {
       }
     })
     console.log('转换完成')
+    
+    const duration = Date.now() - startTime
+    console.log('\n=== 订阅处理完成 ===')
+    console.log('处理结果:')
+    console.log(`  ├─ 节点总数: ${proxies.length}`)
+    console.log(`  ├─ 有效节点: ${formattedProxies.length}`)
+    console.log(`  ├─ 处理耗时: ${duration}ms`)
+    console.log(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
+    console.log('结束时间:', new Date().toLocaleString(), '\n')
+
 
     return new NextResponse(yamlConfig, {
       headers: {
