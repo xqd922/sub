@@ -87,7 +87,8 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
       '官网',
       '剩余流量',
       '距离下次重置',
-      '套餐到期'
+      '套餐到期',
+      '订阅'
     ]
     
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {

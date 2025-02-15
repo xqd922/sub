@@ -805,12 +805,19 @@ export async function GET(request: Request) {
     Object.keys(counters).forEach(key => delete counters[key])
     
     // 获取原始订阅信息
+    console.log('获取订阅信息...')
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'ClashX/1.95.1'
       }
     })
 
+    // 打印完整的响应头
+    console.log('\n===== 响应头信息 =====')
+    const headers = Object.fromEntries(response.headers.entries())
+    console.log(headers)
+    console.log('=====================\n')
+    
     // 从 content-disposition 获取订阅名称
     const contentDisposition = response.headers.get('content-disposition') || ''
     const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
