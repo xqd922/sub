@@ -141,21 +141,19 @@ export async function GET(request: Request) {
       'proxy-groups': generateProxyGroups(formattedProxies)
     }
     
-    // 转换为 YAML，使用紧凑格式
-    console.log('转换为 YAML 格式...')
+    // 转换为 YAML
     const yamlConfig = yaml.dump(clashConfig, {
-      flowLevel: 2,      // 对对象使用流式格式
-      lineWidth: 1000,   // 设置较大的行宽，确保在一行内
-      indent: 2,         // 设置缩进
-      noRefs: true,      // 避免引用标记
-      forceQuotes: false,// 不强制使用引号
+      flowLevel: 2,
+      lineWidth: 1000,
+      indent: 2,
+      noRefs: true,
+      forceQuotes: false,
       styles: {
-        '!!null': 'empty',  // null 值显示为空
-        '!!map': 'flow',    // 对象使用流式格式
-        '!!seq': 'flow'     // 数组使用流式格式
+        '!!null': 'empty',
+        '!!map': 'flow',
+        '!!seq': 'flow'
       }
     })
-    console.log('转换完成')
     
     const duration = Date.now() - startTime
     console.log('\n=== 订阅处理完成 ===')
@@ -165,7 +163,6 @@ export async function GET(request: Request) {
     console.log(`  ├─ 处理耗时: ${duration}ms`)
     console.log(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
     console.log('结束时间:', new Date().toLocaleString(), '\n')
-
 
     return new NextResponse(yamlConfig, {
       headers: {
