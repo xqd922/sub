@@ -68,7 +68,6 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
       
       // 节点去重
       const uniqueProxies = removeDuplicates(proxies)
-      console.log(`去重前节点数: ${proxies.length}, 去重后节点数: ${uniqueProxies.length}`)
       
       return uniqueProxies
     }

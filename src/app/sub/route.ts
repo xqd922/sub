@@ -20,7 +20,7 @@ function formatProxyName(proxy: Proxy): Proxy {
     return proxy
   }
   
-  const { flag, name } = REGION_MAP[regionMatch as keyof typeof REGION_MAP]
+  const { flag, name } = REGION_MAP[regionMatch as RegionCode]
   
   // 提取倍率信息
   const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
