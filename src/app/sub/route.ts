@@ -59,6 +59,49 @@ const userFriendlyMessage = (status: number) => {
   }
 }
 
+// 添加重试和超时处理的 fetch 函数
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      console.log(`尝试获取订阅 (${i + 1}/${maxRetries})...`)
+      
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 30000)
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'ClashX/1.95.1',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Transfer-Encoding': 'chunked'
+        },
+        signal: controller.signal,
+        next: { revalidate: 0 }
+      })
+      
+      clearTimeout(timeout)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      return response
+    } catch (error) {
+      console.log(`第 ${i + 1} 次尝试失败:`, error)
+      
+      if (i === maxRetries - 1) {
+        throw error
+      }
+      
+      // 指数退避重试
+      const delay = Math.min(1000 * Math.pow(2, i), 10000)
+      console.log(`等待 ${delay}ms 后重试...`)
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
+  
+  throw new Error('所有重试都失败了')
+}
+
 export async function GET(request: Request) {
   const startTime = Date.now()
   
@@ -77,13 +120,8 @@ export async function GET(request: Request) {
       counters[key] = 0
     })
     
-    // 获取原始订阅信息
-    console.log('获取订阅信息...')
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'ClashX/1.95.1'
-      }
-    })
+    // 使用新的 fetchWithRetry 函数
+    const response = await fetchWithRetry(url)
 
     // 打印完整的响应头
     console.log('\n===== 响应头信息 =====')
