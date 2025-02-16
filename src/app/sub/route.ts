@@ -160,33 +160,48 @@ const REGION_MAP: Record<string, { flag: string, name: string }> = {
 // 在每次请求开始时重置计数器
 const counters: Record<string, number> = {}
 
+// 按地区分组节点
+function groupProxiesByRegion(proxies: Proxy[]): Record<string, Proxy[]> {
+  const groups: Record<string, Proxy[]> = {}
+  
+  proxies.forEach(proxy => {
+    const regionMatch = Object.keys(REGION_MAP).find(key => 
+      proxy.name.toLowerCase().includes(key.toLowerCase())
+    )
+    
+    if (regionMatch) {
+      const { name } = REGION_MAP[regionMatch]
+      groups[name] = groups[name] || []
+      groups[name].push(proxy)
+    }
+  })
+  
+  return groups
+}
+
 function formatProxyName(proxy: Proxy): Proxy {
   // 只从原始节点名称中提取地区信息
   const regionMatch = Object.keys(REGION_MAP).find(key => 
     proxy.name.toLowerCase().includes(key.toLowerCase())
   )
   
-  // 如果找不到匹配的地区，保持原始名称
   if (!regionMatch) {
-    return proxy;
+    return proxy
   }
   
   const { flag, name } = REGION_MAP[regionMatch]
   
   // 提取倍率信息
-  const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/);
-  const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : '';
+  const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
+  const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : ''
   
-  // 使用计数器生成序号（使用 ?? 操作符简化初始化和递增）
-  counters[name] ??= 0;  // 空值合并赋值
-  const num = String(++counters[name]).padStart(2, '0');  // 前置递增
-  
-  // 组合新名称
-  const newName = `${flag} ${name} ${num}${multiplier}`.trim();
+  // 初始化计数器
+  counters[name] = counters[name] || 0
+  const num = String(++counters[name]).padStart(2, '0')
   
   return {
     ...proxy,
-    name: newName
+    name: `${flag} ${name} ${num}${multiplier}`.trim()
   }
 }
 
@@ -817,8 +832,10 @@ export async function GET(request: Request) {
 
     console.log('开始处理订阅:', url)
     
-    // 在处理每个新请求前重置计数器
-    Object.keys(counters).forEach(key => delete counters[key])
+    // 重置所有计数器
+    Object.keys(counters).forEach(key => {
+      counters[key] = 0
+    })
     
     // 获取原始订阅信息
     console.log('获取订阅信息...')
@@ -868,7 +885,10 @@ export async function GET(request: Request) {
 
     // 解析节点
     const proxies = await parseSubscription(url)
-    const formattedProxies = proxies.map(formatProxyName)
+    const groups = groupProxiesByRegion(proxies)
+    const formattedProxies = Object.values(groups).flatMap(group => 
+      group.map(formatProxyName)
+    )
     const defaultConfig = await getDefaultConfig()
 
     // 生成最终配置
