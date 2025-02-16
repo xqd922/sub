@@ -1,4 +1,3 @@
-export type ConfigType = 'basic' | 'custom' | 'microsoft' | 'google' | 'full'
 
 export interface ProxyConfig {
   proxies: Proxy[]
