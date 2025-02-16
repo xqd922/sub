@@ -177,16 +177,16 @@ function formatProxyName(proxy: Proxy): Proxy {
   const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/);
   const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : '';
   
-  // 使用计数器生成序号
-  counters[name] = (counters[name] || 0) + 1
-  const num = String(counters[name]).padStart(2, '0')
+  // 使用计数器生成序号（使用 ?? 操作符简化初始化和递增）
+  counters[name] ??= 0;  // 空值合并赋值
+  const num = String(++counters[name]).padStart(2, '0');  // 前置递增
   
   // 组合新名称
-  const newName = `${flag} ${name} ${num}${multiplier}`
+  const newName = `${flag} ${name} ${num}${multiplier}`.trim();
   
   return {
     ...proxy,
-    name: newName.trim()
+    name: newName
   }
 }
 
