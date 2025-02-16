@@ -5,7 +5,9 @@ export const runtime = 'nodejs'
 // Bitly API Token
 const BITLY_TOKENS = [
   '0b5d4ec2f8b685271b45d2463daff8023e4ba9b1',
-  // 添加其他 token...
+  'token2',  // 添加更多 token
+  'token3',
+  'token4'
 ]
 
 let currentTokenIndex = 0
