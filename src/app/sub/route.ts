@@ -790,6 +790,20 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
 }
 
+// 添加用户友好的错误提示
+const userFriendlyMessage = (status: number) => {
+  switch (status) {
+    case 521:
+      return '订阅服务器暂时不可用，请稍后再试';
+    case 404:
+      return '订阅链接无效或已过期';
+    case 403:
+      return '无权访问此订阅';
+    default:
+      return '订阅获取失败，请检查链接是否正确';
+  }
+}
+
 export async function GET(request: Request) {
   const startTime = Date.now()
   
@@ -1065,6 +1079,9 @@ export async function GET(request: Request) {
     const errorResponse = {
       error: true,
       message: error instanceof Error ? error.message : '未知错误',
+      userMessage: error instanceof SubscriptionFetchError ? 
+        userFriendlyMessage(error.statusCode || 500) : 
+        '订阅获取失败，请稍后重试',
       details: error instanceof SubscriptionFetchError ? {
         code: error.code,
         statusCode: error.statusCode,

@@ -14,12 +14,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '无效的 URL' }, { status: 400 })
     }
 
-    // 使用 TinyURL API 生成短链接
-    console.log('调用 TinyURL API...')
-    
-    // 使用 Promise.race 和超时
+    // 添加时间戳参数确保每次生成不同的短链接
+    const timestamp = Date.now()
+    const uniqueUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${timestamp}`
+
     const fetchPromise = fetch(
-      `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`,
+      `https://tinyurl.com/api-create.php?url=${encodeURIComponent(uniqueUrl)}`,
       {
         headers: {
           'User-Agent': 'Mozilla/5.0',
