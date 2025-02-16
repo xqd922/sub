@@ -2,35 +2,56 @@ import { Proxy, ProxyConfig } from './types'
 import yaml from 'js-yaml'
 
 export async function parseSubscription(url: string): Promise<Proxy[]> {
+  const startTime = Date.now()
+  console.log(`\n开始解析订阅: ${url}`)
+
   try {
     const urlObj = new URL(url)
     urlObj.searchParams.set('flag', 'meta')
     urlObj.searchParams.set('types', 'all')
     
-    // 添加重试逻辑
-    const fetchWithRetry = async (retries = 3) => {
+    // 改进重试逻辑
+    const fetchWithRetry = async (retries = 3, delay = 1000) => {
+      let lastError: Error | null = null
+      
       for (let i = 0; i < retries; i++) {
         try {
+          console.log(`尝试获取订阅 (${i + 1}/${retries})...`)
+          
           const response = await fetch(urlObj.toString(), {
             headers: {
               'User-Agent': 'ClashX/1.95.1',
               'Accept': '*/*',
               'Cache-Control': 'no-cache'
             },
-            next: { revalidate: 0 } // 禁用缓存
+            next: { revalidate: 0 }
           })
 
+          // 详细的状态码处理
           if (!response.ok) {
-            throw new Error(`订阅获取失败: ${response.status}`)
+            const statusText = getStatusText(response.status)
+            throw new Error(`订阅获取失败: ${response.status} (${statusText})`)
           }
 
-          return await response.text()
+          const text = await response.text()
+          if (!text || text.length === 0) {
+            throw new Error('订阅内容为空')
+          }
+
+          return text
         } catch (e) {
-          if (i === retries - 1) throw e
-          await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+          lastError = e instanceof Error ? e : new Error(String(e))
+          console.log(`第 ${i + 1} 次尝试失败: ${lastError.message}`)
+          
+          if (i < retries - 1) {
+            const waitTime = delay * (i + 1)
+            console.log(`等待 ${waitTime}ms 后重试...`)
+            await new Promise(r => setTimeout(r, waitTime))
+          }
         }
       }
-      throw new Error('所有重试都失败了')
+      
+      throw new Error(`订阅获取失败 (已重试 ${retries} 次): ${lastError?.message}`)
     }
 
     const text = await fetchWithRetry()
@@ -68,9 +89,32 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 
     return proxies.filter(Boolean) as Proxy[]
   } catch (error) {
-    console.error('解析订阅失败:', error)
+    const duration = Date.now() - startTime
+    console.error('\n=== 订阅解析失败 ===')
+    console.error(`错误信息: ${error instanceof Error ? error.message : String(error)}`)
+    console.error(`处理耗时: ${duration}ms`)
+    console.error('===================\n')
     throw error
   }
+}
+
+// 获取HTTP状态码的说明
+function getStatusText(status: number): string {
+  const statusMap: Record<number, string> = {
+    400: '请求无效',
+    401: '未授权',
+    403: '禁止访问',
+    404: '未找到',
+    500: '服务器错误',
+    502: '网关错误',
+    503: '服务不可用',
+    504: '网关超时',
+    521: 'Web 服务器已关闭',
+    522: '连接超时',
+    // ... 可以添加更多状态码
+  }
+  
+  return statusMap[status] || '未知错误'
 }
 
 // 节点去重函数

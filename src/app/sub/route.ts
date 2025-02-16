@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import yaml from 'js-yaml'
 import { parseSubscription } from '@/lib/parsers'
-import type { ClashConfig, Proxy } from '@/lib/types'
+import { ClashConfig, Proxy, SubscriptionFetchError } from '@/lib/types'
 
 export const runtime = 'edge'
 
@@ -1058,8 +1058,36 @@ export async function GET(request: Request) {
         'profile-status': 'active'
       }
     })
-  } catch (error) {
-    console.error('处理订阅时出错:', error)
-    return new NextResponse('处理订阅时出错', { status: 500 })
+  } catch (error: unknown) {
+    const duration = Date.now() - startTime
+    
+    // 构建错误响应
+    const errorResponse = {
+      error: true,
+      message: error instanceof Error ? error.message : '未知错误',
+      details: error instanceof SubscriptionFetchError ? {
+        code: error.code,
+        statusCode: error.statusCode,
+        details: error.details
+      } : undefined,
+      timestamp: new Date().toISOString(),
+      duration: `${duration}ms`
+    }
+
+    // 记录错误
+    console.error('\n=== 处理失败 ===')
+    console.error(JSON.stringify(errorResponse, null, 2))
+    console.error('================\n')
+
+    return new NextResponse(
+      JSON.stringify(errorResponse),
+      {
+        status: error instanceof SubscriptionFetchError ? error.statusCode || 500 : 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        }
+      }
+    )
   }
 }

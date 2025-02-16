@@ -1,4 +1,3 @@
-
 export interface ProxyConfig {
   proxies: Proxy[]
   [key: string]: unknown
@@ -80,4 +79,25 @@ export interface ProxyGroup {
   url?: string
   interval?: number
   tolerance?: number
+}
+
+// 添加错误相关类型
+export interface SubscriptionError extends Error {
+  code: string;
+  statusCode?: number;
+  details?: unknown;
+}
+
+export class SubscriptionFetchError extends Error implements SubscriptionError {
+  code: string;
+  statusCode?: number;
+  details?: unknown;
+
+  constructor(message: string, statusCode?: number, details?: unknown) {
+    super(message);
+    this.name = 'SubscriptionFetchError';
+    this.code = 'SUB_FETCH_ERROR';
+    this.statusCode = statusCode;
+    this.details = details;
+  }
 } 
