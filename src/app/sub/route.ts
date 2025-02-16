@@ -160,25 +160,6 @@ const REGION_MAP: Record<string, { flag: string, name: string }> = {
 // 在每次请求开始时重置计数器
 const counters: Record<string, number> = {}
 
-// 按地区分组节点
-function groupProxiesByRegion(proxies: Proxy[]): Record<string, Proxy[]> {
-  const groups: Record<string, Proxy[]> = {}
-  
-  proxies.forEach(proxy => {
-    const regionMatch = Object.keys(REGION_MAP).find(key => 
-      proxy.name.toLowerCase().includes(key.toLowerCase())
-    )
-    
-    if (regionMatch) {
-      const { name } = REGION_MAP[regionMatch]
-      groups[name] = groups[name] || []
-      groups[name].push(proxy)
-    }
-  })
-  
-  return groups
-}
-
 function formatProxyName(proxy: Proxy): Proxy {
   // 只从原始节点名称中提取地区信息
   const regionMatch = Object.keys(REGION_MAP).find(key => 
@@ -885,10 +866,14 @@ export async function GET(request: Request) {
 
     // 解析节点
     const proxies = await parseSubscription(url)
-    const groups = groupProxiesByRegion(proxies)
-    const formattedProxies = Object.values(groups).flatMap(group => 
-      group.map(formatProxyName)
-    )
+    
+    // 重置所有计数器
+    Object.keys(counters).forEach(key => {
+      counters[key] = 0
+    })
+    
+    // 直接格式化所有节点，保持原始顺序
+    const formattedProxies = proxies.map(formatProxyName)
     const defaultConfig = await getDefaultConfig()
 
     // 生成最终配置
