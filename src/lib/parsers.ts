@@ -1,4 +1,4 @@
-import { Proxy, ProxyConfig } from './types'
+import { Proxy, ProxyConfig, SubscriptionFetchError } from './types'
 import yaml from 'js-yaml'
 
 export async function parseSubscription(url: string): Promise<Proxy[]> {
@@ -30,7 +30,10 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
           // 详细的状态码处理
           if (!response.ok) {
             const statusText = getStatusText(response.status)
-            throw new Error(`订阅获取失败: ${response.status} (${statusText})`)
+            throw new SubscriptionFetchError(
+              `订阅获取失败: ${response.status} (${statusText})`,
+              response.status
+            )
           }
 
           const text = await response.text()
@@ -51,7 +54,10 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
         }
       }
       
-      throw new Error(`订阅获取失败 (已重试 ${retries} 次): ${lastError?.message}`)
+      throw new SubscriptionFetchError(
+        `订阅获取失败 (已重试 ${retries} 次): ${lastError?.message}`,
+        lastError instanceof SubscriptionFetchError ? lastError.statusCode : undefined
+      )
     }
 
     const text = await fetchWithRetry()
