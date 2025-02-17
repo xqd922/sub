@@ -71,11 +71,20 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'ClashX/1.95.1',
+          'Accept': 'application/json, text/plain, */*',
           'Accept-Encoding': 'gzip, deflate, br',
-          'Transfer-Encoding': 'chunked'
+          'Connection': 'keep-alive',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
+        redirect: 'follow',
         signal: controller.signal,
-        next: { revalidate: 0 }
+        next: { revalidate: 0 },
+        // 添加以下配置以绕过一些限制
+        cache: 'no-store',
+        credentials: 'omit',
+        mode: 'cors',
+        referrerPolicy: 'no-referrer'
       })
       
       clearTimeout(timeout)
