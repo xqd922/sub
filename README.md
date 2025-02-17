@@ -1,4 +1,4 @@
-# Xqd Sub - Clash 订阅转换 API
+# Sub - Clash 订阅转换
 
 一个基于 Next.js 开发的 Clash 订阅转换 API 服务，支持多种代理协议转换为 Clash 配置。
 
@@ -293,7 +293,7 @@ src/
 docker build -t clash-sub-api .
 
 # 运行容器
-docker run -d -p 3001:3001 clash-sub-api
+docker run -d -p 3000:3000 clash-sub-api
 ```
 
 ### 使用 Vercel
