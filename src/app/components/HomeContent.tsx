@@ -97,8 +97,8 @@ export default function HomeContent() {
         const copied = await copyToClipboard(data.shortUrl)
         showToast(copied ? '短链接已生成并复制到剪贴板' : '短链接已生成')
       }
-    } catch (err) {
-      console.error('生成短链接失败:', err)
+    } catch {
+      console.error('生成短链接失败')
       showToast('生成短链接失败')
     } finally {
       setShortenLoading(false)
@@ -140,7 +140,7 @@ export default function HomeContent() {
       document.body.removeChild(a)
       
       showToast('sing-box 配置已下载')
-    } catch (err) {
+    } catch {
       showToast('sing-box 配置生成失败')
     }
   }
