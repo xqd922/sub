@@ -122,6 +122,29 @@ export default function HomeContent() {
     }, 2000)
   }
 
+  const handleSingboxConvert = async () => {
+    if (!convertedUrl) return
+    
+    try {
+      const response = await fetch(`/api/sing?url=${encodeURIComponent(convertedUrl)}`)
+      if (!response.ok) throw new Error('转换失败')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'sing-box.json'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      showToast('sing-box 配置已下载')
+    } catch (err) {
+      showToast('sing-box 配置生成失败')
+    }
+  }
+
   return (
     <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-black dark:to-gray-800 flex items-start justify-center p-4 sm:p-6">
       <section className="w-full max-w-xl mt-24">
@@ -210,6 +233,13 @@ export default function HomeContent() {
                   </div>
                 </div>
               )}
+
+              <button
+                onClick={handleSingboxConvert}
+                className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
+              >
+                下载 sing-box 配置
+              </button>
             </div>
           )}
         </div>

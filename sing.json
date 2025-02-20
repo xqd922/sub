@@ -1,0 +1,469 @@
+{
+    "dns": {
+      "servers": [
+        {
+          "tag": "remote",
+          "address": "https://1.1.1.1/dns-query",
+          "detour": "Manual"
+        },
+        {
+          "tag": "local",
+          "address": "https://223.5.5.5/dns-query",
+          "detour": "direct"
+        },
+        {
+          "tag": "block",
+          "address": "rcode://success"
+        }
+      ],
+      "rules": [
+        {
+          "outbound": "any",
+          "server": "local"
+        },
+        {
+          "geosite": "category-ads-all",
+          "server": "block",
+          "disable_cache": true
+        },
+        {
+          "clash_mode": "global",
+          "server": "remote"
+        },
+        {
+          "clash_mode": "direct",
+          "server": "local"
+        },
+        {
+          "geosite": "cn",
+          "server": "local"
+        }
+      ],
+      "strategy": "prefer_ipv4"
+    },
+    "inbounds": [
+      {
+        "type": "tun",
+        "mtu": 9000,
+        "auto_route": true,
+        "strict_route": true,
+        "stack": "system",
+        "sniff": true,
+        "sniff_override_destination": true,
+        "domain_strategy": "prefer_ipv4",
+        "inet4_address": "172.19.0.1/30",
+        "inet6_address": "2001:470:f9da:fdfa::1/64",
+        "endpoint_independent_nat": true
+      },
+      {
+        "type": "socks",
+        "tag": "socks-in",
+        "listen": "127.0.0.1",
+        "listen_port": 2333,
+        "sniff": true,
+        "sniff_override_destination": true,
+        "domain_strategy": "prefer_ipv4"
+      },
+      {
+        "type": "mixed",
+        "tag": "mixed-in",
+        "listen": "127.0.0.1",
+        "listen_port": 2334,
+        "sniff": true,
+        "sniff_override_destination": true,
+        "domain_strategy": "prefer_ipv4"
+      }
+    ],
+    "outbounds": [
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 01",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30001,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 02",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30002,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 03",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30003,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 04",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30004,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 05",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30032,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 06",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30033,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 07",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30034,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇭🇰 Hong Kong 08",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30035,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 01",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30005,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 02",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30006,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 03",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30007,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 04",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30008,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 05",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30036,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 06",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30037,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 07",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30038,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇯🇵 Japan 08",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30039,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇸🇬 Singapore 01",
+        "server": "eagasdsg.tkvtkvktvktv.net",
+        "server_port": 30021,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇸🇬 Singapore 02",
+        "server": "eagasdsg.tkvtkvktvktv.net",
+        "server_port": 30022,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇸🇬 Singapore 03",
+        "server": "eagasdsg.tkvtkvktvktv.net",
+        "server_port": 30023,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇸🇬 Singapore 04",
+        "server": "eagasdsg.tkvtkvktvktv.net",
+        "server_port": 30024,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇨🇳 Taiwan 01",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30017,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇨🇳 Taiwan 02",
+        "server": "ruhoeghk.tkvtkvktvktv.net",
+        "server_port": 30018,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇺🇸 United States 01",
+        "server": "jhnkrdus.tkvtkvktvktv.net",
+        "server_port": 30013,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇺🇸 United States 02",
+        "server": "jhnkrdus.tkvtkvktvktv.net",
+        "server_port": 30014,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇺🇸 United States 03",
+        "server": "jhnkrdus.tkvtkvktvktv.net",
+        "server_port": 30015,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇺🇸 United States 04",
+        "server": "jhnkrdus.tkvtkvktvktv.net",
+        "server_port": 30016,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇩🇪 Germany 01",
+        "server": "hrdsuyweu.tkvtkvktvktv.net",
+        "server_port": 30009,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇩🇪 Germany 02",
+        "server": "hrdsuyweu.tkvtkvktvktv.net",
+        "server_port": 30010,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇩🇪 Germany 03",
+        "server": "hrdsuyweu.tkvtkvktvktv.net",
+        "server_port": 30011,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇩🇪 Germany 04",
+        "server": "hrdsuyweu.tkvtkvktvktv.net",
+        "server_port": 30012,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇰🇷 South Korea 01",
+        "server": "gagsdajp.tkvtkvktvktv.net",
+        "server_port": 30027,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇳🇱 Netherlands 01",
+        "server": "hrdsuyweu.tkvtkvktvktv.net",
+        "server_port": 30029,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "shadowsocks",
+        "tag": "🇬🇧 United Kingdom 01",
+        "server": "hrdsuyweu.tkvtkvktvktv.net",
+        "server_port": 30031,
+        "method": "chacha20-ietf-poly1305",
+        "password": "8175CED2-0A48-45C0-A828-D9DCE5D5F4F3"
+      },
+      {
+        "type": "selector",
+        "tag": "Manual",
+        "outbounds": [
+          "Auto",
+          "🇭🇰 Hong Kong 01",
+          "🇭🇰 Hong Kong 02",
+          "🇭🇰 Hong Kong 03",
+          "🇭🇰 Hong Kong 04",
+          "🇭🇰 Hong Kong 05",
+          "🇭🇰 Hong Kong 06",
+          "🇭🇰 Hong Kong 07",
+          "🇭🇰 Hong Kong 08",
+          "🇯🇵 Japan 01",
+          "🇯🇵 Japan 02",
+          "🇯🇵 Japan 03",
+          "🇯🇵 Japan 04",
+          "🇯🇵 Japan 05",
+          "🇯🇵 Japan 06",
+          "🇯🇵 Japan 07",
+          "🇯🇵 Japan 08",
+          "🇸🇬 Singapore 01",
+          "🇸🇬 Singapore 02",
+          "🇸🇬 Singapore 03",
+          "🇸🇬 Singapore 04",
+          "🇨🇳 Taiwan 01",
+          "🇨🇳 Taiwan 02",
+          "🇺🇸 United States 01",
+          "🇺🇸 United States 02",
+          "🇺🇸 United States 03",
+          "🇺🇸 United States 04",
+          "🇩🇪 Germany 01",
+          "🇩🇪 Germany 02",
+          "🇩🇪 Germany 03",
+          "🇩🇪 Germany 04",
+          "🇰🇷 South Korea 01",
+          "🇳🇱 Netherlands 01",
+          "🇬🇧 United Kingdom 01"
+        ],
+        "default": "Auto"
+      },
+      {
+        "type": "urltest",
+        "tag": "Auto",
+        "outbounds": [
+          "🇭🇰 Hong Kong 01",
+          "🇭🇰 Hong Kong 02",
+          "🇭🇰 Hong Kong 03",
+          "🇭🇰 Hong Kong 04",
+          "🇭🇰 Hong Kong 05",
+          "🇭🇰 Hong Kong 06",
+          "🇭🇰 Hong Kong 07",
+          "🇭🇰 Hong Kong 08",
+          "🇯🇵 Japan 01",
+          "🇯🇵 Japan 02",
+          "🇯🇵 Japan 03",
+          "🇯🇵 Japan 04",
+          "🇯🇵 Japan 05",
+          "🇯🇵 Japan 06",
+          "🇯🇵 Japan 07",
+          "🇯🇵 Japan 08",
+          "🇸🇬 Singapore 01",
+          "🇸🇬 Singapore 02",
+          "🇸🇬 Singapore 03",
+          "🇸🇬 Singapore 04",
+          "🇨🇳 Taiwan 01",
+          "🇨🇳 Taiwan 02",
+          "🇺🇸 United States 01",
+          "🇺🇸 United States 02",
+          "🇺🇸 United States 03",
+          "🇺🇸 United States 04",
+          "🇩🇪 Germany 01",
+          "🇩🇪 Germany 02",
+          "🇩🇪 Germany 03",
+          "🇩🇪 Germany 04",
+          "🇰🇷 South Korea 01",
+          "🇳🇱 Netherlands 01",
+          "🇬🇧 United Kingdom 01"
+        ],
+        "url": "https://www.gstatic.com/generate_204"
+      },
+      {
+        "type": "direct",
+        "tag": "direct"
+      },
+      {
+        "type": "block",
+        "tag": "block"
+      },
+      {
+        "type": "dns",
+        "tag": "dns-out"
+      }
+    ],
+    "route": {
+      "rules": [
+        {
+          "geosite": "category-ads-all",
+          "outbound": "block"
+        },
+        {
+          "protocol": "dns",
+          "outbound": "dns-out"
+        },
+        {
+          "clash_mode": "direct",
+          "outbound": "direct"
+        },
+        {
+          "clash_mode": "global",
+          "outbound": "Manual"
+        },
+        {
+          "geoip": [
+            "cn",
+            "private"
+          ],
+          "outbound": "direct"
+        },
+        {
+          "geosite": "cn",
+          "outbound": "direct"
+        }
+      ],
+      "auto_detect_interface": true
+    }
+  }
+  
