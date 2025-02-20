@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import yaml from 'js-yaml'
 import { parseSubscription } from '@/lib/parsers'
-import { ClashConfig, Proxy, SubscriptionFetchError } from '@/lib/types'
+import { Proxy, SubscriptionFetchError } from '@/lib/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { REGION_MAP, RegionCode } from '@/config/regions'
 import { generateSingboxConfig } from '@/config/singbox'

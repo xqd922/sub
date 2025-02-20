@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "订阅转换",
-  description: "将订阅链接转换为Clash配置",
+  title: "通用订阅转换",
+  description: "自动识别客户端并转换为对应配置",
 };
 
 export default function RootLayout({
