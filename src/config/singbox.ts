@@ -1,13 +1,47 @@
 import { Proxy } from '@/lib/types'
+import { REGION_MAP } from '@/config/regions'
+
+// 添加区域计数器
+const counters: Record<string, number> = {}
+
+// 修改节点名称格式化函数
+function formatProxyName(proxy: Proxy): string {
+  // 从原始节点名称中提取地区信息
+  const regionMatch = Object.keys(REGION_MAP).find(key => 
+    proxy.name.toLowerCase().includes(key.toLowerCase())
+  )
+  
+  if (!regionMatch) {
+    return proxy.name
+  }
+  
+  const { flag, name } = REGION_MAP[regionMatch as keyof typeof REGION_MAP]
+  
+  // 提取倍率信息
+  const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
+  const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : ''
+  
+  // 使用计数器生成序号
+  counters[name] = (counters[name] || 0) + 1
+  const num = String(counters[name]).padStart(2, '0')
+  
+  return `${flag} ${name} ${num}${multiplier}`.trim()
+}
 
 export function generateSingboxConfig(proxies: Proxy[]) {
+  // 重置计数器
+  Object.keys(counters).forEach(key => delete counters[key])
+  
   // 转换代理节点格式
   const outbounds = proxies.map(proxy => {
+    // 格式化节点名称
+    const formattedName = formatProxyName(proxy)
+    
     switch (proxy.type) {
       case 'ss':
         return {
           type: 'shadowsocks',
-          tag: proxy.name,
+          tag: formattedName,  // 使用格式化后的名称
           server: proxy.server,
           server_port: proxy.port,
           method: proxy.cipher,
@@ -16,7 +50,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       case 'vmess':
         return {
           type: 'vmess',
-          tag: proxy.name,
+          tag: formattedName,  // 使用格式化后的名称
           server: proxy.server,
           server_port: proxy.port,
           uuid: proxy.uuid,
@@ -32,7 +66,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       case 'trojan':
         return {
           type: 'trojan',
-          tag: proxy.name,
+          tag: formattedName,  // 使用格式化后的名称
           server: proxy.server,
           server_port: proxy.port,
           password: proxy.password,
