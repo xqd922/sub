@@ -1,5 +1,6 @@
 import { Proxy } from '@/lib/types'
 import { REGION_MAP } from '@/config/regions'
+import { filterNodes } from '@/lib/nodeUtils'
 
 // 添加区域计数器
 const counters: Record<string, number> = {}
@@ -29,11 +30,13 @@ function formatProxyName(proxy: Proxy): string {
 }
 
 export function generateSingboxConfig(proxies: Proxy[]) {
+  const formattedProxies = filterNodes(proxies)
+  
   // 重置计数器
   Object.keys(counters).forEach(key => delete counters[key])
   
   // 转换代理节点格式
-  const outbounds = proxies.map(proxy => {
+  const outbounds = formattedProxies.map(proxy => {
     // 格式化节点名称
     const formattedName = formatProxyName(proxy)
     
@@ -75,6 +78,47 @@ export function generateSingboxConfig(proxies: Proxy[]) {
             server_name: proxy.sni,
             insecure: proxy.skipCertVerify
           }
+        }
+      case 'hysteria2':  // 添加 Hysteria2 支持
+        return {
+          type: 'hysteria2',
+          tag: formattedName,
+          server: proxy.server,
+          server_port: proxy.port,
+          password: proxy.password,
+          up_mbps: 100,
+          down_mbps: 100,
+          tls: {
+            enabled: true,
+            server_name: proxy.sni,
+            insecure: proxy.skipCertVerify,
+            alpn: ['h3']
+          }
+        }
+      case 'vless':  // 添加 VLESS 支持
+        return {
+          type: 'vless',
+          tag: formattedName,
+          server: proxy.server,
+          server_port: proxy.port,
+          uuid: proxy.uuid,
+          flow: proxy.flow,
+          tls: {
+            enabled: true,
+            server_name: proxy.sni,
+            insecure: proxy.skipCertVerify,
+            utls: {
+              enabled: true,
+              fingerprint: proxy['client-fingerprint'] || 'chrome'
+            }
+          },
+          transport: proxy.network ? {
+            type: proxy.network,
+            path: proxy.wsPath,
+            headers: proxy.wsHeaders,
+            servername: proxy.servername
+          } : undefined,
+          packet_encoding: 'xudp'
         }
       default:
         return null

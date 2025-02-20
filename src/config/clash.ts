@@ -1,30 +1,33 @@
 import { ClashConfig, Proxy } from '@/lib/types'
+import { filterNodes } from '@/lib/nodeUtils'
 
 // 生成代理组配置
 export function generateProxyGroups(proxies: Proxy[]) {
+  const formattedProxies = filterNodes(proxies)
+  
   return [
     {
       name: 'Manual',
       type: 'select',
-      proxies: ['Auto', 'DIRECT', 'HK', 'Min', ...proxies.map(p => p.name)]
+      proxies: ['Auto', 'DIRECT', 'HK', 'Min', ...formattedProxies.map(p => p.name)]
     },
     {
       name: 'Auto',
       type: 'url-test',
-      proxies: proxies.map(p => p.name),
+      proxies: formattedProxies.map(p => p.name),
       url: 'http://www.gstatic.com/generate_204',
       interval: 300
     },
     {
       name: 'Emby',
       type: 'select',
-      proxies: ['Manual', 'Min', ...proxies.map(p => p.name)]
+      proxies: ['Manual', 'Min', ...formattedProxies.map(p => p.name)]
     },
     {
       name: 'HK',
       type: 'url-test',
       proxies: (() => {
-        const filtered = proxies.filter(p => /🇭🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
+        const filtered = formattedProxies.filter(p => /��🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
       url: 'http://www.gstatic.com/generate_204',
@@ -35,7 +38,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
       name: 'Min',
       type: 'url-test',
       proxies: (() => {
-        const filtered = proxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
+        const filtered = formattedProxies.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p.name)).map(p => p.name)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
       url: 'http://www.gstatic.com/generate_204',
