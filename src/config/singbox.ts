@@ -47,6 +47,9 @@ export function generateSingboxConfig(proxies: Proxy[]) {
     }
   }).filter(Boolean)
 
+  // 修改 outbounds 数组的使用方式
+  const validOutbounds = outbounds.filter((o): o is NonNullable<typeof o> => o !== null)
+
   // 生成基础配置
   const config = {
     dns: {
@@ -125,17 +128,17 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       }
     ],
     outbounds: [
-      ...outbounds,
+      ...validOutbounds,
       {
         type: "selector",
         tag: "Manual",
-        outbounds: ["Auto", ...outbounds.map(o => o.tag)],
+        outbounds: ["Auto", ...validOutbounds.map(o => o.tag)],
         default: "Auto"
       },
       {
         type: "urltest",
         tag: "Auto",
-        outbounds: outbounds.map(o => o.tag),
+        outbounds: validOutbounds.map(o => o.tag),
         url: "https://www.gstatic.com/generate_204",
         interval: 300
       },
