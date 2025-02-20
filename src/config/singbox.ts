@@ -1,135 +1,10 @@
 import { Proxy } from '@/lib/types'
-import { REGION_MAP } from '@/config/regions'
-import { filterNodes } from '@/lib/nodeUtils'
-
-// 添加区域计数器
-const counters: Record<string, number> = {}
-
-// 修改节点名称格式化函数
-function formatProxyName(proxy: Proxy): string {
-  // 从原始节点名称中提取地区信息
-  const regionMatch = Object.keys(REGION_MAP).find(key => 
-    proxy.name.toLowerCase().includes(key.toLowerCase())
-  )
-  
-  if (!regionMatch) {
-    return proxy.name
-  }
-  
-  const { flag, name } = REGION_MAP[regionMatch as keyof typeof REGION_MAP]
-  
-  // 提取倍率信息
-  const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
-  const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : ''
-  
-  // 使用计数器生成序号
-  counters[name] = (counters[name] || 0) + 1
-  const num = String(counters[name]).padStart(2, '0')
-  
-  return `${flag} ${name} ${num}${multiplier}`.trim()
-}
+import { convertNodes } from './singnode'
 
 export function generateSingboxConfig(proxies: Proxy[]) {
-  const formattedProxies = filterNodes(proxies)
-  
-  // 重置计数器
-  Object.keys(counters).forEach(key => delete counters[key])
-  
-  // 转换代理节点格式
-  const outbounds = formattedProxies.map(proxy => {
-    // 格式化节点名称
-    const formattedName = formatProxyName(proxy)
-    
-    switch (proxy.type) {
-      case 'ss':
-        return {
-          type: 'shadowsocks',
-          tag: formattedName,  // 使用格式化后的名称
-          server: proxy.server,
-          server_port: proxy.port,
-          method: proxy.cipher,
-          password: proxy.password
-        }
-      case 'vmess':
-        return {
-          type: 'vmess',
-          tag: formattedName,  // 使用格式化后的名称
-          server: proxy.server,
-          server_port: proxy.port,
-          uuid: proxy.uuid,
-          security: proxy.cipher || 'auto',
-          alter_id: proxy.alterId || 0,
-          tls: proxy.tls,
-          transport: {
-            type: proxy.network,
-            path: proxy.wsPath,
-            headers: proxy.wsHeaders
-          }
-        }
-      case 'trojan':
-        return {
-          type: 'trojan',
-          tag: formattedName,  // 使用格式化后的名称
-          server: proxy.server,
-          server_port: proxy.port,
-          password: proxy.password,
-          tls: {
-            enabled: true,
-            server_name: proxy.sni,
-            insecure: proxy.skipCertVerify
-          }
-        }
-      case 'hysteria2':  // 添加 Hysteria2 支持
-        return {
-          type: 'hysteria2',
-          tag: formattedName,
-          server: proxy.server,
-          server_port: proxy.port,
-          password: proxy.password,
-          up_mbps: 100,
-          down_mbps: 100,
-          tls: {
-            enabled: true,
-            server_name: proxy.sni,
-            insecure: proxy.skipCertVerify,
-            alpn: ['h3']
-          }
-        }
-      case 'vless':  // 添加 VLESS 支持
-        return {
-          type: 'vless',
-          tag: formattedName,
-          server: proxy.server,
-          server_port: proxy.port,
-          uuid: proxy.uuid,
-          flow: proxy.flow,
-          tls: {
-            enabled: true,
-            server_name: proxy.sni,
-            insecure: proxy.skipCertVerify,
-            utls: {
-              enabled: true,
-              fingerprint: proxy['client-fingerprint'] || 'chrome'
-            }
-          },
-          transport: proxy.network ? {
-            type: proxy.network,
-            path: proxy.wsPath,
-            headers: proxy.wsHeaders,
-            servername: proxy.servername
-          } : undefined,
-          packet_encoding: 'xudp'
-        }
-      default:
-        return null
-    }
-  }).filter(Boolean)
+  const validOutbounds = convertNodes(proxies)
 
-  // 修改 outbounds 数组的使用方式
-  const validOutbounds = outbounds.filter((o): o is NonNullable<typeof o> => o !== null)
-
-  // 生成基础配置
-  const config = {
+  return {
     dns: {
       servers: [
         {
@@ -140,7 +15,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         {
           tag: "local",
           address: "https://223.5.5.5/dns-query",
-          detour: "direct"
+          detour: "DIRECT"
         },
         {
           tag: "block",
@@ -210,7 +85,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       {
         type: "selector",
         tag: "Manual",
-        outbounds: ["Auto", ...validOutbounds.map(o => o.tag)],
+        outbounds: ["Auto", "DIRECT", ...validOutbounds.map(o => o.tag)],
         default: "Auto"
       },
       {
@@ -222,7 +97,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       },
       {
         type: "direct",
-        tag: "direct"
+        tag: "DIRECT"
       },
       {
         type: "block",
@@ -245,7 +120,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         },
         {
           clash_mode: "direct",
-          outbound: "direct"
+          outbound: "DIRECT"
         },
         {
           clash_mode: "global",
@@ -253,16 +128,14 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         },
         {
           geoip: ["cn", "private"],
-          outbound: "direct"
+          outbound: "DIRECT"
         },
         {
           geosite: "cn",
-          outbound: "direct"
+          outbound: "DIRECT"
         }
       ],
       auto_detect_interface: true
     }
   }
-
-  return config
 } 
