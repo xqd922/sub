@@ -323,3 +323,16 @@ MIT License
 - [Next.js](https://nextjs.org/)
 - [Clash](https://github.com/Dreamacro/clash)
 - [js-yaml](https://github.com/nodeca/js-yaml)
+
+# 通用订阅转换
+
+一个支持多种代理协议的通用订阅转换服务，自动识别客户端类型并返回对应格式的配置。
+
+## 支持的客户端
+- Clash 系列
+- sing-box
+
+## 使用方法
+1. 输入原始订阅链接
+2. 复制转换后的链接
+3. 在客户端中导入使用

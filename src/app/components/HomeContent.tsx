@@ -60,6 +60,7 @@ export default function HomeContent() {
     try {
       const baseUrl = window.location.origin
       const encodedUrl = encodeURIComponent(inputUrl)
+      // 使用统一的订阅链接
       const convertedUrl = `${baseUrl}/sub?url=${encodedUrl}`
       setConvertedUrl(convertedUrl)
 
@@ -122,35 +123,12 @@ export default function HomeContent() {
     }, 2000)
   }
 
-  const handleSingboxConvert = async () => {
-    if (!convertedUrl) return
-    
-    try {
-      const response = await fetch(`/api/sing?url=${encodeURIComponent(convertedUrl)}`)
-      if (!response.ok) throw new Error('转换失败')
-      
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'sing-box.json'
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
-      showToast('sing-box 配置已下载')
-    } catch {
-      showToast('sing-box 配置生成失败')
-    }
-  }
-
   return (
     <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-black dark:to-gray-800 flex items-start justify-center p-4 sm:p-6">
       <section className="w-full max-w-xl mt-24">
         <div className="text-center space-y-1 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-light tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Clash 订阅转换
+            通用订阅转换
           </h1>
         </div>
 
@@ -188,10 +166,10 @@ export default function HomeContent() {
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">转换结果</span>
+                  <span className="text-[10px] sm:text-xs text-gray-400">订阅链接</span>
                   <button
                     onClick={() => handleCopy(convertedUrl)}
-                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
                   >
                     复制
                   </button>
@@ -233,28 +211,6 @@ export default function HomeContent() {
                   </div>
                 </div>
               )}
-
-              <button
-                onClick={handleSingboxConvert}
-                className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
-              >
-                下载 sing-box 配置
-              </button>
-
-              <div className="space-y-1.5 sm:space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">sing-box 订阅</span>
-                  <button
-                    onClick={() => handleCopy(`${window.location.origin}/api/sing?url=${encodeURIComponent(inputUrl)}`)}
-                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
-                  >
-                    复制
-                  </button>
-                </div>
-                <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
-                  {`${window.location.origin}/api/sing?url=${encodeURIComponent(inputUrl)}`}
-                </div>
-              </div>
             </div>
           )}
         </div>

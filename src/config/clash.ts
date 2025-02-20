@@ -27,7 +27,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
       name: 'HK',
       type: 'url-test',
       proxies: (() => {
-        const filtered = formattedProxies.filter(p => /��🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
+        const filtered = formattedProxies.filter(p => /🇰|香港|HK|Hong Kong|HKG/.test(p.name) && !/家宽|Home/.test(p.name)).map(p => p.name)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
       url: 'http://www.gstatic.com/generate_204',
@@ -636,3 +636,13 @@ export const defaultConfig: ClashConfig = {
     'MATCH,Manual'
   ]
 } as const 
+
+// 导出配置生成函数
+export function generateClashConfig(proxies: Proxy[]) {
+  const formattedProxies = filterNodes(proxies)
+  return {
+    ...defaultConfig,
+    proxies: formattedProxies,
+    'proxy-groups': generateProxyGroups(formattedProxies)
+  }
+} 

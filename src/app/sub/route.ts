@@ -4,6 +4,7 @@ import { parseSubscription } from '@/lib/parsers'
 import { ClashConfig, Proxy, SubscriptionFetchError } from '@/lib/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { REGION_MAP, RegionCode } from '@/config/regions'
+import { generateSingboxConfig } from '@/config/singbox'
 
 export const runtime = 'edge'
 
@@ -178,11 +179,35 @@ export async function GET(request: Request) {
       counters[key] = 0
     })
     
-    // 直接格式化所有节点，保持原始顺序
-    const formattedProxies = proxies.map(formatProxyName)
+    // 获取 User-Agent 并判断客户端类型
+    const userAgent = request.headers.get('user-agent') || ''
+    const isSingBox = userAgent.toLowerCase().includes('sing-box')
+    
+    if (isSingBox) {
+      // sing-box 配置
+      const config = generateSingboxConfig(proxies)
+      const data = JSON.stringify(config, null, 2)
+      
+      return new NextResponse(data, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Access-Control-Allow-Origin': '*',
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
+          'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
+          'profile-update-interval': '24',
+          'profile-title': Buffer.from(subscription.name).toString('base64'),
+          'expires': subscription.expire,
+          'profile-web-page-url': subscription.homepage,
+          'profile-expire': subscription.expire,
+          'profile-status': 'active'
+        }
+      })
+    }
 
-    // 生成最终配置
-    const clashConfig: ClashConfig = {
+    // 原有的 clash 配置逻辑保持不变
+    const formattedProxies = proxies.map(formatProxyName)
+    const clashConfig = {
       ...defaultConfig,
       proxies: formattedProxies,
       'proxy-groups': generateProxyGroups(formattedProxies)
@@ -221,7 +246,7 @@ export async function GET(request: Request) {
         'profile-update-interval': '24',
         'profile-title': Buffer.from(subscription.name).toString('base64'),
         'expires': subscription.expire,
-        'profile-web-page-url': subscription.homepage,  // 使用原始订阅的首页
+        'profile-web-page-url': subscription.homepage,
         'profile-expire': subscription.expire,
         'profile-status': 'active'
       }
