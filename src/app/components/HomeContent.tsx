@@ -240,6 +240,21 @@ export default function HomeContent() {
               >
                 下载 sing-box 配置
               </button>
+
+              <div className="space-y-1.5 sm:space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-[10px] sm:text-xs text-gray-400">sing-box 订阅</span>
+                  <button
+                    onClick={() => handleCopy(`${window.location.origin}/api/sing?url=${encodeURIComponent(inputUrl)}`)}
+                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
+                  >
+                    复制
+                  </button>
+                </div>
+                <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
+                  {`${window.location.origin}/api/sing?url=${encodeURIComponent(inputUrl)}`}
+                </div>
+              </div>
             </div>
           )}
         </div>

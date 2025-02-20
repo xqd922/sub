@@ -140,7 +140,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         tag: "Auto",
         outbounds: validOutbounds.map(o => o.tag),
         url: "https://www.gstatic.com/generate_204",
-        interval: 300
+        interval: "300s"
       },
       {
         type: "direct",

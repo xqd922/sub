@@ -36,6 +36,7 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
         'Content-Disposition': `attachment; filename="sing-box.json"`,
       }
     })
