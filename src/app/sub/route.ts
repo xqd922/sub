@@ -5,6 +5,7 @@ import { Proxy, SubscriptionFetchError } from '@/lib/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { REGION_MAP, RegionCode } from '@/config/regions'
 import { generateSingboxConfig } from '@/config/singbox'
+import { previewStyles } from '@/styles/preview'
 
 export const runtime = 'edge'
 
@@ -182,6 +183,7 @@ export async function GET(request: Request) {
     // 获取 User-Agent 并判断客户端类型
     const userAgent = request.headers.get('user-agent') || ''
     const isSingBox = userAgent.toLowerCase().includes('sing-box')
+    const isBrowser = userAgent.includes('Mozilla/') || userAgent.includes('Chrome/') || userAgent.includes('Safari/')
     
     if (isSingBox) {
       // sing-box 配置
@@ -227,6 +229,9 @@ export async function GET(request: Request) {
       }
     })
     
+    const singboxConfig = generateSingboxConfig(proxies)
+    const jsonConfig = JSON.stringify(singboxConfig, null, 2)
+    
     const duration = Date.now() - startTime
     console.log('\n=== 订阅处理完成 ===')
     console.log('处理结果:')
@@ -235,6 +240,38 @@ export async function GET(request: Request) {
     console.log(`  ├─ 处理耗时: ${duration}ms`)
     console.log(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
     console.log('结束时间:', new Date().toLocaleString(), '\n')
+
+    // 如果是浏览器访问，显示并排配置
+    if (isBrowser) {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>配置预览</title>
+          <style>${previewStyles}</style>
+        </head>
+        <body>
+          <div class="container">
+            <h2>Clash 配置</h2>
+            <pre>${yamlConfig}</pre>
+          </div>
+          <div class="container">
+            <h2>sing-box 配置</h2>
+            <pre>${jsonConfig}</pre>
+          </div>
+        </body>
+        </html>
+      `
+      return new NextResponse(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+    }
 
     return new NextResponse(yamlConfig, {
       headers: {
