@@ -15,7 +15,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         {
           tag: "local",
           address: "https://223.5.5.5/dns-query",
-          detour: "DIRECT"
+          detour: "direct"
         },
         {
           tag: "block",
@@ -85,7 +85,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       {
         type: "selector",
         tag: "Manual",
-        outbounds: ["Auto", "DIRECT", ...validOutbounds.map(o => o.tag)],
+        outbounds: ["Auto",...validOutbounds.map(o => o.tag)],
         default: "Auto"
       },
       {
@@ -97,7 +97,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       },
       {
         type: "direct",
-        tag: "DIRECT"
+        tag: "direct"
       },
       {
         type: "block",
@@ -120,7 +120,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         },
         {
           clash_mode: "direct",
-          outbound: "DIRECT"
+          outbound: "direct"
         },
         {
           clash_mode: "global",
@@ -128,11 +128,11 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         },
         {
           geoip: ["cn", "private"],
-          outbound: "DIRECT"
+          outbound: "direct"
         },
         {
           geosite: "cn",
-          outbound: "DIRECT"
+          outbound: "direct"
         }
       ],
       auto_detect_interface: true
