@@ -12,6 +12,7 @@ export function QRCodeView({ url, shortUrl }: QRCodeViewProps) {
   const [qrCodeData, setQRCodeData] = useState('')
 
   useEffect(() => {
+    // 直接使用订阅链接，客户端会自动识别
     QRCodeLib.toDataURL(shortUrl || url, {
       margin: 1,
       width: 160,

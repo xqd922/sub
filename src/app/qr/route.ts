@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     }
 
     const qrCode = await QRCode.toDataURL(url, {
-      type: 'image/png',
       margin: 1,
       width: 200,
       color: {
