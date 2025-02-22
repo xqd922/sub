@@ -15,6 +15,8 @@ export const previewStyles = `
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     height: calc(100vh - 40px);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   h2 {
     margin: 0 0 20px;
@@ -25,10 +27,12 @@ export const previewStyles = `
     background: inherit;
   }
   pre {
-    height: calc(100% - 47px);
+    flex: 1;
     margin: 0;
     overflow: auto;
     font-size: 14px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
   }
   pre::-webkit-scrollbar {
     width: 7px;
@@ -44,7 +48,7 @@ export const previewStyles = `
   @media (prefers-color-scheme: dark) {
     body { background: #1a1a1a }
     .container { background: #2d2d2d }
-    h2 { border-color: rgba(255,255,255,0.1) }
+    h2, pre { border-color: rgba(255,255,255,0.1) }
     pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2) }
   }
 ` 
