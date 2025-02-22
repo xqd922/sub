@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { QRCodeView } from './QRCodeView'
 
 // 安全的复制函数
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -46,6 +47,7 @@ export default function HomeContent() {
   const [error, setError] = useState('')
   const [convertedUrl, setConvertedUrl] = useState('')
   const [shortUrl, setShortUrl] = useState('')
+  const [showQRCode, setShowQRCode] = useState(false)
 
   const handleConvert = async () => {
     if (!inputUrl) {
@@ -163,54 +165,66 @@ export default function HomeContent() {
           )}
 
           {convertedUrl && (
-            <div className="space-y-3 sm:space-y-4">
-              <div className="space-y-1.5 sm:space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">订阅链接</span>
-                  <button
-                    onClick={() => handleCopy(convertedUrl)}
-                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
-                  >
-                    复制
-                  </button>
-                </div>
-                <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
-                  {convertedUrl}
-                </div>
-              </div>
-
-              {!shortUrl && (
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
-                  <button
-                    onClick={handleGenerateShortUrl}
-                    disabled={shortenLoading}
-                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                  >
-                    {shortenLoading ? '生成中...' : '生成短链接'}
-                  </button>
-                </div>
-              )}
-
-              {shortUrl && (
-                <div className="space-y-1.5 sm:space-y-2">
+            <div className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
                   <div className="flex justify-between items-center px-1">
-                    <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
+                    <span className="text-[10px] sm:text-xs text-gray-400">订阅链接</span>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(shortUrl)
-                        showToast('已复制短链接')
-                      }}
-                      className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                      onClick={() => handleCopy(convertedUrl)}
+                      className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
                     >
                       复制
                     </button>
                   </div>
-                  <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
-                    {shortUrl}
+                  <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
+                    {convertedUrl}
                   </div>
                 </div>
-              )}
+
+                {!shortUrl && (
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
+                    <button
+                      onClick={handleGenerateShortUrl}
+                      disabled={shortenLoading}
+                      className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    >
+                      {shortenLoading ? '生成中...' : '生成短链接'}
+                    </button>
+                  </div>
+                )}
+
+                {shortUrl && (
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
+                      <button
+                        onClick={() => handleCopy(shortUrl)}
+                        className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
+                      >
+                        复制
+                      </button>
+                    </div>
+                    <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
+                      {shortUrl}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowQRCode(!showQRCode)}
+                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
+                  >
+                    {showQRCode ? '隐藏二维码' : '显示二维码'}
+                  </button>
+                </div>
+
+                {showQRCode && (
+                  <QRCodeView url={shortUrl || convertedUrl} shortUrl={shortUrl} />
+                )}
+              </div>
             </div>
           )}
         </div>
