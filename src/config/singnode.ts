@@ -41,8 +41,8 @@ export function convertNodes(proxies: Proxy[]) {
           password: proxy.password,
           tls: {
             enabled: true,
-            server_name: proxy.sni,
-            insecure: proxy.skipCertVerify
+            server_name: proxy.sni || proxy.server,
+            insecure: true
           }
         }
       case 'hysteria2':
