@@ -185,6 +185,32 @@ export async function GET(request: Request) {
     const isSingBox = userAgent.toLowerCase().includes('sing-box')
     const isBrowser = userAgent.includes('Mozilla/') || userAgent.includes('Chrome/') || userAgent.includes('Safari/')
     
+    // 添加客户端类型日志
+    console.log('\n=== 客户端信息 ===')
+    console.log(`类型: ${isSingBox ? 'sing-box' : isBrowser ? '浏览器' : 'clash'}`)
+    console.log(`User-Agent: ${userAgent}`)
+    console.log('===================\n')
+
+    // 统计节点类型分布
+    const nodeTypes = proxies.reduce((acc, proxy) => {
+      const type = proxy.type?.toLowerCase() || 'unknown'
+      acc[type] = (acc[type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    // 按数量排序并格式化显示
+    const sortedTypes = Object.entries(nodeTypes)
+      .sort(([,a], [,b]) => b - a)
+      .map(([type, count]) => {
+        const percentage = ((count / proxies.length) * 100).toFixed(1)
+        return `  ├─ ${type.toUpperCase()}: ${count} (${percentage}%)`
+      })
+      .join('\n')
+
+    console.log('\n节点类型分布:')
+    console.log(sortedTypes)
+    console.log(`  └─ 总计: ${proxies.length}\n`)
+
     if (isSingBox) {
       // sing-box 配置
       const config = generateSingboxConfig(proxies)
@@ -235,6 +261,7 @@ export async function GET(request: Request) {
     const duration = Date.now() - startTime
     console.log('\n=== 订阅处理完成 ===')
     console.log('处理结果:')
+    console.log(`  ├─ 客户端类型: ${isSingBox ? 'sing-box' : isBrowser ? '浏览器' : 'clash'}`)
     console.log(`  ├─ 节点总数: ${proxies.length}`)
     console.log(`  ├─ 有效节点: ${formattedProxies.length}`)
     console.log(`  ├─ 处理耗时: ${duration}ms`)
