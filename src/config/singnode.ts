@@ -52,13 +52,10 @@ export function convertNodes(proxies: Proxy[]) {
           server: proxy.server,
           server_port: proxy.port,
           password: proxy.password,
-          up_mbps: 100,
-          down_mbps: 100,
           tls: {
             enabled: true,
-            server_name: proxy.sni,
-            insecure: proxy.skipCertVerify,
-            alpn: ['h3']
+            server_name: proxy.sni || proxy.server,
+            insecure: true
           }
         }
       case 'vless':
@@ -69,20 +66,10 @@ export function convertNodes(proxies: Proxy[]) {
           server_port: proxy.port,
           uuid: proxy.uuid,
           flow: proxy.flow,
-          tls: {
-            enabled: true,
-            server_name: proxy.sni,
-            insecure: proxy.skipCertVerify,
-            utls: {
-              enabled: true,
-              fingerprint: proxy['client-fingerprint'] || 'chrome'
-            }
-          },
           transport: proxy.network ? {
             type: proxy.network,
             path: proxy.wsPath,
-            headers: proxy.wsHeaders,
-            servername: proxy.servername
+            headers: proxy.wsHeaders
           } : undefined,
           packet_encoding: 'xudp'
         }
