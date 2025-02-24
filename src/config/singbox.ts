@@ -28,11 +28,6 @@ export function generateSingboxConfig(proxies: Proxy[]) {
           server: "local"
         },
         {
-          geosite: "category-ads-all",
-          server: "block",
-          disable_cache: true
-        },
-        {
           clash_mode: "global",
           server: "remote"
         },
@@ -41,8 +36,8 @@ export function generateSingboxConfig(proxies: Proxy[]) {
           server: "local"
         },
         {
-          geosite: "cn",
-          server: "local"
+          "rule_set": "geosite-cn",
+          "server": "local"
         }
       ],
       strategy: "prefer_ipv4"
@@ -108,34 +103,60 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         tag: "dns-out"
       }
     ],
-    route: {
-      rules: [
+    "route": {
+      "rules": [
         {
-          geosite: "category-ads-all",
-          outbound: "block"
+          "outbound": "direct"
         },
         {
-          protocol: "dns",
-          outbound: "dns-out"
+          "protocol": "dns",
+          "outbound": "dns-out"
         },
         {
-          clash_mode: "direct",
-          outbound: "direct"
+          "clash_mode": "direct",
+          "outbound": "direct"
         },
         {
-          clash_mode: "global",
-          outbound: "Manual"
+          "clash_mode": "global",
+          "outbound": "Manual"
         },
         {
-          geoip: ["cn", "private"],
-          outbound: "direct"
+          "ip_is_private": true,
+          "outbound": "direct"
         },
         {
-          geosite: "cn",
-          outbound: "direct"
+          "rule_set": [
+            "geosite-cn",
+            "geoip-cn"
+          ],
+          "outbound": "direct"
         }
       ],
-      auto_detect_interface: true
+      "rule_set": [
+        {
+          "type": "remote",
+          "tag": "geosite-cn",
+          "format": "binary",
+          "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+          "download_detour": "Manual"
+        },
+        {
+          "type": "remote",
+          "tag": "geoip-cn",
+          "format": "binary",
+          "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+          "download_detour": "Manual"
+        }
+      ],
+      "auto_detect_interface": true
+    },
+    "experimental": {
+      "cache_file": {
+        "enabled": true,
+        "path": "cache.db",
+        "cache_id": "cache_db",
+        "store_fakeip": true
+      }
     }
   }
 } 

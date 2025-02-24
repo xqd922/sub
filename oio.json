@@ -1,0 +1,267 @@
+{
+  "dns": {
+    "servers": [
+      {
+        "tag": "remote",
+        "address": "https://1.1.1.1/dns-query",
+        "detour": "节点选择"
+      },
+      {
+        "tag": "local",
+        "address": "https://223.5.5.5/dns-query",
+        "detour": "direct"
+      },
+      {
+        "tag": "block",
+        "address": "rcode://success"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "local"
+      },
+      {
+        "clash_mode": "global",
+        "server": "remote"
+      },
+      {
+        "clash_mode": "direct",
+        "server": "local"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "server": "local"
+      }
+    ],
+    "strategy": "prefer_ipv4"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "system",
+      "sniff": true,
+      "sniff_override_destination": true,
+      "domain_strategy": "prefer_ipv4",
+      "inet4_address": "172.19.0.1/30",
+      "inet6_address": "2001:470:f9da:fdfa::1/64",
+      "endpoint_independent_nat": true
+    },
+    {
+      "type": "socks",
+      "tag": "socks-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2333,
+      "sniff": true,
+      "sniff_override_destination": true,
+      "domain_strategy": "prefer_ipv4"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2334,
+      "sniff": true,
+      "sniff_override_destination": true,
+      "domain_strategy": "prefer_ipv4"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "节点选择",
+      "outbounds": [
+        "自动选择",
+        "剩余流量：167.99 GB",
+        "距离下次重置剩余：26 天",
+        "套餐到期：2025-03-22",
+        "V0-美国-出现问题请先更新订阅！！！",
+        "V0-美国-软件需开启跳过证书验证！！！",
+        "V0-美国-官网：www.cac.mom",
+        "V1-香港2-IPv6",
+        "V1-加拿大-IPv6"
+      ],
+      "default": "自动选择"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "dns",
+      "tag": "dns-out"
+    },
+    {
+      "type": "urltest",
+      "tag": "自动选择",
+      "outbounds": [
+        "剩余流量：167.99 GB",
+        "距离下次重置剩余：26 天",
+        "套餐到期：2025-03-22",
+        "V0-美国-出现问题请先更新订阅！！！",
+        "V0-美国-软件需开启跳过证书验证！！！",
+        "V0-美国-官网：www.cac.mom",
+        "V1-香港2-IPv6",
+        "V1-加拿大-IPv6"
+      ]
+    },
+    {
+      "type": "trojan",
+      "tag": "剩余流量：167.99 GB",
+      "server": "f67f6fd69511bde73b1c8a39ad402095.us.in.node-is.green",
+      "server_port": 49892,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "距离下次重置剩余：26 天",
+      "server": "f24fbc40ddfba352f242e07aa43ca071.us.in.node-is.green",
+      "server_port": 49892,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "套餐到期：2025-03-22",
+      "server": "8669d65d256c012e8622e6e19f2a5c92.us.in.node-is.green",
+      "server_port": 49892,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "V0-美国-出现问题请先更新订阅！！！",
+      "server": "25adf6c14405e41b1c16e7603f97e6bb.us.in.node-is.green",
+      "server_port": 49892,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "V0-美国-软件需开启跳过证书验证！！！",
+      "server": "e6ae73ade9d20a298b83c477f6c7d629.us.in.node-is.green",
+      "server_port": 47657,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "V0-美国-官网：www.cac.mom",
+      "server": "6d12c94a75e26dca013c117c33a8884e.us.in.node-is.green",
+      "server_port": 48488,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "V1-香港2-IPv6",
+      "server": "bde1ce62c00b2ec6a29749c858e5b9f6.v1.cac.node-is.green",
+      "server_port": 42666,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "hk12.bilibili.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "V1-加拿大-IPv6",
+      "server": "f7e77ba62a8c3c942ccb296c7b69eaf9.v1.cac.node-is.green",
+      "server_port": 49111,
+      "password": "536cbb5d-2103-446b-9c2a-83fe0b83abdc",
+      "tls": {
+        "enabled": true,
+        "server_name": "ca1.bilibili.com",
+        "insecure": true
+      }
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "outbound": "direct"
+      },
+      {
+        "protocol": "dns",
+        "outbound": "dns-out"
+      },
+      {
+        "clash_mode": "direct",
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "global",
+        "outbound": "节点选择"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "geosite-cn",
+          "geoip-cn"
+        ],
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "download_detour": "自动选择"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "download_detour": "自动选择"
+      }
+    ],
+    "auto_detect_interface": true
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "path": "cache.db",
+      "cache_id": "cache_db",
+      "store_fakeip": true
+    }
+  }
+}
