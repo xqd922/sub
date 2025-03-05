@@ -47,11 +47,16 @@ export interface DnsConfig {
   'enhanced-mode': string
   'fake-ip-range': string
   'use-hosts': boolean
+  'respect-rules': boolean
+  'proxy-server-nameserver': string[]
   nameserver: string[]
-  fallback: string[]
+  fallback?: string[]
   'fallback-filter': {
     geoip: boolean
+    'geoip-code': string
+    geosite: string[]
     ipcidr: string[]
+    domain: string[]
   }
 }
 
