@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { QRCodeView } from './QRCodeView'
 
 // 安全的复制函数
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -47,7 +46,6 @@ export default function HomeContent() {
   const [error, setError] = useState('')
   const [convertedUrl, setConvertedUrl] = useState('')
   const [shortUrl, setShortUrl] = useState('')
-  const [showQRCode, setShowQRCode] = useState(false)
 
   const handleConvert = async () => {
     if (!inputUrl) {
@@ -210,19 +208,6 @@ export default function HomeContent() {
                       {shortUrl}
                     </div>
                   </div>
-                )}
-
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => setShowQRCode(!showQRCode)}
-                    className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600"
-                  >
-                    {showQRCode ? '隐藏二维码' : '显示二维码'}
-                  </button>
-                </div>
-
-                {showQRCode && (
-                  <QRCodeView url={shortUrl || convertedUrl} shortUrl={shortUrl} />
                 )}
               </div>
             </div>
