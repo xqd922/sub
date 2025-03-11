@@ -6,6 +6,7 @@ import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { REGION_MAP, RegionCode } from '@/config/regions'
 import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
+import { SingleNodeParser } from '@/lib/singleNode'
 
 export const runtime = 'edge'
 
@@ -130,51 +131,75 @@ export async function GET(request: Request) {
     Object.keys(counters).forEach(key => {
       counters[key] = 0
     })
-    
-    // 使用新的 fetchWithRetry 函数
-    const response = await fetchWithRetry(url)
 
-    // 打印完整的响应头
-    console.log('\n===== 响应头信息 =====')
-    const headers = Object.fromEntries(response.headers.entries())
-    console.log(headers)
-    console.log('=====================\n')
-    
-    // 从 content-disposition 获取订阅名称
-    const contentDisposition = response.headers.get('content-disposition') || ''
-    const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
-    const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : 'Node'
-    
-    // 获取订阅到期时间和流量信息
-    const userInfo = response.headers.get('subscription-userinfo') || ''
-    const subscription = {
-      name: subName,
-      upload: userInfo.match(/upload=(\d+)/)?.[1] || 0,
-      download: userInfo.match(/download=(\d+)/)?.[1] || 0,
-      total: userInfo.match(/total=(\d+)/)?.[1] || 0,
-      expire: userInfo.match(/expire=(\d+)/)?.[1] || 
-              response.headers.get('profile-expire') || 
-              response.headers.get('expires') || 
-              response.headers.get('expire') || 
-              response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
-              '',
-      homepage: response.headers.get('profile-web-page-url') || 'https://sub.xqd.us.kg'  // 获取原始订阅的首页
+    let proxies: Proxy[]
+    let subscription: { name: string; upload: string; download: string; total: string; expire: string; homepage: string }
+
+    // 检查是否是单节点链接
+    if (url.startsWith('ss://') || url.startsWith('vmess://') || 
+        url.startsWith('trojan://') || url.startsWith('vless://')) {
+      console.log('检测到单节点链接，使用单节点解析器')
+      
+      const proxy = SingleNodeParser.parse(url)
+      if (!proxy || !SingleNodeParser.validate(proxy)) {
+        throw new Error('无效的节点链接')
+      }
+
+      proxies = [proxy]
+      subscription = {
+        name: proxy.name,
+        upload: '0',
+        download: '0',
+        total: '0',
+        expire: '',
+        homepage: 'https://sub.xqd.us.kg'
+      }
+    } else {
+      // 使用新的 fetchWithRetry 函数
+      const response = await fetchWithRetry(url)
+
+      // 打印完整的响应头
+      console.log('\n===== 响应头信息 =====')
+      const headers = Object.fromEntries(response.headers.entries())
+      console.log(headers)
+      console.log('=====================\n')
+      
+      // 从 content-disposition 获取订阅名称
+      const contentDisposition = response.headers.get('content-disposition') || ''
+      const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
+      const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : '订阅'
+      
+      // 获取订阅到期时间和流量信息
+      const userInfo = response.headers.get('subscription-userinfo') || ''
+      subscription = {
+        name: subName,
+        upload: String(userInfo.match(/upload=(\d+)/)?.[1] || 0),
+        download: String(userInfo.match(/download=(\d+)/)?.[1] || 0),
+        total: String(userInfo.match(/total=(\d+)/)?.[1] || 0),
+        expire: String(userInfo.match(/expire=(\d+)/)?.[1] || 
+                response.headers.get('profile-expire') || 
+                response.headers.get('expires') || 
+                response.headers.get('expire') || 
+                response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
+                ''),
+        homepage: response.headers.get('profile-web-page-url') || 'https://sub.xqd.us.kg'
+      }
+
+      // 打印格式化的订阅信息
+      console.log('\n=== 订阅基本信息 ===')
+      console.log(`名称: ${subscription.name}`)
+      console.log(`首页: ${subscription.homepage}`)
+      console.log(`流量信息:`)
+      console.log(`  ├─ 上传: ${formatBytes(Number(subscription.upload))}`)
+      console.log(`  ├─ 下载: ${formatBytes(Number(subscription.download))}`)
+      console.log(`  └─ 总量: ${formatBytes(Number(subscription.total))}`)
+      console.log(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
+      console.log('===================\n')
+
+      // 解析订阅节点
+      proxies = await parseSubscription(url)
     }
 
-    // 打印格式化的订阅信息
-    console.log('\n=== 订阅基本信息 ===')
-    console.log(`名称: ${subscription.name}`)
-    console.log(`首页: ${subscription.homepage}`)
-    console.log(`流量信息:`)
-    console.log(`  ├─ 上传: ${formatBytes(Number(subscription.upload))}`)
-    console.log(`  ├─ 下载: ${formatBytes(Number(subscription.download))}`)
-    console.log(`  └─ 总量: ${formatBytes(Number(subscription.total))}`)
-    console.log(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
-    console.log('===================\n')
-
-    // 解析节点
-    const proxies = await parseSubscription(url)
-    
     // 重置所有计数器
     Object.keys(counters).forEach(key => {
       counters[key] = 0
