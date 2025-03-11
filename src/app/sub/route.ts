@@ -306,7 +306,9 @@ export async function GET(request: Request) {
         'Cache-Control': 'no-cache',
         'Access-Control-Allow-Origin': '*',
         'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
-        'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
+        ...(Number(subscription.upload) > 0 || Number(subscription.download) > 0 || Number(subscription.total) > 0 ? {
+          'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
+        } : {}),
         'profile-update-interval': '24',
         'profile-title': Buffer.from(subscription.name).toString('base64'),
         'expires': subscription.expire,
