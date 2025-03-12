@@ -135,19 +135,19 @@ export async function GET(request: Request) {
     let proxies: Proxy[]
     let subscription: { name: string; upload: string; download: string; total: string; expire: string; homepage: string }
 
-    // 检查是否是单节点链接
+    // 检查是否是单节点链接或多个节点
     if (url.startsWith('ss://') || url.startsWith('vmess://') || 
         url.startsWith('trojan://') || url.startsWith('vless://')) {
-      console.log('检测到单节点链接，使用单节点解析器')
+      console.log('检测到节点链接，使用节点解析器')
       
-      const proxy = SingleNodeParser.parse(url)
-      if (!proxy || !SingleNodeParser.validate(proxy)) {
+      // 使用新的 parseMultiple 方法处理
+      proxies = SingleNodeParser.parseMultiple(url)
+      if (!proxies.length) {
         throw new Error('无效的节点链接')
       }
 
-      proxies = [proxy]
       subscription = {
-        name: proxy.name,
+        name: 'Nodes',
         upload: '0',
         download: '0',
         total: '0',
