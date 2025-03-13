@@ -147,7 +147,7 @@ export async function GET(request: Request) {
       }
 
       subscription = {
-        name: 'Nodes',
+        name: 'Lite',
         upload: '0',
         download: '0',
         total: '0',

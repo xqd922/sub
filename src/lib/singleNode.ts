@@ -9,16 +9,54 @@ const counters: Record<string, number> = {}
  */
 export class SingleNodeParser {
   /**
-   * 解析多个节点链接
-   * @param uris 节点链接字符串数组
-   * @returns 解析后的节点配置数组
+   * 按地区对节点进行排序
+   * @param proxies 节点数组
+   * @returns 排序后的节点数组
    */
-  static parseMultiple(input: string): Proxy[] {
+  private static sortProxiesByRegion(proxies: Proxy[]): Proxy[] {
+    // 创建地区优先级映射
+    const regionPriority: { [key: string]: number } = {
+      '香港': 1,
+      '台湾': 2,
+      '日本': 3,
+      '新加坡': 4,
+      '美国': 5,
+      // 可以添加更多地区优先级...
+    }
+
     // 重置计数器
     Object.keys(counters).forEach(key => {
       counters[key] = 0
     })
 
+    return proxies
+      // 按地区分组并排序
+      .sort((a, b) => {
+        const regionA = Object.keys(REGION_MAP).find(key => 
+          a.name.toLowerCase().includes(key.toLowerCase())
+        )
+        const regionB = Object.keys(REGION_MAP).find(key => 
+          b.name.toLowerCase().includes(key.toLowerCase())
+        )
+
+        const priorityA = regionA ? regionPriority[REGION_MAP[regionA as keyof typeof REGION_MAP].name] || 999 : 999
+        const priorityB = regionB ? regionPriority[REGION_MAP[regionB as keyof typeof REGION_MAP].name] || 999 : 999
+
+        return priorityA - priorityB
+      })
+      // 重新格式化名称以确保编号连续
+      .map(proxy => ({
+        ...proxy,
+        name: this.formatProxyName(proxy)
+      }))
+  }
+
+  /**
+   * 解析多个节点链接
+   * @param uris 节点链接字符串数组
+   * @returns 解析后的节点配置数组
+   */
+  static parseMultiple(input: string): Proxy[] {
     // 分割多个节点链接
     const uris = input.split(/\s+/).filter(uri => uri.trim())
     
@@ -27,7 +65,8 @@ export class SingleNodeParser {
       .map(uri => this.parse(uri))
       .filter((proxy): proxy is Proxy => proxy !== null)
 
-    return proxies
+    // 对节点进行排序
+    return this.sortProxiesByRegion(proxies)
   }
 
   /**
