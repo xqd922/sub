@@ -156,7 +156,21 @@ export class SingleNodeParser {
     }
 
     const [method, password] = methodAndPassword.split(':')
-    const [server, port] = serverAndPort.split(':')
+
+    // 处理 IPv6 地址
+    const ipv6Match = serverAndPort.match(/\[(.*)\]:(\d+)/)
+    let server: string
+    let port: string
+
+    if (ipv6Match) {
+      // IPv6 格式
+      [, server, port] = ipv6Match
+    } else {
+      // IPv4 或域名格式
+      const lastColon = serverAndPort.lastIndexOf(':')
+      server = serverAndPort.substring(0, lastColon)
+      port = serverAndPort.substring(lastColon + 1)
+    }
     
     if (!method || !password || !server || !port) {
       throw new Error('SS 链接缺少必要参数')
