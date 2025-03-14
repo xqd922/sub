@@ -263,6 +263,7 @@ export class SingleNodeParser {
    */
   private static parseVless(uri: string): Proxy {
     const url = new URL(uri)
+    const host = url.searchParams.get('host')
     
     const proxy = {
       type: 'vless',
@@ -274,18 +275,22 @@ export class SingleNodeParser {
         uuid: url.username,
         network: url.searchParams.get('type') || 'tcp',
         tls: url.searchParams.get('security') === 'tls',
-        flow: url.searchParams.get('flow') || '',
-        sni: url.searchParams.get('sni') || url.hostname,
         udp: true
       }),
       server: url.hostname,
       port: parseInt(url.port),
       uuid: url.username,
-      network: url.searchParams.get('type') || 'tcp',
       tls: url.searchParams.get('security') === 'tls',
-      flow: url.searchParams.get('flow') || '',
-      sni: url.searchParams.get('sni') || url.hostname,
-      udp: true
+      network: url.searchParams.get('type') || 'tcp',
+      'client-fingerprint': url.searchParams.get('fp') || 'chrome',
+      'skip-cert-verify': false,
+      tfo: false,
+      'ws-opts': {
+        path: url.searchParams.get('path') || '',
+        headers: {
+          Host: host || url.hostname
+        }
+      }
     }
 
     return proxy

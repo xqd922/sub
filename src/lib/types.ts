@@ -38,6 +38,8 @@ export interface Proxy {
       Host?: string
     }
   }
+  encryption?: string
+  fp?: string
 }
 
 export interface DnsConfig {
