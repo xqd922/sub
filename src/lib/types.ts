@@ -31,7 +31,7 @@ export interface Proxy {
   servername?: string
   path?: string
   host?: string
-  alpn?: string[]
+  alpn?: string[] | string
   'ws-opts'?: {
     path?: string
     headers?: {
@@ -40,6 +40,17 @@ export interface Proxy {
   }
   encryption?: string
   fp?: string
+  
+  // 添加 Hysteria2 相关属性
+  insecure?: boolean
+  up_mbps?: number
+  down_mbps?: number
+  
+  // 添加 Reality 相关属性
+  reality?: boolean
+  
+  // 添加 tfo 属性
+  tfo?: boolean
 }
 
 export interface DnsConfig {

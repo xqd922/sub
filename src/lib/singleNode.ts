@@ -72,6 +72,8 @@ export class SingleNodeParser {
         return this.parseTrojan(uri)
       } else if (uri.startsWith('vless://')) {
         return this.parseVless(uri)
+      } else if (uri.startsWith('hysteria2://') || uri.startsWith('hy2://')) {
+        return this.parseHysteria2(uri)
       }
       throw new Error('不支持的协议类型')
     } catch (error) {
@@ -195,24 +197,81 @@ export class SingleNodeParser {
    */
   private static parseVless(uri: string): Proxy {
     const url = new URL(uri)
-    const host = url.searchParams.get('host')
     
+    // 处理 IPv6 地址，移除方括号
+    let server = url.hostname
+    if (server.startsWith('[') && server.endsWith(']')) {
+      server = server.substring(1, server.length - 1)
+    }
+    
+    const host = url.searchParams.get('host')
+    const flow = url.searchParams.get('flow')
+    const fp = url.searchParams.get('fp') || 'chrome'
+    const security = url.searchParams.get('security') || 'none'
+    const type = url.searchParams.get('type') || 'tcp'
+    const pbk = url.searchParams.get('pbk')
+    const sid = url.searchParams.get('sid')
+    const sni = url.searchParams.get('sni') || ''
+    
+    // 简化输出格式
     return {
       type: 'vless',
-      name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
-      server: url.hostname,
+      name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
+      server: server,
       port: parseInt(url.port),
       uuid: url.username,
-      tls: url.searchParams.get('security') === 'tls',
-      network: url.searchParams.get('type') || 'tcp',
-      'client-fingerprint': url.searchParams.get('fp') || 'chrome',
+      tls: security === 'tls' || security === 'reality',
+      flow: flow || '',
+      servername: sni,
       'skip-cert-verify': false,
-      'ws-opts': {
-        path: url.searchParams.get('path') || '',
-        headers: {
-          Host: host || url.hostname
+      'client-fingerprint': fp,
+      network: type,
+      tfo: false,
+      
+      // 如果是 Reality 节点
+      ...(pbk && {
+        'reality-opts': {
+          'public-key': pbk,
+          'short-id': sid || ''
         }
-      }
+      }),
+      
+      // 如果是 WS 类型
+      ...(type === 'ws' && {
+        'ws-opts': {
+          path: url.searchParams.get('path') || '',
+          headers: {
+            Host: host || server
+          }
+        }
+      })
+    }
+  }
+
+  /**
+   * 解析 Hysteria2 节点
+   * @param uri hysteria2://开头的节点链接
+   */
+  private static parseHysteria2(uri: string): Proxy {
+    // 处理 hy2:// 前缀
+    const actualUri = uri.startsWith('hy2://') ? 'hysteria2://' + uri.substring(6) : uri
+    const url = new URL(actualUri)
+    
+    // 处理 IPv6 地址，移除方括号
+    let server = url.hostname
+    if (server.startsWith('[') && server.endsWith(']')) {
+      server = server.substring(1, server.length - 1)
+    }
+    
+    return {
+      type: 'hysteria2',
+      name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
+      server: server,
+      port: parseInt(url.port),
+      password: url.username,
+      sni: url.searchParams.get('sni') || '',
+      insecure: url.searchParams.get('insecure') === '1',
+      alpn: [url.searchParams.get('alpn') || 'h3']
     }
   }
 
@@ -241,6 +300,8 @@ export class SingleNodeParser {
         return !!(proxy.password)
       case 'vless':
         return !!(proxy.uuid)
+      case 'hysteria2':
+        return !!(proxy.password)
       default:
         return false
     }
