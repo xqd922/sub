@@ -1,9 +1,6 @@
 import { Proxy } from './types'
 import { REGION_MAP } from '@/config/regions'
 
-// 在每次请求开始时重置计数器
-const counters: Record<string, number> = {}
-
 /**
  * 单节点解析器
  */
@@ -24,11 +21,6 @@ export class SingleNodeParser {
       // 可以添加更多地区优先级...
     }
 
-    // 重置计数器
-    Object.keys(counters).forEach(key => {
-      counters[key] = 0
-    })
-
     return proxies
       // 按地区分组并排序
       .sort((a, b) => {
@@ -44,11 +36,6 @@ export class SingleNodeParser {
 
         return priorityA - priorityB
       })
-      // 重新格式化名称以确保编号连续
-      .map(proxy => ({
-        ...proxy,
-        name: this.formatProxyName(proxy)
-      }))
   }
 
   /**
@@ -65,7 +52,7 @@ export class SingleNodeParser {
       .map(uri => this.parse(uri))
       .filter((proxy): proxy is Proxy => proxy !== null)
 
-    // 对节点进行排序
+    // 对节点进行排序但不重命名
     return this.sortProxiesByRegion(proxies)
   }
 
@@ -91,33 +78,6 @@ export class SingleNodeParser {
       console.error('节点解析失败:', error)
       return null
     }
-  }
-
-  /**
-   * 格式化节点名称
-   * @param name 节点原始名称
-   */
-  private static formatProxyName(proxy: Proxy): string {
-    // 只从原始节点名称中提取地区信息
-    const regionMatch = Object.keys(REGION_MAP).find(key => 
-      proxy.name.toLowerCase().includes(key.toLowerCase())
-    )
-    
-    if (!regionMatch) {
-      return proxy.name
-    }
-    
-    const { flag, name } = REGION_MAP[regionMatch as keyof typeof REGION_MAP]
-    
-    // 提取倍率信息
-    const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
-    const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : ''
-    
-    // 初始化计数器
-    counters[name] = counters[name] || 0
-    const num = String(++counters[name]).padStart(2, '0')
-    
-    return `${flag} ${name} ${num}${multiplier}`.trim()
   }
 
   /**
@@ -176,7 +136,7 @@ export class SingleNodeParser {
       throw new Error('SS 链接缺少必要参数')
     }
 
-    const proxy = {
+    return {
       type: 'ss',
       name: decodeURIComponent(remark) || server,
       server,
@@ -185,9 +145,6 @@ export class SingleNodeParser {
       password,
       udp: true
     }
-
-    proxy.name = this.formatProxyName(proxy)
-    return proxy
   }
 
   /**
@@ -198,21 +155,9 @@ export class SingleNodeParser {
     const content = uri.substring(8)
     const config = JSON.parse(Buffer.from(content, 'base64').toString())
     
-    const proxy = {
+    return {
       type: 'vmess',
-      name: this.formatProxyName({
-        type: 'vmess',
-        name: config.ps || config.add,
-        server: config.add,
-        port: parseInt(config.port),
-        uuid: config.id,
-        alterId: parseInt(config.aid) || 0,
-        cipher: 'auto',
-        network: config.net || 'tcp',
-        tls: config.tls === 'tls',
-        wsPath: config.path || '',
-        wsHeaders: config.host ? { Host: config.host } : undefined
-      }),
+      name: config.ps || config.add,
       server: config.add,
       port: parseInt(config.port),
       uuid: config.id,
@@ -223,8 +168,6 @@ export class SingleNodeParser {
       wsPath: config.path || '',
       wsHeaders: config.host ? { Host: config.host } : undefined
     }
-
-    return proxy
   }
 
   /**
@@ -234,18 +177,9 @@ export class SingleNodeParser {
   private static parseTrojan(uri: string): Proxy {
     const url = new URL(uri)
     
-    const proxy = {
+    return {
       type: 'trojan',
-      name: this.formatProxyName({
-        type: 'trojan',
-        name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
-        server: url.hostname,
-        port: parseInt(url.port),
-        password: url.username,
-        sni: url.searchParams.get('sni') || url.hostname,
-        udp: true,
-        skipCertVerify: url.searchParams.get('allowInsecure') === '1'
-      }),
+      name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
       server: url.hostname,
       port: parseInt(url.port),
       password: url.username,
@@ -253,8 +187,6 @@ export class SingleNodeParser {
       udp: true,
       skipCertVerify: url.searchParams.get('allowInsecure') === '1'
     }
-
-    return proxy
   }
 
   /**
@@ -265,18 +197,9 @@ export class SingleNodeParser {
     const url = new URL(uri)
     const host = url.searchParams.get('host')
     
-    const proxy = {
+    return {
       type: 'vless',
-      name: this.formatProxyName({
-        type: 'vless',
-        name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
-        server: url.hostname,
-        port: parseInt(url.port),
-        uuid: url.username,
-        network: url.searchParams.get('type') || 'tcp',
-        tls: url.searchParams.get('security') === 'tls',
-        udp: true
-      }),
+      name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
       server: url.hostname,
       port: parseInt(url.port),
       uuid: url.username,
@@ -284,7 +207,6 @@ export class SingleNodeParser {
       network: url.searchParams.get('type') || 'tcp',
       'client-fingerprint': url.searchParams.get('fp') || 'chrome',
       'skip-cert-verify': false,
-      tfo: false,
       'ws-opts': {
         path: url.searchParams.get('path') || '',
         headers: {
@@ -292,8 +214,6 @@ export class SingleNodeParser {
         }
       }
     }
-
-    return proxy
   }
 
   /**

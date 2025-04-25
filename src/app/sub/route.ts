@@ -137,10 +137,11 @@ export async function GET(request: Request) {
 
     // 检查是否是单节点链接或多个节点
     if (url.startsWith('ss://') || url.startsWith('vmess://') || 
-        url.startsWith('trojan://') || url.startsWith('vless://')) {
+        url.startsWith('trojan://') || url.startsWith('vless://') ||
+        url.startsWith('hysteria2://')) {  // 增加对 hysteria2 的支持
       console.log('检测到节点链接，使用节点解析器')
       
-      // 使用新的 parseMultiple 方法处理
+      // 使用 SingleNodeParser 解析，它不会重命名节点
       proxies = SingleNodeParser.parseMultiple(url)
       if (!proxies.length) {
         throw new Error('无效的节点链接')
@@ -258,8 +259,18 @@ export async function GET(request: Request) {
       })
     }
 
-    // 原有的 clash 配置逻辑保持不变
-    const formattedProxies = proxies.map(formatProxyName)
+    // 关键修改：检查是否为节点链接，如果是则不进行重命名
+    let formattedProxies: Proxy[]
+    if (url.startsWith('ss://') || url.startsWith('vmess://') || 
+        url.startsWith('trojan://') || url.startsWith('vless://') ||
+        url.startsWith('hysteria2://')) {
+      // 单节点链接，直接使用原始代理列表
+      formattedProxies = [...proxies]
+    } else {
+      // 订阅链接，按原有逻辑进行重命名
+      formattedProxies = proxies.map(formatProxyName)
+    }
+    
     const clashConfig = {
       ...defaultConfig,
       proxies: formattedProxies,
