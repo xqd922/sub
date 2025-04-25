@@ -157,18 +157,39 @@ export class SingleNodeParser {
     const content = uri.substring(8)
     const config = JSON.parse(Buffer.from(content, 'base64').toString())
     
+    // 处理 IPv6 地址，移除可能的方括号
+    let server = config.add
+    if (server.startsWith('[') && server.endsWith(']')) {
+      server = server.substring(1, server.length - 1)
+    }
+    
+    // 根据网络类型设置相应选项
+    const network = config.net || 'tcp'
+    const isWs = network === 'ws'
+    
     return {
       type: 'vmess',
-      name: config.ps || config.add,
-      server: config.add,
+      name: config.ps || server,
+      server: server,
       port: parseInt(config.port),
       uuid: config.id,
       alterId: parseInt(config.aid) || 0,
       cipher: 'auto',
-      network: config.net || 'tcp',
+      network: network,
       tls: config.tls === 'tls',
-      wsPath: config.path || '',
-      wsHeaders: config.host ? { Host: config.host } : undefined
+      'skip-cert-verify': false,
+      servername: config.sni || '',
+      tfo: false,
+      
+      // 如果是 WS 类型
+      ...(isWs && {
+        'ws-opts': {
+          path: config.path || '',
+          headers: {
+            Host: config.host || server
+          }
+        }
+      })
     }
   }
 
@@ -270,8 +291,9 @@ export class SingleNodeParser {
       port: parseInt(url.port),
       password: url.username,
       sni: url.searchParams.get('sni') || '',
-      insecure: url.searchParams.get('insecure') === '1',
-      alpn: [url.searchParams.get('alpn') || 'h3']
+      'skip-cert-verify': url.searchParams.get('insecure') === '1',
+      alpn: url.searchParams.get('alpn')?.split(',') || ['h3'],
+      tfo: false
     }
   }
 
