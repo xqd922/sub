@@ -2,8 +2,9 @@ import { Proxy } from '@/lib/types'
 import { filterNodes } from '@/lib/nodeUtils'
 
 // 转换节点为 sing-box 格式
-export function convertNodes(proxies: Proxy[]) {
-  const formattedProxies = filterNodes(proxies)
+export function convertNodes(proxies: Proxy[], shouldFormatNames: boolean = true) {
+  // 根据shouldFormatNames参数决定是否进行名称格式化
+  const formattedProxies = shouldFormatNames ? filterNodes(proxies) : proxies
   
   const outbounds = formattedProxies.map(proxy => {
     switch (proxy.type) {

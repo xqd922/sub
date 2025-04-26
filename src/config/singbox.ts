@@ -1,8 +1,8 @@
 import { Proxy } from '@/lib/types'
 import { convertNodes } from './singnode'
 
-export function generateSingboxConfig(proxies: Proxy[]) {
-  const validOutbounds = convertNodes(proxies)
+export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean = true) {
+  const validOutbounds = convertNodes(proxies, shouldFormatNames)
 
   return {
     dns: {

@@ -58,12 +58,7 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
       .filter((item): item is Proxy | Proxy[] => item !== null)
       .flatMap(item => Array.isArray(item) ? item : [item]);
       
-    // 如果是从Gist或原始文本获取的节点，使用地区优先级排序
-    if (url.includes('githubusercontent.com') || url.includes('pastebin.com')) {
-      console.log('对远程获取的节点按地区进行排序');
-      return SingleNodeParser.sortProxiesByRegion(filteredProxies);
-    }
-      
+    // 只按地区排序，但不修改名称 - 我们将完全移除这个部分，保持原始顺序和名称
     return filteredProxies;
   } catch (error) {
     console.error('获取远程节点失败:', error);

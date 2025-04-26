@@ -253,9 +253,20 @@ export async function GET(request: Request) {
     console.log(sortedTypes)
     console.log(`  └─ 总计: ${proxies.length}\n`)
 
+    // 检查是否是需要格式化节点名称的来源
+    const shouldFormatNames = !(
+      url.startsWith('ss://') || 
+      url.startsWith('vmess://') || 
+      url.startsWith('trojan://') || 
+      url.startsWith('vless://') || 
+      url.startsWith('hysteria2://') || 
+      url.startsWith('hy2://') || 
+      url.includes('gist.githubusercontent.com')
+    )
+
     if (isSingBox) {
       // sing-box 配置
-      const config = generateSingboxConfig(proxies)
+      const config = generateSingboxConfig(proxies, shouldFormatNames)
       const data = JSON.stringify(config, null, 2)
       
       return new NextResponse(data, {
@@ -308,7 +319,7 @@ export async function GET(request: Request) {
       }
     })
     
-    const singboxConfig = generateSingboxConfig(proxies)
+    const singboxConfig = generateSingboxConfig(proxies, shouldFormatNames)
     const jsonConfig = JSON.stringify(singboxConfig, null, 2)
     
     const duration = Date.now() - startTime
