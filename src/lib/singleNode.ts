@@ -138,13 +138,16 @@ export class SingleNodeParser {
       throw new Error('SS 链接缺少必要参数')
     }
 
+    // 清理密码中 \r 及之后的所有内容
+    const cleanPassword = password.split('\r')[0];
+
     return {
       type: 'ss',
       name: decodeURIComponent(remark) || server,
       server,
       port: parseInt(port),
       cipher: method,
-      password,
+      password: cleanPassword,
       udp: true
     }
   }
