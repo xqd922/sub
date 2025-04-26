@@ -145,7 +145,7 @@ export async function GET(request: Request) {
       
       // 设置基本订阅信息
       subscription = {
-        name: 'Remote Gist',
+        name: 'Gist',
         upload: '0',
         download: '0',
         total: '0',
