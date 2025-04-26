@@ -14,27 +14,93 @@ export class SingleNodeParser {
     // 创建地区优先级映射
     const regionPriority: { [key: string]: number } = {
       '香港': 1,
+      'HK': 1,
+      'Hong Kong': 1,
+      'HKG': 1,
       '台湾': 2,
+      'TW': 2,
+      'Taiwan': 2,
+      'TWN': 2,
       '日本': 3,
+      'JP': 3,
+      'Japan': 3,
+      'JPN': 3,
       '新加坡': 4,
+      'SG': 4,
+      '狮城': 4,
+      'Singapore': 4,
+      'SGP': 4,
       '美国': 5,
-      // 可以添加更多地区优先级...
+      'US': 5,
+      'USA': 5,
+      'United States': 5,
+      '韩国': 6,
+      'KR': 6,
+      'Korea': 6,
+      'KOR': 6,
+      '俄罗斯': 7,
+      'RU': 7,
+      'Russia': 7,
+      'RUS': 7,
+      '英国': 8,
+      'UK': 8,
+      'GB': 8,
+      'United Kingdom': 8,
+      'GBR': 8,
+      '德国': 9,
+      'DE': 9,
+      'Germany': 9,
+      'DEU': 9,
+      '加拿大': 10,
+      'CA': 10,
+      'Canada': 10,
+      'CAN': 10
     }
 
     return proxies
       // 按地区分组并排序
       .sort((a, b) => {
-        const regionA = Object.keys(REGION_MAP).find(key => 
-          a.name.toLowerCase().includes(key.toLowerCase())
-        )
-        const regionB = Object.keys(REGION_MAP).find(key => 
-          b.name.toLowerCase().includes(key.toLowerCase())
-        )
+        // 先尝试直接从节点名称获取地区优先级
+        let priorityA = 999;
+        let priorityB = 999;
+        
+        // 遍历优先级表中的所有地区关键词
+        for (const [key, priority] of Object.entries(regionPriority)) {
+          if (a.name.includes(key)) {
+            priorityA = priority;
+            break;
+          }
+        }
+        
+        for (const [key, priority] of Object.entries(regionPriority)) {
+          if (b.name.includes(key)) {
+            priorityB = priority;
+            break;
+          }
+        }
+        
+        // 如果直接匹配失败，再尝试通过REGION_MAP匹配
+        if (priorityA === 999) {
+          const regionA = Object.keys(REGION_MAP).find(key => 
+            a.name.toLowerCase().includes(key.toLowerCase())
+          )
+          if (regionA) {
+            const regionName = REGION_MAP[regionA as keyof typeof REGION_MAP].name;
+            priorityA = regionPriority[regionName] || 999;
+          }
+        }
+        
+        if (priorityB === 999) {
+          const regionB = Object.keys(REGION_MAP).find(key => 
+            b.name.toLowerCase().includes(key.toLowerCase())
+          )
+          if (regionB) {
+            const regionName = REGION_MAP[regionB as keyof typeof REGION_MAP].name;
+            priorityB = regionPriority[regionName] || 999;
+          }
+        }
 
-        const priorityA = regionA ? regionPriority[REGION_MAP[regionA as keyof typeof REGION_MAP].name] || 999 : 999
-        const priorityB = regionB ? regionPriority[REGION_MAP[regionB as keyof typeof REGION_MAP].name] || 999 : 999
-
-        return priorityA - priorityB
+        return priorityA - priorityB;
       })
   }
 

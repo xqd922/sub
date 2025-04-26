@@ -162,6 +162,9 @@ export async function GET(request: Request) {
       if (!proxies.length) {
         throw new Error('无效的节点链接')
       }
+      
+      // 添加：对节点按地区排序，但不重命名
+      proxies = SingleNodeParser.sortProxiesByRegion(proxies)
 
       subscription = {
         name: 'Lite',

@@ -26,12 +26,18 @@ export function convertNodes(proxies: Proxy[], shouldFormatNames: boolean = true
           uuid: proxy.uuid,
           security: proxy.cipher || 'auto',
           alter_id: proxy.alterId || 0,
-          tls: proxy.tls,
-          transport: {
-            type: proxy.network,
-            path: proxy.wsPath,
-            headers: proxy.wsHeaders
-          }
+          tls: proxy.tls ? {
+            enabled: true,
+            server_name: proxy.servername || proxy.server,
+            insecure: true
+          } : undefined,
+          ...(proxy.network && proxy.network !== 'tcp' ? {
+            transport: {
+              type: proxy.network,
+              path: proxy['ws-opts']?.path || proxy.wsPath || '',
+              headers: proxy['ws-opts']?.headers || proxy.wsHeaders || undefined
+            }
+          } : {})
         }
       case 'trojan':
         return {
@@ -66,12 +72,23 @@ export function convertNodes(proxies: Proxy[], shouldFormatNames: boolean = true
           server: proxy.server,
           server_port: proxy.port,
           uuid: proxy.uuid,
-          flow: proxy.flow,
-          transport: proxy.network ? {
-            type: proxy.network,
-            path: proxy.wsPath,
-            headers: proxy.wsHeaders
+          flow: proxy.flow || '',
+          tls: proxy.tls ? {
+            enabled: true,
+            server_name: proxy.servername || proxy.sni || proxy.server,
+            insecure: proxy['skip-cert-verify'] || true,
+            reality: proxy['reality-opts'] ? {
+              public_key: proxy['reality-opts']['public-key'] || '',
+              short_id: proxy['reality-opts']['short-id'] || ''
+            } : undefined
           } : undefined,
+          ...(proxy.network && proxy.network !== 'tcp' ? {
+            transport: {
+              type: proxy.network,
+              path: proxy['ws-opts']?.path || '',
+              headers: proxy['ws-opts']?.headers || undefined
+            }
+          } : {}),
           packet_encoding: 'xudp'
         }
       default:
