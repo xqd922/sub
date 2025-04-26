@@ -7,6 +7,7 @@ import { REGION_MAP, RegionCode } from '@/config/regions'
 import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
 import { SingleNodeParser } from '@/lib/singleNode'
+import { fetchNodesFromRemote } from '@/lib/remoteNodes'
 
 export const runtime = 'edge'
 
@@ -135,10 +136,25 @@ export async function GET(request: Request) {
     let proxies: Proxy[]
     let subscription: { name: string; upload: string; download: string; total: string; expire: string; homepage: string }
 
-    // 检查是否是单节点链接或多个节点
-    if (url.startsWith('ss://') || url.startsWith('vmess://') || 
-        url.startsWith('trojan://') || url.startsWith('vless://') ||
-        url.startsWith('hysteria2://')) {  // 增加对 hysteria2 的支持
+    // 检查是否是远程 Gist 链接
+    if (url.includes('gist.githubusercontent.com')) {
+      console.log('检测到 Gist 订阅，获取所有节点')
+      
+      // 从远程 Gist 获取节点
+      proxies = await fetchNodesFromRemote(url)
+      
+      // 设置基本订阅信息
+      subscription = {
+        name: 'Remote Gist',
+        upload: '0',
+        download: '0',
+        total: '0',
+        expire: '',
+        homepage: 'https://sub.xqd.us.kg'
+      }
+    } else if (url.startsWith('ss://') || url.startsWith('vmess://') || 
+               url.startsWith('trojan://') || url.startsWith('vless://') ||
+               url.startsWith('hysteria2://') || url.startsWith('hy2://')) {
       console.log('检测到节点链接，使用节点解析器')
       
       // 使用 SingleNodeParser 解析，它不会重命名节点
@@ -263,8 +279,9 @@ export async function GET(request: Request) {
     let formattedProxies: Proxy[]
     if (url.startsWith('ss://') || url.startsWith('vmess://') || 
         url.startsWith('trojan://') || url.startsWith('vless://') ||
-        url.startsWith('hysteria2://')) {
-      // 单节点链接，直接使用原始代理列表
+        url.startsWith('hysteria2://') || url.startsWith('hy2://') ||
+        url.includes('gist.githubusercontent.com')) {
+      // 单节点链接或Gist链接，直接使用原始代理列表，不重命名
       formattedProxies = [...proxies]
     } else {
       // 订阅链接，按原有逻辑进行重命名
