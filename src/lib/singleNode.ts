@@ -2,6 +2,17 @@ import { Proxy } from './types'
 import { REGION_MAP } from '@/config/regions'
 
 /**
+ * sing-box出站配置接口
+ */
+interface SingboxOutbound {
+  type: string;
+  tag: string;
+  server: string;
+  server_port: number;
+  [key: string]: unknown;
+}
+
+/**
  * 单节点解析器
  */
 export class SingleNodeParser {
@@ -337,7 +348,7 @@ export class SingleNodeParser {
    * @param proxy 节点对象
    * @returns sing-box格式的出站配置
    */
-  public static toSingboxOutbound(proxy: Proxy): any {
+  public static toSingboxOutbound(proxy: Proxy): SingboxOutbound | null {
     switch (proxy.type) {
       case 'ss':
         return {
