@@ -10,7 +10,7 @@ export class SingleNodeParser {
    * @param proxies 节点数组
    * @returns 排序后的节点数组
    */
-  private static sortProxiesByRegion(proxies: Proxy[]): Proxy[] {
+  public static sortProxiesByRegion(proxies: Proxy[]): Proxy[] {
     // 创建地区优先级映射
     const regionPriority: { [key: string]: number } = {
       '香港': 1,
