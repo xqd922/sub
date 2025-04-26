@@ -22,8 +22,15 @@ export class SingleNodeParser {
    * @returns 排序后的节点数组
    */
   public static sortProxiesByRegion(proxies: Proxy[]): Proxy[] {
-    // 创建地区优先级映射
+    // 创建地区优先级映射 - 中文名和英文代码都支持
     const regionPriority: { [key: string]: number } = {
+      // 中文名
+      '香港': 1,
+      '台湾': 2,
+      '日本': 3,
+      '新加坡': 4,
+      '美国': 5,
+      // 英文缩写
       'HK': 1,
       'TW': 2,
       'JP': 3,
@@ -31,21 +38,47 @@ export class SingleNodeParser {
       'US': 5,
       // 可以添加更多地区优先级...
     }
+    
+    // 地区代码匹配正则
+    const regionRegex = /\b(HK|TW|JP|SG|US|UK|CA|AU|NZ|DE|FR|IT|RU|IN|KR|VN|TH)\b/i;
 
     return proxies
       // 按地区分组并排序
       .sort((a, b) => {
-        const regionA = Object.keys(REGION_MAP).find(key => 
-          a.name.toLowerCase().includes(key.toLowerCase())
-        )
-        const regionB = Object.keys(REGION_MAP).find(key => 
-          b.name.toLowerCase().includes(key.toLowerCase())
-        )
+        let priorityA = 999;
+        let priorityB = 999;
+        
+        // 先检查节点名称中是否包含地区代码
+        const codeMatchA = a.name.match(regionRegex);
+        const codeMatchB = b.name.match(regionRegex);
+        
+        if (codeMatchA && codeMatchA[1]) {
+          priorityA = regionPriority[codeMatchA[1].toUpperCase()] || 999;
+        }
+        
+        if (codeMatchB && codeMatchB[1]) {
+          priorityB = regionPriority[codeMatchB[1].toUpperCase()] || 999;
+        }
+        
+        // 如果没有找到代码，尝试通过REGION_MAP查找
+        if (priorityA === 999 || priorityB === 999) {
+          const regionA = Object.keys(REGION_MAP).find(key => 
+            a.name.toLowerCase().includes(key.toLowerCase())
+          )
+          const regionB = Object.keys(REGION_MAP).find(key => 
+            b.name.toLowerCase().includes(key.toLowerCase())
+          )
 
-        const priorityA = regionA ? regionPriority[REGION_MAP[regionA as keyof typeof REGION_MAP].name] || 999 : 999
-        const priorityB = regionB ? regionPriority[REGION_MAP[regionB as keyof typeof REGION_MAP].name] || 999 : 999
+          if (regionA && priorityA === 999) {
+            priorityA = regionPriority[REGION_MAP[regionA as keyof typeof REGION_MAP].name] || 999;
+          }
+          
+          if (regionB && priorityB === 999) {
+            priorityB = regionPriority[REGION_MAP[regionB as keyof typeof REGION_MAP].name] || 999;
+          }
+        }
 
-        return priorityA - priorityB
+        return priorityA - priorityB;
       })
   }
 
