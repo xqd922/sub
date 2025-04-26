@@ -72,8 +72,8 @@ export const defaultConfig: ClashConfig = {
   proxies: [],
   'proxy-groups': [],
   rules: [
-    //'DOMAIN,blog.xqd.us.kg,DIRECT',
-      //'DOMAIN-SUFFIX,yushe.org,Manual',
+    'DOMAIN,1001.pp.ua,DIRECT',
+    'DOMAIN-SUFFIX,sudugu.com,DIRECT',
     'IP-CIDR,1.1.1.1/32,Manual,no-resolve',
     'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
     'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
@@ -123,6 +123,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,sfcj.org,Emby',
     'DOMAIN-KEYWORD,mius,Emby',
     'DOMAIN,embymv.link,Emby',
+    'DOMAIN,onatoshi.114514.quest,Emby',
     'DOMAIN-KEYWORD,emby,Emby',
     'DOMAIN-SUFFIX,services.googleapis.cn,Manual',
     'DOMAIN-SUFFIX,xn--ngstr-lra8j.com,Manual',

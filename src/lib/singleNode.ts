@@ -24,11 +24,11 @@ export class SingleNodeParser {
   public static sortProxiesByRegion(proxies: Proxy[]): Proxy[] {
     // 创建地区优先级映射
     const regionPriority: { [key: string]: number } = {
-      '香港': 1,
-      '台湾': 2,
-      '日本': 3,
-      '新加坡': 4,
-      '美国': 5,
+      'HK': 1,
+      'TW': 2,
+      'JP': 3,
+      'SG': 4,
+      'US': 5,
       // 可以添加更多地区优先级...
     }
 
