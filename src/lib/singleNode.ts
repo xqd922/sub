@@ -14,93 +14,27 @@ export class SingleNodeParser {
     // 创建地区优先级映射
     const regionPriority: { [key: string]: number } = {
       '香港': 1,
-      'HK': 1,
-      'Hong Kong': 1,
-      'HKG': 1,
       '台湾': 2,
-      'TW': 2,
-      'Taiwan': 2,
-      'TWN': 2,
       '日本': 3,
-      'JP': 3,
-      'Japan': 3,
-      'JPN': 3,
       '新加坡': 4,
-      'SG': 4,
-      '狮城': 4,
-      'Singapore': 4,
-      'SGP': 4,
       '美国': 5,
-      'US': 5,
-      'USA': 5,
-      'United States': 5,
-      '韩国': 6,
-      'KR': 6,
-      'Korea': 6,
-      'KOR': 6,
-      '俄罗斯': 7,
-      'RU': 7,
-      'Russia': 7,
-      'RUS': 7,
-      '英国': 8,
-      'UK': 8,
-      'GB': 8,
-      'United Kingdom': 8,
-      'GBR': 8,
-      '德国': 9,
-      'DE': 9,
-      'Germany': 9,
-      'DEU': 9,
-      '加拿大': 10,
-      'CA': 10,
-      'Canada': 10,
-      'CAN': 10
+      // 可以添加更多地区优先级...
     }
 
     return proxies
       // 按地区分组并排序
       .sort((a, b) => {
-        // 先尝试直接从节点名称获取地区优先级
-        let priorityA = 999;
-        let priorityB = 999;
-        
-        // 遍历优先级表中的所有地区关键词
-        for (const [key, priority] of Object.entries(regionPriority)) {
-          if (a.name.includes(key)) {
-            priorityA = priority;
-            break;
-          }
-        }
-        
-        for (const [key, priority] of Object.entries(regionPriority)) {
-          if (b.name.includes(key)) {
-            priorityB = priority;
-            break;
-          }
-        }
-        
-        // 如果直接匹配失败，再尝试通过REGION_MAP匹配
-        if (priorityA === 999) {
-          const regionA = Object.keys(REGION_MAP).find(key => 
-            a.name.toLowerCase().includes(key.toLowerCase())
-          )
-          if (regionA) {
-            const regionName = REGION_MAP[regionA as keyof typeof REGION_MAP].name;
-            priorityA = regionPriority[regionName] || 999;
-          }
-        }
-        
-        if (priorityB === 999) {
-          const regionB = Object.keys(REGION_MAP).find(key => 
-            b.name.toLowerCase().includes(key.toLowerCase())
-          )
-          if (regionB) {
-            const regionName = REGION_MAP[regionB as keyof typeof REGION_MAP].name;
-            priorityB = regionPriority[regionName] || 999;
-          }
-        }
+        const regionA = Object.keys(REGION_MAP).find(key => 
+          a.name.toLowerCase().includes(key.toLowerCase())
+        )
+        const regionB = Object.keys(REGION_MAP).find(key => 
+          b.name.toLowerCase().includes(key.toLowerCase())
+        )
 
-        return priorityA - priorityB;
+        const priorityA = regionA ? regionPriority[REGION_MAP[regionA as keyof typeof REGION_MAP].name] || 999 : 999
+        const priorityB = regionB ? regionPriority[REGION_MAP[regionB as keyof typeof REGION_MAP].name] || 999 : 999
+
+        return priorityA - priorityB
       })
   }
 
@@ -152,7 +86,7 @@ export class SingleNodeParser {
    * 解析 Shadowsocks 节点
    * @param uri ss://开头的节点链接
    */
-  private static parseShadowsocks(uri: string): Proxy {
+  public static parseShadowsocks(uri: string): Proxy {
     // 移除 ss:// 前缀
     const content = uri.substring(5)
     
@@ -222,7 +156,7 @@ export class SingleNodeParser {
    * 解析 VMess 节点
    * @param uri vmess://开头的节点链接
    */
-  private static parseVmess(uri: string): Proxy {
+  public static parseVmess(uri: string): Proxy {
     const content = uri.substring(8)
     const config = JSON.parse(Buffer.from(content, 'base64').toString())
     
@@ -266,7 +200,7 @@ export class SingleNodeParser {
    * 解析 Trojan 节点
    * @param uri trojan://开头的节点链接
    */
-  private static parseTrojan(uri: string): Proxy {
+  public static parseTrojan(uri: string): Proxy {
     const url = new URL(uri)
     
     return {
@@ -285,7 +219,7 @@ export class SingleNodeParser {
    * 解析 VLESS 节点
    * @param uri vless://开头的节点链接
    */
-  private static parseVless(uri: string): Proxy {
+  public static parseVless(uri: string): Proxy {
     const url = new URL(uri)
     
     // 处理 IPv6 地址，移除方括号
@@ -342,7 +276,7 @@ export class SingleNodeParser {
    * 解析 Hysteria2 节点
    * @param uri hysteria2://开头的节点链接
    */
-  private static parseHysteria2(uri: string): Proxy {
+  public static parseHysteria2(uri: string): Proxy {
     // 处理 hy2:// 前缀
     const actualUri = uri.startsWith('hy2://') ? 'hysteria2://' + uri.substring(6) : uri
     const url = new URL(actualUri)
@@ -395,6 +329,109 @@ export class SingleNodeParser {
         return !!(proxy.password)
       default:
         return false
+    }
+  }
+
+  /**
+   * 将Proxy节点转换为sing-box格式
+   * @param proxy 节点对象
+   * @returns sing-box格式的出站配置
+   */
+  public static toSingboxOutbound(proxy: Proxy): any {
+    switch (proxy.type) {
+      case 'ss':
+        return {
+          type: 'shadowsocks',
+          tag: proxy.name,
+          server: proxy.server,
+          server_port: proxy.port,
+          method: proxy.cipher,
+          password: proxy.password
+        }
+      case 'vmess':
+        return {
+          type: 'vmess',
+          tag: proxy.name,
+          server: proxy.server,
+          server_port: proxy.port,
+          uuid: proxy.uuid,
+          security: proxy.cipher || 'auto',
+          alter_id: proxy.alterId || 0,
+          tls: proxy.tls ? {
+            enabled: true,
+            server_name: proxy.servername || proxy.server,
+            insecure: true
+          } : undefined,
+          ...(proxy.network && proxy.network !== 'tcp' ? {
+            transport: {
+              type: proxy.network,
+              path: proxy['ws-opts']?.path || proxy.wsPath || '',
+              headers: proxy['ws-opts']?.headers || proxy.wsHeaders || undefined
+            }
+          } : {})
+        }
+      case 'trojan':
+        return {
+          type: 'trojan',
+          tag: proxy.name,
+          server: proxy.server,
+          server_port: proxy.port,
+          password: proxy.password,
+          tls: {
+            enabled: true,
+            server_name: proxy.sni || proxy.server,
+            insecure: true
+          }
+        }
+      case 'hysteria2':
+        return {
+          type: 'hysteria2',
+          tag: proxy.name,
+          server: proxy.server,
+          server_port: proxy.port,
+          password: proxy.password,
+          tls: {
+            enabled: true,
+            server_name: proxy.sni || proxy.server,
+            insecure: true
+          }
+        }
+      case 'vless':
+        const realityOpts = proxy['reality-opts'];
+        return {
+          type: 'vless',
+          tag: proxy.name,
+          server: proxy.server,
+          server_port: proxy.port,
+          uuid: proxy.uuid,
+          flow: proxy.flow || '',
+          tls: proxy.tls ? {
+            enabled: true,
+            server_name: proxy.servername || proxy.sni || proxy.server,
+            insecure: true,
+            ...(realityOpts ? {
+              reality: {
+                enabled: true,
+                public_key: realityOpts['public-key'] || '',
+                short_id: realityOpts['short-id'] || ''
+              },
+              utls: {
+                enabled: true,
+                fingerprint: proxy['client-fingerprint'] || 'chrome'
+              }
+            } : {})
+          } : undefined,
+          transport: proxy.network && proxy.network !== 'tcp' ? {
+            type: proxy.network,
+            ...(proxy.network === 'ws' ? {
+              path: proxy['ws-opts']?.path || '',
+              headers: proxy['ws-opts']?.headers || {}
+            } : {})
+          } : undefined,
+          packet_encoding: 'xudp'
+        }
+      default:
+        return null
     }
   }
 } 

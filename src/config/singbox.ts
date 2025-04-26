@@ -1,8 +1,14 @@
 import { Proxy } from '@/lib/types'
-import { convertNodes } from './singnode'
+import { SingleNodeParser } from '@/lib/singleNode'
+import { filterNodes } from '@/lib/nodeUtils'
 
 export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean = true) {
-  const validOutbounds = convertNodes(proxies, shouldFormatNames)
+  // 根据shouldFormatNames参数决定是否进行名称格式化
+  const formattedProxies = shouldFormatNames ? filterNodes(proxies) : proxies
+  
+  // 直接使用SingleNodeParser.toSingboxOutbound生成出站配置
+  const validOutbounds = formattedProxies.map(proxy => SingleNodeParser.toSingboxOutbound(proxy))
+    .filter((o): o is NonNullable<typeof o> => o !== null)
 
   return {
     dns: {
