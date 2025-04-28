@@ -34,6 +34,11 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           server: "local"
         },
         {
+          rule_set: "reject-list",
+          server: "block",
+          disable_cache: true
+        },
+        {
           clash_mode: "global",
           server: "remote"
         },
@@ -102,6 +107,10 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     route: {
       rules: [
         {
+          rule_set: "reject-list",
+          action: "reject"
+        },
+        {
           protocol: "dns",
           action: "hijack-dns"
         },
@@ -132,6 +141,13 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         }
       ],
       rule_set: [
+        {
+          tag: "reject-list",
+          type: "remote",
+          format: "source",
+          url: "https://gcore.jsdelivr.net/gh/TG-Twilight/AWAvenue-Ads-Rule@main/Filters/AWAvenue-Ads-Rule-Singbox.json",
+          download_detour: "direct"
+        },
         {
           tag: "geoip-cn",
           type: "remote",
