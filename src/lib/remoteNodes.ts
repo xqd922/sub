@@ -61,7 +61,23 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
     // 保留原始名称但按地区排序
     if (url.includes('githubusercontent.com') || url.includes('pastebin.com') || url.includes('raw')) {
       console.log('对远程获取的节点按地区排序（保留原始名称）');
-      return SingleNodeParser.sortProxiesByRegion(filteredProxies);
+      const sortedProxies = SingleNodeParser.sortProxiesByRegion(filteredProxies);
+      
+      // 如果是 githubusercontent.com 域名，检查并添加链式代理标记
+      if (url.includes('githubusercontent.com')) {
+        return sortedProxies.map(proxy => {
+          if (proxy.name.toLowerCase().includes('bage')) {
+            return {
+              ...proxy,
+              name: `${proxy.name} ⇄`,  // 添加链式代理标记
+              'dialer-proxy': 'SG-Claw'  // 添加 dialer-proxy 配置
+            };
+          }
+          return proxy;
+        });
+      }
+      
+      return sortedProxies;
     }
       
     // 只按地区排序，但不修改名称
