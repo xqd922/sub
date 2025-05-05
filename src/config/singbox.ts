@@ -19,8 +19,18 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           detour: "Manual"
         },
         {
+          tag: "remote2",
+          address: "https://8.8.8.8/dns-query",
+          detour: "Manual"
+        },
+        {
           tag: "local",
           address: "https://223.5.5.5/dns-query",
+          detour: "direct"
+        },
+        {
+          tag: "local2",
+          address: "https://119.29.29.29/dns-query",
           detour: "direct"
         },
         {
@@ -49,9 +59,16 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         {
           rule_set: "geosite-cn",
           server: "local"
+        },
+        {
+          domain: ["v2ex.com"],
+          server: "remote"
         }
       ],
-      strategy: "prefer_ipv4"
+      strategy: "prefer_ipv4",
+      disable_cache: false,
+      disable_expire: false,
+      independent_cache: true
     },
     inbounds: [
       {

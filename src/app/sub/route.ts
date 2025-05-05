@@ -145,12 +145,12 @@ export async function GET(request: Request) {
       
       // 设置基本订阅信息
       subscription = {
-        name: 'Gist',
+        name: 'Me',
         upload: '0',
         download: '0',
         total: '0',
         expire: '',
-        homepage: 'https://sub.xqd.us.kg'
+        homepage: 'https://sub.xqd.pp.ua'
       }
     } else if (url.startsWith('ss://') || url.startsWith('vmess://') || 
                url.startsWith('trojan://') || url.startsWith('vless://') ||
