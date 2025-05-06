@@ -37,9 +37,15 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
 /**
  * 处理特殊节点标记
  * @param proxy 代理节点
+ * @param isYamlSource 是否来自 YAML 源
  * @returns 处理后的代理节点
  */
-function processSpecialNode(proxy: Proxy): Proxy {
+function processSpecialNode(proxy: Proxy, isYamlSource: boolean = false): Proxy {
+  // 如果是 YAML 源，不增加链式代理标记
+  if (isYamlSource) {
+    return proxy;
+  }
+
   if (proxy.name.toLowerCase().includes('bage')) {
     return {
       ...proxy,
@@ -98,9 +104,9 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
           
           console.log(`成功解析 ${validNodes.length} 个 YAML 节点`);
           
-          // 排序并处理特殊节点
+          // 排序并处理特殊节点，传入 true 表示来自 YAML 源
           const sortedProxies = SingleNodeParser.sortProxiesByRegion(validNodes);
-          return sortedProxies.map(processSpecialNode);
+          return sortedProxies.map(proxy => processSpecialNode(proxy, true));
         }
       } catch {
         // YAML 解析失败，继续使用原有解析方式
@@ -120,7 +126,7 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
       
       // 排序并处理特殊节点
       const sortedProxies = SingleNodeParser.sortProxiesByRegion(filteredProxies);
-      return sortedProxies.map(processSpecialNode);
+      return sortedProxies.map(proxy => processSpecialNode(proxy, false));
     }
     
     // 处理其他域名的节点解析
@@ -138,7 +144,7 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
       
       // 如果是 githubusercontent.com 域名，检查并添加链式代理标记
       if (url.includes('githubusercontent.com')) {
-        return sortedProxies.map(processSpecialNode);
+        return sortedProxies.map(proxy => processSpecialNode(proxy, true));
       }
       
       return sortedProxies;
