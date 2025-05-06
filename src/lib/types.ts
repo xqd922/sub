@@ -51,6 +51,9 @@ export interface Proxy {
   
   // 添加 tfo 属性
   tfo?: boolean
+
+  // 添加 dialer-proxy 属性
+  'dialer-proxy'?: string
 }
 
 export interface DnsConfig {
