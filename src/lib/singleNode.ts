@@ -134,31 +134,46 @@ export class SingleNodeParser {
     // 移除 ss:// 前缀
     const content = uri.substring(5)
     
+    // 处理 URL 编码的字符
+    const decodedContent = decodeURIComponent(content)
+    
     // 分离主体和备注
-    const [mainPart, remark = ''] = content.split('#')
+    const [mainPart, remark = ''] = decodedContent.split('#')
     
     // 解析主体部分
     let decoded: string
     try {
+      // 处理 Base64 编码，确保兼容不同的编码方式
+      const standardBase64 = mainPart
+        .replace(/-/g, '+')   // URL 安全的 Base64 替换
+        .replace(/_/g, '/')   // URL 安全的 Base64 替换
+      
+      // 补全 Base64 编码（如果需要）
+      const paddedBase64 = standardBase64 + 
+        '=='.slice(0, (4 - standardBase64.length % 4) % 4)
+      
       // 检查是否包含 @ 符号
       if (mainPart.includes('@')) {
         // 新格式: userInfo@server:port
-        const [userInfo, serverPart] = mainPart.split('@')
-        const decodedUserInfo = Buffer.from(userInfo, 'base64').toString()
+        const [userInfo, serverPart] = paddedBase64.split('@')
+        const decodedUserInfo = Buffer.from(userInfo, 'base64').toString('utf-8')
         decoded = `${decodedUserInfo}@${serverPart}`
       } else {
         // 旧格式: 整个字符串都是 base64
-        decoded = Buffer.from(mainPart, 'base64').toString()
+        decoded = Buffer.from(paddedBase64, 'base64').toString('utf-8')
       }
     } catch (error) {
-      console.error('Base64 解码失败:', error)
-      throw new Error('无效的 SS 链接格式')
+      console.error('SS链接解析错误:', {
+        uri,
+        error: error instanceof Error ? error.message : error
+      })
+      throw new Error('无效的 SS 链接格式：Base64 解码失败')
     }
     
     // 解析服务器信息
     const [methodAndPassword, serverAndPort] = decoded.split('@')
     if (!methodAndPassword || !serverAndPort) {
-      throw new Error('无效的 SS 链接格式')
+      throw new Error(`无效的 SS 链接格式：解析失败 - ${decoded}`)
     }
 
     const [method, password] = methodAndPassword.split(':')
@@ -178,16 +193,34 @@ export class SingleNodeParser {
       port = serverAndPort.substring(lastColon + 1)
     }
     
-    if (!method || !password || !server || !port) {
-      throw new Error('SS 链接缺少必要参数')
+    // 严格验证参数
+    if (!method) {
+      throw new Error('SS 链接缺少加密方法')
+    }
+    if (!password) {
+      throw new Error('SS 链接缺少密码')
+    }
+    if (!server) {
+      throw new Error('SS 链接缺少服务器地址')
+    }
+    if (!port) {
+      throw new Error('SS 链接缺少端口')
     }
 
     // 清理密码中 \r 及之后的所有内容
-    const cleanPassword = password.split('\r')[0];
+    const cleanPassword = password.split('\r')[0].trim();
+
+    // 尝试解码备注
+    let decodedRemark = ''
+    try {
+      decodedRemark = decodeURIComponent(remark)
+    } catch {
+      decodedRemark = remark
+    }
 
     return {
       type: 'ss',
-      name: decodeURIComponent(remark) || server,
+      name: decodedRemark || server,
       server,
       port: parseInt(port),
       cipher: method,
