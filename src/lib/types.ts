@@ -69,10 +69,10 @@ export interface DnsConfig {
   fallback?: string[]
   'fallback-filter': {
     geoip: boolean
-    'geoip-code': string
-    geosite: string[]
+    'geoip-code'?: string
+    geosite?: string[]
     ipcidr: string[]
-    domain: string[]
+    domain?: string[]
   }
 }
 

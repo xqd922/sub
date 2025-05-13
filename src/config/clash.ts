@@ -60,14 +60,15 @@ export const defaultConfig: ClashConfig = {
   dns: {
     enable: true,
     ipv6: false,
-    'default-nameserver': ['223.5.5.5', '119.29.29.29', '114.114.114.114'],
+    'default-nameserver': ['223.5.5.5', '119.29.29.29'],
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'use-hosts': true,
     'respect-rules': true,
-    'proxy-server-nameserver': ['223.5.5.5', '119.29.29.29', '114.114.114.114'],
-    nameserver: ['223.5.5.5', '119.29.29.29', '114.114.114.114'],
-    'fallback-filter': { geoip: true, 'geoip-code': 'CN', geosite: ['gfw'], ipcidr: ['240.0.0.0/4'], domain: ['+.google.com', '+.facebook.com', '+.youtube.com'] },
+    'proxy-server-nameserver': ['223.5.5.5', '119.29.29.29'],
+    nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+    fallback: ['https://doh.dns.sb/dns-query', 'https://dns.cloudflare.com/dns-query', 'https://dns.twnic.tw/dns-query', 'tls://8.8.4.4:853'],
+    'fallback-filter': { geoip: true, ipcidr: ['240.0.0.0/4', '0.0.0.0/32'] }
   },
   proxies: [],
   'proxy-groups': [],
@@ -626,10 +627,11 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,injections.adguard.org,DIRECT',
     'DOMAIN,local.adguard.org,DIRECT',
     'DOMAIN-SUFFIX,local,DIRECT',
-    'IP-CIDR,127.0.0.0/8,DIRECT',
-    'IP-CIDR,172.16.0.0/12,DIRECT',
-    'IP-CIDR,192.168.0.0/16,DIRECT',
-    'IP-CIDR,10.0.0.0/8,DIRECT',
+    'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve',
+    'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve',
+    'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve',
+    'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve',
+    'IP-CIDR,169.254.0.0/16,DIRECT,no-resolve',
     'IP-CIDR,17.0.0.0/8,DIRECT',
     'IP-CIDR,100.64.0.0/10,DIRECT',
     'IP-CIDR,224.0.0.0/4,DIRECT',
@@ -638,5 +640,5 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-KEYWORD,-cn,DIRECT',
     'GEOIP,CN,DIRECT',
     'MATCH,Manual'
-  ]
+  ],
 } as const 
