@@ -59,15 +59,17 @@ export interface Proxy {
 export interface DnsConfig {
   enable: boolean
   ipv6: boolean
+  listen?: string
   'default-nameserver': string[]
-  'enhanced-mode': string
+  'enhanced-mode'?: string
   'fake-ip-range': string
   'use-hosts': boolean
-  'respect-rules': boolean
-  'proxy-server-nameserver': string[]
+  'respect-rules'?: boolean
+  'proxy-server-nameserver'?: string[]
   nameserver: string[]
   fallback?: string[]
-  'fallback-filter': {
+  'fake-ip-filter'?: string[]
+  'fallback-filter'?: {
     geoip: boolean
     'geoip-code'?: string
     geosite?: string[]
@@ -91,6 +93,17 @@ export interface ClashConfig {
   proxies: Proxy[]
   'proxy-groups': ProxyGroup[]
   rules: string[]
+  sniffer?: {
+    enable?: boolean
+    sniff?: {
+      TLS?: { ports?: number[], 'override-destination'?: boolean }
+      HTTP?: { ports?: number[], 'override-destination'?: boolean }
+    }
+    'skip-domain'?: string[]
+    'parse-pure-ip'?: boolean
+    'force-dns-mapping'?: boolean
+    'override-destination'?: boolean
+  }
 }
 
 export interface ProxyGroup {

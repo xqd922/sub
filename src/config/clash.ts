@@ -49,32 +49,57 @@ export function generateProxyGroups(proxies: Proxy[]) {
 
 // 默认配置
 export const defaultConfig: ClashConfig = {
-  'mixed-port': 7890,
+  port: 7890,
+  'socks-port': 7891,
   'allow-lan': true,
-  'bind-address': '*',
-  mode: 'rule',
+  mode: 'Rule',
   'log-level': 'info',
-  ipv6: true,
-  'tcp-concurrent': true,
-  'external-controller': '127.0.0.1:9090',
-  dns: {
+  'external-controller': ':9090',
+  sniffer: {
+    sniff: {
+      TLS: { ports: [1, 65535], 'override-destination': true },
+      HTTP: { ports: [1, 65535], 'override-destination': true }
+    },
     enable: true,
+    'skip-domain': ['Mijia Cloud', 'dlg.io.mi.com'],
+    'parse-pure-ip': true,
+    'force-dns-mapping': true,
+    'override-destination': true
+  },
+  dns: {
     ipv6: false,
-    'default-nameserver': ['223.5.5.5', '119.29.29.29'],
-    'enhanced-mode': 'fake-ip',
-    'fake-ip-range': '198.18.0.1/16',
-    'use-hosts': true,
-    'respect-rules': true,
-    'proxy-server-nameserver': ['223.5.5.5', '119.29.29.29'],
-    nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
-    fallback: ['https://doh.dns.sb/dns-query', 'https://dns.cloudflare.com/dns-query', 'https://dns.twnic.tw/dns-query', 'tls://8.8.4.4:853'],
-    'fallback-filter': { geoip: true, ipcidr: ['240.0.0.0/4', '0.0.0.0/32'] }
+    enable: true,
+    listen: '0.0.0.0:1053',
+    'use-hosts': false,
+    'default-nameserver': ['119.28.28.28', '119.29.29.29', '223.5.5.5', '223.6.6.6'],
+    nameserver: ['119.29.29.29', '223.5.5.5', 'tls://dot.pub:853', 'tls://dns.alidns.com:853', 'https://doh.pub:443/dns-query', 'https://dns.alidns.com:443/dns-query'],
+    'fake-ip-range': '198.18.0.1/15',
+    'fake-ip-filter': [
+      '*.lan', '*.localdomain', '*.example', '*.invalid', '*.localhost', '*.test', '*.local', '*.home.arpa',
+      'time.*.com', 'time.*.gov', 'time.*.edu.cn', 'time.*.apple.com',
+      'time1.*.com', 'time2.*.com', 'time3.*.com', 'time4.*.com', 'time5.*.com', 'time6.*.com', 'time7.*.com',
+      'ntp.*.com', 'ntp1.*.com', 'ntp2.*.com', 'ntp3.*.com', 'ntp4.*.com', 'ntp5.*.com', 'ntp6.*.com', 'ntp7.*.com',
+      '*.time.edu.cn', '*.ntp.org.cn', '+.pool.ntp.org', 'time1.cloud.tencent.com',
+      'stun.*.*', 'stun.*.*.*', 'swscan.apple.com', 'mesu.apple.com',
+      'music.163.com', '*.music.163.com', '*.126.net', 'musicapi.taihe.com', 'music.taihe.com',
+      'songsearch.kugou.com', 'trackercdn.kugou.com', '*.kuwo.cn',
+      'api-jooxtt.sanook.com', 'api.joox.com',
+      'y.qq.com', '*.y.qq.com', 'streamoc.music.tc.qq.com', 'mobileoc.music.tc.qq.com',
+      'isure.stream.qqmusic.qq.com', 'dl.stream.qqmusic.qq.com', 'aqqmusic.tc.qq.com', 'amobile.music.tc.qq.com',
+      'localhost.ptlogin2.qq.com', '*.msftconnecttest.com', '*.msftncsi.com', '*.xiami.com',
+      '*.music.migu.cn', 'music.migu.cn', '+.wotgame.cn', '+.wggames.cn', '+.wowsgame.cn', '+.wargaming.net',
+      '*.*.*.srv.nintendo.net', '*.*.stun.playstation.net', 'xbox.*.*.microsoft.com', '*.*.xboxlive.com',
+      '*.ipv6.microsoft.com', 'teredo.*.*.*', 'teredo.*.*', 'speedtest.cros.wr.pvp.net',
+      '+.jjvip8.com', 'www.douyu.com', 'activityapi.huya.com', 'activityapi.huya.com.w.cdngslb.com',
+      'www.bilibili.com', 'api.bilibili.com', 'a.w.bilicdn1.com'
+    ]
   },
   proxies: [],
   'proxy-groups': [],
   rules: [
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN-SUFFIX,sudugu.com,DIRECT',
+    'DOMAIN,chat.qwen.ai,DIRECT',
     'IP-CIDR,1.1.1.1/32,Manual,no-resolve',
     'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
     'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
