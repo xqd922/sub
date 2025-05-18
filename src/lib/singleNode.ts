@@ -176,7 +176,36 @@ export class SingleNodeParser {
       throw new Error(`无效的 SS 链接格式：解析失败 - ${decoded}`)
     }
 
-    const [method, password] = methodAndPassword.split(':')
+    // 尝试标准解析
+    let method: string, password: string
+    try {
+      // 尝试标准 method:password 解析
+      const parts = methodAndPassword.split(':')
+      
+      if (parts.length === 2) {
+        // 标准两部分格式
+        [method, password] = parts
+      } else if (parts.length > 2) {
+        // 多部分密码格式
+        method = parts[0]
+        // 将除第一个部分外的所有部分作为密码
+        password = parts.slice(1).join(':')
+      } else {
+        // 尝试 Base64 解码
+        const decodedParts = Buffer.from(methodAndPassword, 'base64').toString('utf-8').split(':')
+        
+        if (decodedParts.length >= 2) {
+          method = 'chacha20-ietf-poly1305'
+          password = decodedParts.join(':')
+        } else {
+          throw new Error('无法解析')
+        }
+      }
+    } catch {
+      // 兜底方案
+      method = 'chacha20-ietf-poly1305'
+      password = methodAndPassword
+    }
 
     // 处理 IPv6 地址
     const ipv6Match = serverAndPort.match(/\[(.*)\]:(\d+)/)
