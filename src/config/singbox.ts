@@ -5,7 +5,7 @@ import { filterNodes } from '@/lib/nodeUtils'
 export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean = true) {
   // 根据shouldFormatNames参数决定是否进行名称格式化
   const formattedProxies = shouldFormatNames ? filterNodes(proxies) : proxies
-  
+
   // 直接使用SingleNodeParser.toSingboxOutbound生成出站配置
   const validOutbounds = formattedProxies.map(proxy => SingleNodeParser.toSingboxOutbound(proxy))
     .filter((o): o is NonNullable<typeof o> => o !== null)
@@ -19,18 +19,8 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           detour: "Manual"
         },
         {
-          tag: "remote2",
-          address: "https://8.8.8.8/dns-query",
-          detour: "Manual"
-        },
-        {
           tag: "local",
           address: "https://223.5.5.5/dns-query",
-          detour: "direct"
-        },
-        {
-          tag: "local2",
-          address: "https://119.29.29.29/dns-query",
           detour: "direct"
         },
         {
@@ -44,7 +34,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           server: "local"
         },
         {
-          rule_set: "reject-list",
+          geosite: "category-ads-all",
           server: "block",
           disable_cache: true
         },
@@ -57,18 +47,11 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           server: "local"
         },
         {
-          rule_set: "geosite-cn",
+          geosite: "cn",
           server: "local"
-        },
-        {
-          domain: ["v2ex.com"],
-          server: "remote"
         }
       ],
-      strategy: "prefer_ipv4",
-      disable_cache: false,
-      disable_expire: false,
-      independent_cache: true
+      strategy: "prefer_ipv4"
     },
     inbounds: [
       {
@@ -77,11 +60,11 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         auto_route: true,
         strict_route: true,
         stack: "system",
-        tag: "tun-in",
-        address: [
-          "172.19.0.1/30",
-          "2001:470:f9da:fdfa::1/64"
-        ],
+        sniff: true,
+        sniff_override_destination: true,
+        domain_strategy: "prefer_ipv4",
+        inet4_address: "172.19.0.1/30",
+        inet6_address: "2001:470:f9da:fdfa::1/64",
         endpoint_independent_nat: true
       },
       {
@@ -90,7 +73,8 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         listen: "127.0.0.1",
         listen_port: 2333,
         sniff: true,
-        sniff_override_destination: true
+        sniff_override_destination: true,
+        domain_strategy: "prefer_ipv4"
       },
       {
         type: "mixed",
@@ -98,7 +82,8 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         listen: "127.0.0.1",
         listen_port: 2334,
         sniff: true,
-        sniff_override_destination: true
+        sniff_override_destination: true,
+        domain_strategy: "prefer_ipv4"
       }
     ],
     outbounds: [
@@ -119,21 +104,25 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       {
         type: "direct",
         tag: "direct"
+      },
+      {
+        type: "block",
+        tag: "block"
+      },
+      {
+        type: "dns",
+        tag: "dns-out"
       }
     ],
     route: {
       rules: [
         {
-          rule_set: "reject-list",
-          action: "reject"
+          geosite: "category-ads-all",
+          outbound: "block"
         },
         {
           protocol: "dns",
-          action: "hijack-dns"
-        },
-        {
-          inbound: ["tun-in", "socks-in", "mixed-in"],
-          action: "sniff"
+          outbound: "dns-out"
         },
         {
           clash_mode: "direct",
@@ -144,48 +133,16 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           outbound: "Manual"
         },
         {
-          rule_set: "geoip-cn",
-          rule_set_ip_cidr_match_source: false,
+          geoip: ["cn", "private"],
+
           outbound: "direct"
         },
         {
-          ip_is_private: true,
+          geosite: "cn",
           outbound: "direct"
-        },
-        {
-          rule_set: "geosite-cn",
-          outbound: "direct"
-        }
-      ],
-      rule_set: [
-        {
-          tag: "reject-list",
-          type: "remote",
-          format: "source",
-          url: "https://gcore.jsdelivr.net/gh/TG-Twilight/AWAvenue-Ads-Rule@main/Filters/AWAvenue-Ads-Rule-Singbox.json",
-          download_detour: "direct"
-        },
-        {
-          tag: "geoip-cn",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
-          download_detour: "direct"
-        },
-        {
-          tag: "geosite-cn",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
-          download_detour: "direct"
         }
       ],
       auto_detect_interface: true
-    },
-    experimental: {
-      cache_file: {
-        enabled: true
-      }
     }
   }
 } 
