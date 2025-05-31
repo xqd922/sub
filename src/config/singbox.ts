@@ -30,10 +30,6 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       ],
       rules: [
         {
-          outbound: "any",
-          server: "local"
-        },
-        {
           geosite: "category-ads-all",
           server: "block",
           disable_cache: true
@@ -49,6 +45,10 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         {
           geosite: "cn",
           server: "local"
+        },
+        {
+          outbound: "any",
+          server: "remote"
         }
       ],
       strategy: "prefer_ipv4"
