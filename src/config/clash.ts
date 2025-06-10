@@ -103,7 +103,7 @@ export const defaultConfig: ClashConfig = {
     'IP-CIDR,1.1.1.1/32,Manual,no-resolve',
     'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
     'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
-    'DOMAIN-SUFFIX,985211.link,DIRECT',
+    'DOMAIN-SUFFIX,115cdn.de,DIRECT',
     'DOMAIN-SUFFIX,edu.cn,DIRECT',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
