@@ -94,6 +94,12 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     ],
     route: {
       rules: [
+        { domain_keyword: ["douyin", "snssdk"], 
+          outbound: "direct" 
+        },
+        { rule_set: ["category-ads-all"], 
+          action: "reject" 
+        },
         {
           protocol: "dns",
           action: "hijack-dns"
@@ -132,6 +138,14 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           format: "binary",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
           download_detour: "自动选择"
+        },
+        {
+          type: "remote",
+          tag: "category-ads-all",
+          format: "binary",
+          url: "https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-category-ads-all.srs",
+          download_detour: "节点选择",
+          update_interval: "1d"
         }
       ],
       auto_detect_interface: true,
