@@ -30,7 +30,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           tag: "local"
         },
         {
-          address: "rcode://success",
+          type: "fakeip",
           tag: "block"
         }
       ],
