@@ -103,14 +103,6 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         tag: "direct"
       },
       {
-        type: "block",
-        tag: "block"
-      },
-      {
-        type: "dns",
-        tag: "dns-out"
-      },
-      {
         type: "urltest",
         tag: "自动选择",
         outbounds: validOutbounds.map(o => o.tag)
@@ -121,7 +113,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       rules: [
         {
           protocol: "dns",
-          outbound: "dns-out"
+          action: "hijack-dns"
         },
         {
           clash_mode: "direct",
