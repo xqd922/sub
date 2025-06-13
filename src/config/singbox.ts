@@ -19,36 +19,19 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     dns: {
       servers: [
         {
+          type: "https",
+          server: "1.1.1.1",
           tag: "remote",
-          address: "https://1.1.1.1/dns-query",
           detour: "节点选择"
         },
         {
-          tag: "local",
-          address: "https://223.5.5.5/dns-query",
-          detour: "direct"
+          type: "https",
+          server: "223.5.5.5",
+          tag: "local"
         },
         {
-          tag: "block",
-          address: "rcode://success"
-        }
-      ],
-      rules: [
-        {
-          outbound: "any",
-          server: "local"
-        },
-        {
-          clash_mode: "global",
-          server: "remote"
-        },
-        {
-          clash_mode: "direct",
-          server: "local"
-        },
-        {
-          rule_set: "geosite-cn",
-          server: "local"
+          address: "rcode://success",
+          tag: "block"
         }
       ],
       strategy: "prefer_ipv4"
@@ -151,7 +134,11 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           download_detour: "自动选择"
         }
       ],
-      auto_detect_interface: true
+      auto_detect_interface: true,
+      default_domain_resolver: {
+        server: "local",
+        strategy: "prefer_ipv4"
+      }
     },
     experimental: {
       cache_file: {
