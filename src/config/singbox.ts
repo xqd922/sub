@@ -22,7 +22,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           type: "https",
           server: "1.1.1.1",
           tag: "remote",
-          detour: "节点选择"
+          detour: "Manual"
         },
         {
           type: "https",
@@ -74,12 +74,12 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     outbounds: [
       {
         type: "selector",
-        tag: "节点选择",
+        tag: "Manual",
         outbounds: [
-          "自动选择", 
+          "Auto",
           ...validOutbounds.map(o => o.tag)
         ],
-        default: "自动选择"
+        default: "Auto"
       },
       {
         type: "direct",
@@ -87,7 +87,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       },
       {
         type: "urltest",
-        tag: "自动选择",
+        tag: "Auto",
         outbounds: validOutbounds.map(o => o.tag)
       },
       ...validOutbounds
@@ -110,7 +110,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         },
         {
           clash_mode: "global",
-          outbound: "节点选择"
+          outbound: "Manual"
         },
         {
           ip_is_private: true,
@@ -130,21 +130,21 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           tag: "geosite-cn",
           format: "binary",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
-          download_detour: "自动选择"
+          download_detour: "Auto"
         },
         {
           type: "remote",
           tag: "geoip-cn",
           format: "binary",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
-          download_detour: "自动选择"
+          download_detour: "Auto"
         },
         {
           type: "remote",
           tag: "category-ads-all",
           format: "binary",
           url: "https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-category-ads-all.srs",
-          download_detour: "节点选择",
+          download_detour: "Auto",
           update_interval: "1d"
         }
       ],
