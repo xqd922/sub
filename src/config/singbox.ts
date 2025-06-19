@@ -11,27 +11,39 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     .filter((o): o is NonNullable<typeof o> => o !== null)
 
   return {
-      "log": {
-        "level": "info",
-        "output": "box.log",
-        "timestamp": true
-      },
     dns: {
       servers: [
         {
-          type: "https",
-          server: "1.1.1.1",
           tag: "remote",
-          detour: "Manual"
+          address: "https://1.1.1.1/dns-query",
+          detour: "节点选择"
         },
         {
-          type: "https",
-          server: "223.5.5.5",
-          tag: "local"
+          tag: "local",
+          address: "https://223.5.5.5/dns-query",
+          detour: "direct"
         },
         {
-          type: "fakeip",
-          tag: "block"
+          tag: "block",
+          address: "rcode://success"
+        }
+      ],
+      rules: [
+        {
+          outbound: "any",
+          server: "local"
+        },
+        {
+          clash_mode: "global",
+          server: "remote"
+        },
+        {
+          clash_mode: "direct",
+          server: "local"
+        },
+        {
+          rule_set: "geosite-cn",
+          server: "local"
         }
       ],
       strategy: "prefer_ipv4"
@@ -74,35 +86,37 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     outbounds: [
       {
         type: "selector",
-        tag: "Manual",
+        tag: "节点选择",
         outbounds: [
-          "Auto",
+          "自动选择", 
           ...validOutbounds.map(o => o.tag)
         ],
-        default: "Auto"
+        default: "自动选择"
       },
       {
         type: "direct",
         tag: "direct"
       },
       {
+        type: "block",
+        tag: "block"
+      },
+      {
+        type: "dns",
+        tag: "dns-out"
+      },
+      {
         type: "urltest",
-        tag: "Auto",
+        tag: "自动选择",
         outbounds: validOutbounds.map(o => o.tag)
       },
       ...validOutbounds
     ],
     route: {
       rules: [
-        { domain_keyword: ["douyin", "snssdk"], 
-          outbound: "direct" 
-        },
-        { rule_set: ["category-ads-all"], 
-          action: "reject" 
-        },
         {
           protocol: "dns",
-          action: "hijack-dns"
+          outbound: "dns-out"
         },
         {
           clash_mode: "direct",
@@ -110,7 +124,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         },
         {
           clash_mode: "global",
-          outbound: "Manual"
+          outbound: "节点选择"
         },
         {
           ip_is_private: true,
@@ -129,30 +143,18 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           type: "remote",
           tag: "geosite-cn",
           format: "binary",
-          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
-          download_detour: "Auto"
+          url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs",
+          download_detour: "自动选择"
         },
         {
           type: "remote",
           tag: "geoip-cn",
           format: "binary",
-          url: "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
-          download_detour: "Auto"
-        },
-        {
-          type: "remote",
-          tag: "category-ads-all",
-          format: "binary",
-          url: "https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-category-ads-all.srs",
-          download_detour: "Auto",
-          update_interval: "1d"
+          url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs",
+          download_detour: "自动选择"
         }
       ],
-      auto_detect_interface: true,
-      default_domain_resolver: {
-        server: "local",
-        strategy: "prefer_ipv4"
-      }
+      auto_detect_interface: true
     },
     experimental: {
       cache_file: {
