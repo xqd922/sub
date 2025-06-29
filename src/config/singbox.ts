@@ -11,160 +11,154 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     .filter((o): o is NonNullable<typeof o> => o !== null)
 
   return {
-    log: {
-        level: "error"
-      },
     dns: {
       servers: [
         {
+          type: "local",
+          tag: "local"
+        },
+        {
+          type: "udp",
           tag: "remote",
-          address: "https://1.1.1.1/dns-query",
-          detour: "节点选择"
+          server: "1.1.1.1"
         },
         {
-          tag: "local",
-          address: "https://223.5.5.5/dns-query",
-          detour: "direct"
-        },
-        {
-          tag: "block",
-          address: "rcode://success"
+          type: "udp",
+          tag: "cn",
+          server: "223.5.5.5"
         }
       ],
       rules: [
         {
-          outbound: "any",
-          server: "local"
-        },
-        {
-          clash_mode: "global",
-          server: "remote"
-        },
-        {
-          clash_mode: "direct",
-          server: "local"
-        },
-        {
           rule_set: "geosite-cn",
-          server: "local"
+          server: "cn"
         }
       ],
-      strategy: "prefer_ipv4"
+      final: "remote"
     },
     inbounds: [
       {
         type: "tun",
+        tag: "tun-in",
         mtu: 9000,
         address: [
-          "172.19.0.1/30", 
+          "172.19.0.1/30",
           "2001:470:f9da:fdfa::1/64"
         ],
         auto_route: true,
         strict_route: true,
-        endpoint_independent_nat: true,
-        stack: "system",
-        sniff: true,
-        sniff_override_destination: true,
-        domain_strategy: "prefer_ipv4"
+        route_exclude_address_set: "geoip-cn",
+        stack: "system"
       },
       {
         type: "socks",
         tag: "socks-in",
         listen: "127.0.0.1",
-        listen_port: 2333,
-        sniff: true,
-        sniff_override_destination: true,
-        domain_strategy: "prefer_ipv4"
+        listen_port: 2333
       },
       {
         type: "mixed",
         tag: "mixed-in",
         listen: "127.0.0.1",
-        listen_port: 2334,
-        sniff: true,
-        sniff_override_destination: true,
-        domain_strategy: "prefer_ipv4"
+        listen_port: 2334
       }
     ],
     outbounds: [
       {
+        type: "direct",
+        tag: "DIRECT",
+        domain_resolver: "local"
+      },
+      {
         type: "selector",
         tag: "节点选择",
         outbounds: [
-          "自动选择", 
+          "自动选择",
           ...validOutbounds.map(o => o.tag)
         ],
-        default: "自动选择"
-      },
-      {
-        type: "direct",
-        tag: "direct"
-      },
-      {
-        type: "block",
-        tag: "block"
-      },
-      {
-        type: "dns",
-        tag: "dns-out"
+        interrupt_exist_connections: true
       },
       {
         type: "urltest",
         tag: "自动选择",
-        outbounds: validOutbounds.map(o => o.tag)
+        outbounds: validOutbounds.map(o => o.tag),
+        url: "https://www.gstatic.com/generate_204",
+        interval: "10m0s",
+        tolerance: 50,
+        idle_timeout: "30m0s"
       },
       ...validOutbounds
     ],
     route: {
       rules: [
         {
+          action: "sniff"
+        },
+        {
           protocol: "dns",
-          outbound: "dns-out"
+          action: "hijack-dns"
         },
         {
-          clash_mode: "direct",
-          outbound: "direct"
-        },
-        {
-          clash_mode: "global",
-          outbound: "节点选择"
+          rule_set: "category-ads-all",
+          action: "reject"
         },
         {
           ip_is_private: true,
-          outbound: "direct"
+          outbound: "DIRECT"
+        },
+        {
+          clash_mode: "关闭代理",
+          outbound: "DIRECT"
+        },
+        {
+          clash_mode: "全局代理",
+          outbound: "节点选择"
         },
         {
           rule_set: [
-            "geosite-cn", 
+            "geosite-cn",
             "geoip-cn"
           ],
-          outbound: "direct"
+          outbound: "DIRECT"
         }
       ],
       rule_set: [
         {
           type: "remote",
-          tag: "geosite-cn",
-          format: "binary",
-          url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs",
-          download_detour: "自动选择"
+          tag: "geosite-geolocation-!cn",
+          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs",
+          download_detour: "节点选择"
         },
         {
           type: "remote",
           tag: "geoip-cn",
-          format: "binary",
-          url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs",
-          download_detour: "自动选择"
+          url: "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/srs/cn.srs",
+          download_detour: "节点选择"
+        },
+        {
+          type: "remote",
+          tag: "geosite-cn",
+          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+          download_detour: "节点选择"
+        },
+        {
+          type: "remote",
+          tag: "category-ads-all",
+          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
+          download_detour: "节点选择"
         }
       ],
-      auto_detect_interface: true
+      final: "节点选择",
+      auto_detect_interface: true,
+      default_domain_resolver: "remote"
     },
     experimental: {
       cache_file: {
-        enabled: true,
-        path: "cache.db",
-        cache_id: "cache_db",
-        store_fakeip: true
+        enabled: true
+      },
+      clash_api: {
+        external_controller: "127.0.0.1:9090",
+        default_mode: "海外代理"
       }
     }
   }
