@@ -103,7 +103,7 @@ export const defaultConfig: ClashConfig = {
     'IP-CIDR,1.1.1.1/32,Manual,no-resolve',
     'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
     'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
-    // 抖音
+    'DOMAIN-SUFFIX,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,lf3-static.bytednsdoc.com,DIRECT',
     'DOMAIN,v5-dy-o-abtest.zjcdn.com,DIRECT',
     'DOMAIN-SUFFIX,amemv.com,DIRECT',

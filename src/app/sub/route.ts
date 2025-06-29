@@ -167,12 +167,12 @@ export async function GET(request: Request) {
       proxies = SingleNodeParser.sortProxiesByRegion(proxies)
 
       subscription = {
-        name: 'Lite',
+        name: 'Me',
         upload: '0',
         download: '0',
         total: '0',
         expire: '',
-        homepage: 'https://sub.xqd.us.kg'
+        homepage: 'https://sub.xqd.pp.ua'
       }
     } else {
       // 使用新的 fetchWithRetry 函数
@@ -202,7 +202,7 @@ export async function GET(request: Request) {
                 response.headers.get('expire') || 
                 response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
                 ''),
-        homepage: response.headers.get('profile-web-page-url') || 'https://sub.xqd.us.kg'
+        homepage: response.headers.get('profile-web-page-url') || 'https://sub.xqd.pp.ua'
       }
 
       // 打印格式化的订阅信息
