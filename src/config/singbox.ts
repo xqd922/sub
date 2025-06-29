@@ -71,16 +71,16 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       },
       {
         type: "selector",
-        tag: "节点选择",
+        tag: "Manual",
         outbounds: [
-          "自动选择",
+          "Auto",
           ...validOutbounds.map(o => o.tag)
         ],
         interrupt_exist_connections: true
       },
       {
         type: "urltest",
-        tag: "自动选择",
+        tag: "Auto",
         outbounds: validOutbounds.map(o => o.tag),
         url: "https://www.gstatic.com/generate_204",
         interval: "10m0s",
@@ -107,12 +107,12 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           outbound: "DIRECT"
         },
         {
-          clash_mode: "关闭代理",
+          clash_mode: "direct",
           outbound: "DIRECT"
         },
         {
-          clash_mode: "全局代理",
-          outbound: "节点选择"
+          clash_mode: "global",
+          outbound: "Manual"
         },
         {
           rule_set: [
@@ -127,28 +127,28 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           type: "remote",
           tag: "geosite-geolocation-!cn",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs",
-          download_detour: "节点选择"
+          download_detour: "Manual"
         },
         {
           type: "remote",
           tag: "geoip-cn",
           url: "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/srs/cn.srs",
-          download_detour: "节点选择"
+          download_detour: "Manual"
         },
         {
           type: "remote",
           tag: "geosite-cn",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
-          download_detour: "节点选择"
+          download_detour: "Manual"
         },
         {
           type: "remote",
           tag: "category-ads-all",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
-          download_detour: "节点选择"
+          download_detour: "Manual"
         }
       ],
-      final: "节点选择",
+      final: "Manual",
       auto_detect_interface: true,
       default_domain_resolver: "remote"
     },
@@ -158,7 +158,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       },
       clash_api: {
         external_controller: "127.0.0.1:9090",
-        default_mode: "海外代理"
+        default_mode: "rule"
       }
     }
   }
