@@ -104,6 +104,7 @@ export const defaultConfig: ClashConfig = {
     'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
     'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
     'DOMAIN-SUFFIX,sub.xqd.pp.ua,DIRECT',
+    'DOMAIN-SUFFIX,douyin.com,DIRECT',
     'DOMAIN,lf3-static.bytednsdoc.com,DIRECT',
     'DOMAIN,v5-dy-o-abtest.zjcdn.com,DIRECT',
     'DOMAIN-SUFFIX,amemv.com,DIRECT',
