@@ -9,6 +9,7 @@ export interface Proxy {
   server: string
   port: number
   cipher?: string
+  'encrypt-method'?: string  // SS 加密方法 (Clash 格式)
   password?: string
   uuid?: string
   alterId?: number
@@ -18,6 +19,16 @@ export interface Proxy {
   tls?: boolean
   skipCertVerify?: boolean
   sni?: string
+  // SS obfs 配置 - Clash 格式
+  obfs?: string
+  'obfs-host'?: string
+  // SS obfs 配置 - 通用格式
+  plugin?: string
+  'plugin-opts'?: {
+    mode?: string
+    host?: string
+    [key: string]: string | undefined
+  }
   'reality-opts'?: {
     'public-key'?: string
     'short-id'?: string
