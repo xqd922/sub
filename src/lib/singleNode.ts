@@ -172,7 +172,7 @@ export class SingleNodeParser {
     
     // 解析主体部分
     let decoded: string
-    let pluginOpts: Record<string, string> = {}
+    const pluginOpts: Record<string, string> = {}
 
     try {
       // 检查是否有插件参数
