@@ -14,8 +14,9 @@ export function generateProxyGroups(proxies: Proxy[]) {
       name: 'Auto',
       type: 'url-test',
       proxies: proxyNames,
-      url: 'http://www.gstatic.com/generate_204',
-      interval: 300
+      url: 'https://www.gstatic.com/generate_204',
+      interval: 300,
+      tolerance: 50
     },
     {
       name: 'Emby',
@@ -29,7 +30,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
         const filtered = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p)).map(p => p)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
-      url: 'http://www.gstatic.com/generate_204',
+      url: 'https://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     },
@@ -40,7 +41,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
         const filtered = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p)).map(p => p)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
-      url: 'http://www.gstatic.com/generate_204',
+      url: 'https://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     }
