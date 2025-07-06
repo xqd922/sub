@@ -518,7 +518,17 @@ export class SingleNodeParser {
           server: proxy.server,
           server_port: proxy.port,
           method: proxy['encrypt-method'] || proxy.cipher,
-          password: proxy.password
+          password: proxy.password,
+          // 添加插件支持
+          ...(proxy.plugin === 'obfs' && proxy['plugin-opts'] && {
+            plugin: "obfs-local",
+            plugin_opts: `obfs=${proxy['plugin-opts'].mode};obfs-host=${proxy['plugin-opts'].host || 'www.bing.com'}`
+          }),
+          // 兼容Clash格式的obfs配置
+          ...(proxy.obfs && {
+            plugin: "obfs-local",
+            plugin_opts: `obfs=${proxy.obfs};obfs-host=${proxy['obfs-host'] || 'www.bing.com'}`
+          })
         }
       case 'vmess':
         return {
