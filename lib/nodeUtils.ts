@@ -1,5 +1,5 @@
 import { Proxy } from './types'
-import { REGION_MAP } from '@/config/regions'
+import { REGION_MAP } from '../config/regions'
 
 // 共享的计数器
 const counters: Record<string, number> = {}

@@ -1,6 +1,6 @@
-import { Proxy } from '@/lib/types'
-import { SingleNodeParser } from '@/lib/singleNode'
-import { filterNodes } from '@/lib/nodeUtils'
+import { Proxy } from '../lib/types'
+import { SingleNodeParser } from '../lib/singleNode'
+import { filterNodes } from '../lib/nodeUtils'
 
 export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean = true) {
   // 根据shouldFormatNames参数决定是否进行名称格式化
