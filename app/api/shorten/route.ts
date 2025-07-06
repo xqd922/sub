@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { handleApiError, withLogging } from '../../../lib/utils/errors';
 
 export const runtime = 'nodejs';
 const SERVICE_ORDER = [ 'tinyurl','sink', 'bitly'] as const
@@ -22,7 +23,11 @@ const SERVICE_CONFIG = {
   }
 } as const
 
-export async function POST(request: Request) {
+/**
+ * 处理POST请求
+ * 尝试使用多个短链接服务生成短链接
+ */
+async function handlePost(request: Request) {
   const startTime = Date.now()
   console.log('\n=== 开始处理短链接请求 ===')
   console.log('时间:', new Date().toLocaleString())
@@ -112,18 +117,30 @@ export async function POST(request: Request) {
     console.error(`总耗时: ${duration}ms`)
     console.error('结束时间:', new Date().toLocaleString(), '\n')
     
-    return NextResponse.json({ error: '请求处理失败' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
-export async function GET(request: Request) {
-  const url = new URL(request.url).searchParams.get('url');
-  if (!url) {
-    return NextResponse.json({ error: '缺少 URL 参数' }, { status: 400 });
+/**
+ * 处理GET请求
+ * 将GET请求转换为POST请求处理
+ */
+async function handleGet(request: Request) {
+  try {
+    const url = new URL(request.url).searchParams.get('url');
+    if (!url) {
+      return NextResponse.json({ error: '缺少 URL 参数' }, { status: 400 });
+    }
+    
+    return handlePost(new Request(request.url, {
+      method: 'POST',
+      body: JSON.stringify({ url })
+    }));
+  } catch (error) {
+    return handleApiError(error);
   }
-  
-  return POST(new Request(request.url, {
-    method: 'POST',
-    body: JSON.stringify({ url })
-  }));
 }
+
+// 导出带日志记录的处理函数
+export const POST = withLogging('短链接', handlePost);
+export const GET = withLogging('短链接', handleGet);
