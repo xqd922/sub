@@ -126,6 +126,8 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,nodeseek.com,Manual',
     'DOMAIN-SUFFIX,mefun.org,Manual',
     // Emby
+    'DOMAIN,ll.sdxya.top,DIRECT',
+    'DOMAIN,cfcdn.mobai.sbs,DIRECT',
     'DOMAIN,cftest1.mobai.sbs,Emby',
     'DOMAIN,inside.lyrebirdemby.com,Min',
     'DOMAIN-SUFFIX,misakaf.org,Emby',
@@ -146,6 +148,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,cf.niceduck.lol,Emby',
     'DOMAIN,vi.niceduck.lol,Emby',
     'DOMAIN,pilicf.niceduck.lol,Emby',
+    'DOMAIN-KEYWORD,pilipiliultra,Emby',
     'DOMAIN-KEYWORD,pilipili,Emby',
     'DOMAIN,sg.886318.xyz,Emby',
     'DOMAIN,emby.apopcloud.live,Emby',
