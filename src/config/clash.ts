@@ -14,7 +14,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
       name: 'Auto',
       type: 'url-test',
       proxies: proxyNames,
-      url: 'https://www.gstatic.com/generate_204',
+      url: 'http://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     },
@@ -30,7 +30,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
         const filtered = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p)).map(p => p)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
-      url: 'https://www.gstatic.com/generate_204',
+      url: 'http://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     },
@@ -41,7 +41,7 @@ export function generateProxyGroups(proxies: Proxy[]) {
         const filtered = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p)).map(p => p)
         return filtered.length > 0 ? filtered : ['DIRECT']
       })(),
-      url: 'https://www.gstatic.com/generate_204',
+      url: 'http://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     }
@@ -128,6 +128,7 @@ export const defaultConfig: ClashConfig = {
     // Emby
     'DOMAIN,ll.sdxya.top,DIRECT',
     'DOMAIN,cfcdn.mobai.sbs,DIRECT',
+    'DOMAIN-SUFFIX,mobai.sbs,DIRECT',
     'DOMAIN,cftest1.mobai.sbs,Emby',
     'DOMAIN,inside.lyrebirdemby.com,Min',
     'DOMAIN-SUFFIX,misakaf.org,Emby',
