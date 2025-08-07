@@ -92,7 +92,7 @@ export const defaultConfig: ClashConfig = {
       '*.*.*.srv.nintendo.net', '*.*.stun.playstation.net', 'xbox.*.*.microsoft.com', '*.*.xboxlive.com',
       '*.ipv6.microsoft.com', 'teredo.*.*.*', 'teredo.*.*', 'speedtest.cros.wr.pvp.net',
       '+.jjvip8.com', 'www.douyu.com', 'activityapi.huya.com', 'activityapi.huya.com.w.cdngslb.com',
-      'www.bilibili.com', 'api.bilibili.com', 'a.w.bilicdn1.com', 'eud.cn','*.eud.cn'
+      'www.bilibili.com', 'api.bilibili.com', 'a.w.bilicdn1.com', 'eud.cn','*.eud.cn','*.1009.com.cn'
     ]
   },
   proxies: [],
@@ -125,6 +125,8 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,shanghai.meby.my,DIRECT',
     'DOMAIN-SUFFIX,nodeseek.com,Manual',
     'DOMAIN-SUFFIX,mefun.org,Manual',
+    'DOMAIN-SUFFIX,1009.com.cn,DIRECT',
+
     // Emby
     'DOMAIN,ll.sdxya.top,DIRECT',
     'DOMAIN,cfcdn.mobai.sbs,DIRECT',
