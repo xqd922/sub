@@ -182,6 +182,8 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,cf.5msky.com,Emby',
     'DOMAIN-SUFFIX,oceancloud.asia,Emby',
     'IP-CIDR,152.53.81.68/32,Emby',
+    'DOMAIN,zoxfree.3767483.xyz,Emby',
+    'DOMAIN,lite.cn2gias.uk,Emby',
     'DOMAIN-KEYWORD,emby,Emby',
     // 默认
     'DOMAIN-SUFFIX,services.googleapis.cn,Manual',
