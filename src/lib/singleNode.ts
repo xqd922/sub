@@ -1,4 +1,4 @@
-import { Proxy } from './types'
+import { Proxy, SingboxProxyConfig } from './types'
 import { REGION_MAP } from '@/config/regions'
 
 /**
@@ -574,7 +574,7 @@ export class SingleNodeParser {
           } : {})
         }
       case 'trojan':
-        const trojanConfig: any = {
+        const trojanConfig: SingboxProxyConfig = {
           type: 'trojan',
           tag: proxy.name,
           server: proxy.server,
@@ -596,10 +596,18 @@ export class SingleNodeParser {
             ping_timeout: '15s'
           }
         } else if (proxy.network === 'ws' && proxy['ws-opts']) {
+          const wsHeaders = proxy['ws-opts'].headers || {}
+          const cleanHeaders: Record<string, string> = {}
+          Object.entries(wsHeaders).forEach(([key, value]) => {
+            if (value !== undefined) {
+              cleanHeaders[key] = value
+            }
+          })
+          
           trojanConfig.transport = {
             type: 'ws',
             path: proxy['ws-opts'].path || '/',
-            headers: proxy['ws-opts'].headers || {}
+            headers: cleanHeaders
           }
         }
 

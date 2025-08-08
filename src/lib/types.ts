@@ -56,15 +56,15 @@ export interface Proxy {
   }
   encryption?: string
   fp?: string
-  
+
   // 添加 Hysteria2 相关属性
   insecure?: boolean
   up_mbps?: number
   down_mbps?: number
-  
+
   // 添加 Reality 相关属性
   reality?: boolean
-  
+
   // 添加 tfo 属性
   tfo?: boolean
 
@@ -150,4 +150,32 @@ export class SubscriptionFetchError extends Error implements SubscriptionError {
     this.statusCode = statusCode;
     this.details = details;
   }
+}
+
+// Sing-box 配置类型定义
+export interface SingboxTLSConfig {
+  enabled: boolean;
+  server_name: string;
+  insecure: boolean;
+}
+
+export interface SingboxTransportConfig {
+  type: string;
+  service_name?: string;
+  idle_timeout?: string;
+  ping_timeout?: string;
+  path?: string;
+  headers?: Record<string, string>;
+}
+
+export interface SingboxProxyConfig {
+  type: string;
+  tag: string;
+  server: string;
+  server_port: number;
+  password?: string;
+  uuid?: string;
+  tls?: SingboxTLSConfig;
+  transport?: SingboxTransportConfig;
+  [key: string]: unknown;
 } 
