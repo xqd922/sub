@@ -47,7 +47,12 @@ export interface Proxy {
     path?: string
     headers?: {
       Host?: string
+      [key: string]: string | undefined
     }
+  }
+  'grpc-opts'?: {
+    'grpc-service-name'?: string
+    'grpc-mode'?: string
   }
   encryption?: string
   fp?: string

@@ -38,7 +38,7 @@ export class SingleNodeParser {
       'US': 5,
       // 可以添加更多地区优先级...
     }
-    
+
     // 地区代码匹配正则
     const regionRegex = /\b(HK|TW|JP|SG|US|UK|CA|AU|NZ|DE|FR|IT|RU|IN|KR|VN|TH)\b/i;
 
@@ -47,32 +47,32 @@ export class SingleNodeParser {
       .sort((a, b) => {
         let priorityA = 999;
         let priorityB = 999;
-        
+
         // 先检查节点名称中是否包含地区代码
         const codeMatchA = a.name.match(regionRegex);
         const codeMatchB = b.name.match(regionRegex);
-        
+
         if (codeMatchA && codeMatchA[1]) {
           priorityA = regionPriority[codeMatchA[1].toUpperCase()] || 999;
         }
-        
+
         if (codeMatchB && codeMatchB[1]) {
           priorityB = regionPriority[codeMatchB[1].toUpperCase()] || 999;
         }
-        
+
         // 如果没有找到代码，尝试通过REGION_MAP查找
         if (priorityA === 999 || priorityB === 999) {
-          const regionA = Object.keys(REGION_MAP).find(key => 
+          const regionA = Object.keys(REGION_MAP).find(key =>
             a.name.toLowerCase().includes(key.toLowerCase())
           )
-          const regionB = Object.keys(REGION_MAP).find(key => 
+          const regionB = Object.keys(REGION_MAP).find(key =>
             b.name.toLowerCase().includes(key.toLowerCase())
           )
 
           if (regionA && priorityA === 999) {
             priorityA = regionPriority[REGION_MAP[regionA as keyof typeof REGION_MAP].name] || 999;
           }
-          
+
           if (regionB && priorityB === 999) {
             priorityB = regionPriority[REGION_MAP[regionB as keyof typeof REGION_MAP].name] || 999;
           }
@@ -90,7 +90,7 @@ export class SingleNodeParser {
   static parseMultiple(input: string): Proxy[] {
     // 分割多个节点链接
     const uris = input.split(/\s+/).filter(uri => uri.trim())
-    
+
     // 解析每个节点
     const proxies = uris
       .map(uri => this.parse(uri))
@@ -135,24 +135,24 @@ export class SingleNodeParser {
     // 生成基本的用户信息
     const userInfo = `${proxy['encrypt-method'] || proxy.cipher}:${proxy.password}`;
     const baseInfo = `${proxy.server}:${proxy.port}`;
-    
+
     // Base64 编码
     const base64UserInfo = Buffer.from(userInfo).toString('base64');
-    
+
     // 构建基本 URL
     let url = `ss://${base64UserInfo}@${baseInfo}`;
-    
+
     // 添加插件信息
     if (proxy.obfs) {
       const plugin = `obfs-local;obfs=${proxy.obfs}${proxy['obfs-host'] ? ';obfs-host=' + proxy['obfs-host'] : ''}`;
       url += '/?plugin=' + encodeURIComponent(plugin);
     }
-    
+
     // 添加备注
     if (proxy.name) {
       url += '#' + encodeURIComponent(proxy.name);
     }
-    
+
     return url;
   }
 
@@ -163,13 +163,13 @@ export class SingleNodeParser {
   public static parseShadowsocks(uri: string): Proxy {
     // 移除 ss:// 前缀
     const content = uri.substring(5)
-    
+
     // 处理 URL 编码的字符
     const decodedContent = decodeURIComponent(content)
-    
+
     // 分离主体和备注
     const [mainPart, remark = ''] = decodedContent.split('#')
-    
+
     // 解析主体部分
     let decoded: string
     const pluginOpts: Record<string, string> = {}
@@ -177,7 +177,7 @@ export class SingleNodeParser {
     try {
       // 检查是否有插件参数
       const [basePart, queryString] = mainPart.split('/?')
-      
+
       if (queryString) {
         const params = new URLSearchParams(queryString)
         const plugin = params.get('plugin')
@@ -201,11 +201,11 @@ export class SingleNodeParser {
       const standardBase64 = basePart
         .replace(/-/g, '+')   // URL 安全的 Base64 替换
         .replace(/_/g, '/')   // URL 安全的 Base64 替换
-      
+
       // 补全 Base64 编码（如果需要）
-      const paddedBase64 = standardBase64 + 
+      const paddedBase64 = standardBase64 +
         '=='.slice(0, (4 - standardBase64.length % 4) % 4)
-      
+
       // 检查是否包含 @ 符号
       if (basePart.includes('@')) {
         // 新格式: userInfo@server:port
@@ -223,7 +223,7 @@ export class SingleNodeParser {
       })
       throw new Error('无效的 SS 链接格式：Base64 解码失败')
     }
-    
+
     // 解析服务器信息
     const [methodAndPassword, serverAndPort] = decoded.split('@')
     if (!methodAndPassword || !serverAndPort) {
@@ -235,7 +235,7 @@ export class SingleNodeParser {
     try {
       // 尝试标准 method:password 解析
       const parts = methodAndPassword.split(':')
-      
+
       if (parts.length === 2) {
         // 标准两部分格式
         [method, password] = parts
@@ -247,7 +247,7 @@ export class SingleNodeParser {
       } else {
         // 尝试 Base64 解码
         const decodedParts = Buffer.from(methodAndPassword, 'base64').toString('utf-8').split(':')
-        
+
         if (decodedParts.length >= 2) {
           method = 'chacha20-ietf-poly1305'
           password = decodedParts.join(':')
@@ -275,7 +275,7 @@ export class SingleNodeParser {
       server = serverAndPort.substring(0, lastColon)
       port = serverAndPort.substring(lastColon + 1)
     }
-    
+
     // 严格验证参数
     if (!method) {
       throw new Error('SS 链接缺少加密方法')
@@ -331,17 +331,17 @@ export class SingleNodeParser {
   public static parseVmess(uri: string): Proxy {
     const content = uri.substring(8)
     const config = JSON.parse(Buffer.from(content, 'base64').toString())
-    
+
     // 处理 IPv6 地址，移除可能的方括号
     let server = config.add
     if (server.startsWith('[') && server.endsWith(']')) {
       server = server.substring(1, server.length - 1)
     }
-    
+
     // 根据网络类型设置相应选项
     const network = config.net || 'tcp'
     const isWs = network === 'ws'
-    
+
     return {
       type: 'vmess',
       name: config.ps || server,
@@ -355,7 +355,7 @@ export class SingleNodeParser {
       'skip-cert-verify': false,
       servername: config.sni || '',
       tfo: false,
-      
+
       // 如果是 WS 类型
       ...(isWs && {
         'ws-opts': {
@@ -374,17 +374,38 @@ export class SingleNodeParser {
    */
   public static parseTrojan(uri: string): Proxy {
     const url = new URL(uri)
-    
-    return {
+    const params = url.searchParams
+
+    const proxy: Proxy = {
       type: 'trojan',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
       server: url.hostname,
       port: parseInt(url.port),
       password: url.username,
-      sni: url.searchParams.get('sni') || url.hostname,
+      sni: params.get('sni') || url.hostname,
       udp: true,
-      skipCertVerify: url.searchParams.get('allowInsecure') === '1'
+      skipCertVerify: params.get('allowInsecure') === '1'
     }
+
+    // 处理传输协议
+    const transportType = params.get('type')
+    if (transportType === 'grpc') {
+      proxy.network = 'grpc'
+      proxy['grpc-opts'] = {
+        'grpc-service-name': params.get('serviceName') || ''
+      }
+      if (params.get('mode') === 'gun') {
+        proxy['grpc-opts']['grpc-mode'] = 'gun'
+      }
+    } else if (transportType === 'ws') {
+      proxy.network = 'ws'
+      proxy['ws-opts'] = {
+        path: params.get('path') || '/',
+        headers: params.get('host') ? { Host: params.get('host')! } : {}
+      }
+    }
+
+    return proxy
   }
 
   /**
@@ -393,13 +414,13 @@ export class SingleNodeParser {
    */
   public static parseVless(uri: string): Proxy {
     const url = new URL(uri)
-    
+
     // 处理 IPv6 地址，移除方括号
     let server = url.hostname
     if (server.startsWith('[') && server.endsWith(']')) {
       server = server.substring(1, server.length - 1)
     }
-    
+
     const host = url.searchParams.get('host')
     const flow = url.searchParams.get('flow')
     const fp = url.searchParams.get('fp') || 'chrome'
@@ -408,7 +429,7 @@ export class SingleNodeParser {
     const pbk = url.searchParams.get('pbk')
     const sid = url.searchParams.get('sid')
     const sni = url.searchParams.get('sni') || ''
-    
+
     // 简化输出格式
     return {
       type: 'vless',
@@ -423,7 +444,7 @@ export class SingleNodeParser {
       'client-fingerprint': fp,
       network: type,
       tfo: false,
-      
+
       // 如果是 Reality 节点
       ...(pbk && {
         'reality-opts': {
@@ -431,7 +452,7 @@ export class SingleNodeParser {
           'short-id': sid || ''
         }
       }),
-      
+
       // 如果是 WS 类型
       ...(type === 'ws' && {
         'ws-opts': {
@@ -452,13 +473,13 @@ export class SingleNodeParser {
     // 处理 hy2:// 前缀
     const actualUri = uri.startsWith('hy2://') ? 'hysteria2://' + uri.substring(6) : uri
     const url = new URL(actualUri)
-    
+
     // 处理 IPv6 地址，移除方括号
     let server = url.hostname
     if (server.startsWith('[') && server.endsWith(']')) {
       server = server.substring(1, server.length - 1)
     }
-    
+
     return {
       type: 'hysteria2',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
@@ -553,7 +574,7 @@ export class SingleNodeParser {
           } : {})
         }
       case 'trojan':
-        return {
+        const trojanConfig: any = {
           type: 'trojan',
           tag: proxy.name,
           server: proxy.server,
@@ -562,9 +583,27 @@ export class SingleNodeParser {
           tls: {
             enabled: true,
             server_name: proxy.sni || proxy.server,
-            insecure: true
+            insecure: proxy.skipCertVerify || true
           }
         }
+
+        // 添加传输协议配置
+        if (proxy.network === 'grpc' && proxy['grpc-opts']) {
+          trojanConfig.transport = {
+            type: 'grpc',
+            service_name: proxy['grpc-opts']['grpc-service-name'] || '',
+            idle_timeout: '15s',
+            ping_timeout: '15s'
+          }
+        } else if (proxy.network === 'ws' && proxy['ws-opts']) {
+          trojanConfig.transport = {
+            type: 'ws',
+            path: proxy['ws-opts'].path || '/',
+            headers: proxy['ws-opts'].headers || {}
+          }
+        }
+
+        return trojanConfig
       case 'hysteria2':
         return {
           type: 'hysteria2',

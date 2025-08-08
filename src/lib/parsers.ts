@@ -231,14 +231,35 @@ export function parseVmess(line: string): Proxy {
 
 export function parseTrojan(line: string): Proxy {
   const url = new URL(line)
+  const params = url.searchParams
   
-  return {
+  const proxy: Proxy = {
     name: url.hash ? decodeURIComponent(url.hash.slice(1)) : `${url.hostname}:${url.port}`,
     type: 'trojan',
     server: url.hostname,
     port: parseInt(url.port),
     password: url.username,
-    sni: url.searchParams.get('sni') || url.hostname,
-    skipCertVerify: url.searchParams.get('allowInsecure') === '1'
+    sni: params.get('sni') || url.hostname,
+    skipCertVerify: params.get('allowInsecure') === '1'
   }
+
+  // 处理传输协议
+  const transportType = params.get('type')
+  if (transportType === 'grpc') {
+    proxy.network = 'grpc'
+    proxy['grpc-opts'] = {
+      'grpc-service-name': params.get('serviceName') || ''
+    }
+    if (params.get('mode') === 'gun') {
+      proxy['grpc-opts']['grpc-mode'] = 'gun'
+    }
+  } else if (transportType === 'ws') {
+    proxy.network = 'ws'
+    proxy['ws-opts'] = {
+      path: params.get('path') || '/',
+      headers: params.get('host') ? { Host: params.get('host')! } : {}
+    }
+  }
+
+  return proxy
 } 
