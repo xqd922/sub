@@ -14,7 +14,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     // 日志配置，通常可以照抄
     log: {
       disabled: false,
-      level: "error",
+      level: "info",
       timestamp: true
     },
     
@@ -116,10 +116,10 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         type: "urltest",
         tag: "Auto",
         outbounds: validOutbounds.map(o => o.tag),
-        url: "https://www.gstatic.com/generate_204",
-        interval: "10m0s",
+        url: "http://www.gstatic.com/generate_204",
+        interval: "10ms",
         tolerance: 50,
-        idle_timeout: "30m0s"
+        idle_timeout: "30ms"
       }] : []),
 
       // 代理节点配置
