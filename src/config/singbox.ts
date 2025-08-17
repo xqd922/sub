@@ -193,34 +193,3 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     }
   }
 } 
-/**
- 
-* Sing-box 配置生成器类（向后兼容）
- */
-export class SingboxConfigGenerator {
-  /**
-   * 生成 Sing-box 配置
-   */
-  static generate(proxies: Proxy[], shouldFormatNames: boolean = true): {
-    config: any
-    metrics: any
-  } {
-    const metrics = {
-      startTime: Date.now(),
-      nodeCount: proxies.length,
-      errorCount: 0,
-      totalTime: 0
-    }
-
-    try {
-      const config = generateSingboxConfig(proxies, shouldFormatNames)
-      metrics.totalTime = Date.now() - metrics.startTime
-      
-      return { config, metrics }
-    } catch (error) {
-      metrics.errorCount++
-      metrics.totalTime = Date.now() - metrics.startTime
-      throw error
-    }
-  }
-}
