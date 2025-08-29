@@ -130,7 +130,6 @@ export const defaultConfig: ClashConfig = {
     // Emby
     'DOMAIN,ll.sdxya.top,DIRECT',
     'DOMAIN,cfcdn.mobai.sbs,DIRECT',
-    'DOMAIN-SUFFIX,mobai.sbs,DIRECT',
     'DOMAIN,cftest1.mobai.sbs,Emby',
     'DOMAIN,inside.lyrebirdemby.com,Min',
     'DOMAIN-SUFFIX,misakaf.org,Emby',
