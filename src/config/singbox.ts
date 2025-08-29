@@ -11,185 +11,173 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     .filter((o): o is NonNullable<typeof o> => o !== null)
 
   return {
-    // 日志配置，通常可以照抄
-    log: {
-      disabled: false,
-      level: "info",
-      timestamp: true
-    },
-    
-    // DNS 配置，通常可以照抄
     dns: {
+      servers: [
+        {
+          tag: "remote",
+          address: "https://1.1.1.1/dns-query",
+          detour: "Manual"
+        },
+        {
+          tag: "local",
+          address: "https://223.5.5.5/dns-query",
+          detour: "direct"
+        },
+        {
+          tag: "block",
+          address: "rcode://success"
+        }
+      ],
       rules: [
         {
-          clash_mode: "Proxy",
+          outbound: "any",
+          server: "local"
+        },
+        {
+          rule_set: "geosite-category-ads-all",
+          server: "block",
+          disable_cache: true
+        },
+        {
+          clash_mode: "global",
           server: "remote"
         },
         {
-          clash_mode: "Direct",
+          clash_mode: "direct",
           server: "local"
         },
         {
-          rule_set: ["geosite-cn"],
+          rule_set: "geosite-cn",
           server: "local"
-        },
-        // 若不需要广告拦截可删除以下规则
-        {
-          rule_set: ["category-ads-all"],
-          server: "block"
         }
       ],
-      // DNS 服务器配置，包含远端解析、本地解析、拦截
-      servers: [
-        {
-          type: "https",
-          server: "1.1.1.1",
-          detour: "Available",
-          tag: "remote"
-        },
-        {
-          type: "https",
-          server: "223.5.5.5",
-          tag: "local"
-        },
-        {
-          type: "hosts",
-          path: [],
-          predefined: {},
-          tag: "block"
-        },
-        {
-          type: "local"
-        }
-      ],
-      // 若远端不支持 IPV6 则需要修改
-      // 可取值：prefer_ipv4、prefer_ipv6、ipv4_only、ipv6_only
-      // 如遇到问题，建议改为 ipv4_only
-      strategy: "prefer_ipv4"
+      strategy: "prefer_ipv4",
+      disable_cache: false,
+      disable_expire: false
     },
-
-    experimental: {
-      // 缓存 Fake IP 映射
-      cache_file: {
-        enabled: true
-      }
-    },
-
     inbounds: [
-      // TUN 配置，通常可以照抄
       {
-        address: ["172.18.0.1/30", "fdfe:dcba:9876::1/126"],
-        route_address: ["0.0.0.0/1", "128.0.0.0/1", "::/1", "8000::/1"],
-        route_exclude_address: [
-          "192.168.0.0/16",
-          "10.0.0.0/8", 
-          "172.16.0.0/12",
-          "fc00::/7"
-        ],
+        type: "tun",
+        mtu: 9000,
         auto_route: true,
         strict_route: true,
-        type: "tun"
+        stack: "system",
+        sniff: true,
+        sniff_override_destination: true,
+        domain_strategy: "prefer_ipv4",
+        inet4_address: "172.19.0.1/30",
+        inet6_address: "2001:470:f9da:fdfa::1/64",
+        endpoint_independent_nat: true
       },
-      // HTTP 和 SOCKS 混合接入端口配置，通常可以照抄
       {
+        type: "socks",
+        tag: "socks-in",
         listen: "127.0.0.1",
         listen_port: 2333,
-        tag: "mixed-in",
+        sniff: true,
+        sniff_override_destination: true,
+        domain_strategy: "prefer_ipv4"
+      },
+      {
         type: "mixed",
-        users: []
+        tag: "mixed-in",
+        listen: "127.0.0.1",
+        listen_port: 2334,
+        sniff: true,
+        sniff_override_destination: true,
+        domain_strategy: "prefer_ipv4"
       }
     ],
-
     outbounds: [
-      // 可手动选择的出站列表，需要根据实际情况修改
+      ...validOutbounds,
       {
         type: "selector",
-        tag: "Available",
-        default: validOutbounds.length > 0 ? validOutbounds[0].tag : "direct", // 默认出站
-        outbounds: validOutbounds.length > 0 ? 
-          ["Auto", ...validOutbounds.map(o => o.tag)] : 
-          ["direct"] // 出站列表
+        tag: "Manual",
+        outbounds: ["Auto",...validOutbounds.map(o => o.tag)],
+        default: "Auto",
+        interrupt_exist_connections: false
       },
-      
-      // 自动选择最优节点
-      ...(validOutbounds.length > 0 ? [{
+      {
         type: "urltest",
         tag: "Auto",
         outbounds: validOutbounds.map(o => o.tag),
-        url: "http://www.gstatic.com/generate_204",
-        interval: "10ms",
+        url: "https://www.gstatic.com/generate_204",
+        interval: "300s",
         tolerance: 50,
-        idle_timeout: "30ms"
-      }] : []),
-
-      // 代理节点配置
-      ...validOutbounds,
-
-      // 以下配置通常可以照抄
-      // （注意：目前客户端不使用最新核心，更新后需要换写法）
+        idle_timeout: "30m",
+        interrupt_exist_connections: false
+      },
       {
         type: "direct",
         tag: "direct"
+      },
+      {
+        type: "block",
+        tag: "block"
+      },
+      {
+        type: "dns",
+        tag: "dns-out"
       }
     ],
-
-    // 分流规则，通常可以照抄
     route: {
-      auto_detect_interface: true,
-      default_domain_resolver: "local",
       rules: [
-        // DNS 分流策略
         {
-          action: "sniff"
+          rule_set: "geosite-category-ads-all",
+          outbound: "block"
         },
         {
           protocol: "dns",
-          action: "hijack-dns"
+          outbound: "dns-out"
         },
-        // 直连模式
         {
-          clash_mode: "Direct",
+          clash_mode: "direct",
           outbound: "direct"
         },
-        // 全局模式
         {
-          clash_mode: "Proxy",
-          outbound: "Available"
+          clash_mode: "global",
+          outbound: "Manual"
         },
-        // 对于地理位置标记的规则
         {
-          rule_set: ["geosite-cn"],
+          rule_set: "geoip-cn",
           outbound: "direct"
         },
-        // 对于非广域网 IP 的规则
         {
           ip_is_private: true,
           outbound: "direct"
         },
-        // 若不需要广告拦截可删除以下规则
         {
-          rule_set: ["category-ads-all"],
-          action: "reject"
+          rule_set: "geosite-cn",
+          outbound: "direct"
         }
       ],
-      // 规则资源集合，通常可以照抄
       rule_set: [
         {
-          tag: "geosite-cn",
+          tag: "geosite-category-ads-all",
           type: "remote",
           format: "binary",
-          // 以下链接利用了 Fastly CDN，对应的原始链接为 https://github.com/SagerNet/sing-geosite/raw/refs/heads/rule-set/geosite-cn.srs
-          url: "https://fastly.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs",
-          download_detour: "direct"
+          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs"
         },
         {
-          tag: "category-ads-all",
+          tag: "geosite-cn",
+          type: "remote", 
+          format: "binary",
+          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs"
+        },
+        {
+          tag: "geoip-cn",
           type: "remote",
           format: "binary",
-          url: "https://fastly.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-category-ads-all.srs",
-          download_detour: "direct"
+          url: "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs"
         }
-      ]
+      ],
+      auto_detect_interface: true,
+      override_android_vpn: true
+    },
+    experimental: {
+      cache_file: {
+        enabled: true
+      }
     }
   }
 } 
