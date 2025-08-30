@@ -12,35 +12,41 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
 
   return {
     log: {
-      level: "info",
-      timestamp: true
+      level: "info"
     },
     dns: {
       servers: [
         {
           tag: "remote",
-          address: "https://1.1.1.1/dns-query",
+          type: "https",
+          server: "8.8.8.8",
           detour: "Manual"
         },
         {
           tag: "local",
-          address: "https://223.5.5.5/dns-query",
-          detour: "direct"
+          type: "https",
+          server: "223.5.5.5"
         },
         {
-          tag: "block",
-          address: "rcode://success"
+          type: "fakeip",
+          tag: "fakeip",
+          inet4_range: "198.18.0.0/15",
+          inet6_range: "fc00::/18"
         }
       ],
       rules: [
         {
-          outbound: "any",
-          server: "local"
+          rule_set: ["AdGuardSDNSFilter", "chrome-doh"],
+          action: "predefined"
         },
         {
-          rule_set: "geosite-category-ads-all",
-          server: "block",
-          disable_cache: true
+          query_type: "HTTPS",
+          action: "predefined"
+        },
+        {
+          query_type: ["A", "AAAA"],
+          rewrite_ttl: 1,
+          server: "fakeip"
         },
         {
           clash_mode: "global",
@@ -53,43 +59,37 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         {
           rule_set: "geosite-cn",
           server: "local"
+        },
+        {
+          rule_set: "ext-cn-domain",
+          server: "local"
         }
       ],
       strategy: "prefer_ipv4",
-      disable_cache: false,
-      disable_expire: false
+      independent_cache: true
     },
     inbounds: [
       {
         type: "tun",
-        mtu: 9000,
-        auto_route: true,
+        address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
         strict_route: true,
-        stack: "system",
-        sniff: true,
-        sniff_override_destination: true,
-        domain_strategy: "prefer_ipv4",
-        inet4_address: "172.19.0.1/30",
-        inet6_address: "2001:470:f9da:fdfa::1/64",
-        endpoint_independent_nat: true
+        mtu: 9000,
+        endpoint_independent_nat: true,
+        auto_route: true
       },
       {
         type: "socks",
         tag: "socks-in",
         listen: "127.0.0.1",
         listen_port: 2333,
-        sniff: true,
-        sniff_override_destination: true,
-        domain_strategy: "prefer_ipv4"
+        users: []
       },
       {
         type: "mixed",
         tag: "mixed-in",
         listen: "127.0.0.1",
         listen_port: 2334,
-        sniff: true,
-        sniff_override_destination: true,
-        domain_strategy: "prefer_ipv4"
+        users: []
       }
     ],
     outbounds: [
@@ -97,7 +97,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       {
         type: "selector",
         tag: "Manual",
-        outbounds: ["Auto",...validOutbounds.map(o => o.tag)],
+        outbounds: ["Auto", ...validOutbounds.map(o => o.tag)],
         default: "Auto",
         interrupt_exist_connections: false
       },
@@ -127,12 +127,15 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     route: {
       rules: [
         {
-          rule_set: "geosite-category-ads-all",
-          outbound: "block"
+          action: "sniff"
         },
         {
           protocol: "dns",
-          outbound: "dns-out"
+          action: "hijack-dns"
+        },
+        {
+          action: "resolve",
+          strategy: "prefer_ipv4"
         },
         {
           clash_mode: "direct",
@@ -143,44 +146,58 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           outbound: "Manual"
         },
         {
-          rule_set: "geoip-cn",
-          outbound: "direct"
-        },
-        {
           ip_is_private: true,
           outbound: "direct"
         },
         {
-          rule_set: "geosite-cn",
+          rule_set: "geoip-cn",
           outbound: "direct"
         }
       ],
+      auto_detect_interface: true,
+      default_domain_resolver: {
+        server: "local"
+      },
       rule_set: [
-        {
-          tag: "geosite-category-ads-all",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs"
-        },
-        {
-          tag: "geosite-cn",
-          type: "remote", 
-          format: "binary",
-          url: "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs"
-        },
         {
           tag: "geoip-cn",
           type: "remote",
           format: "binary",
           url: "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs"
+        },
+        {
+          tag: "geosite-cn",
+          type: "remote",
+          format: "binary",
+          url: "https://raw.githubusercontent.com/xmdhs/sing-geosite/rule-set-Loyalsoldier/geosite-geolocation-cn.srs"
+        },
+        {
+          tag: "AdGuardSDNSFilter",
+          type: "remote",
+          format: "binary",
+          url: "https://raw.githubusercontent.com/xmdhs/sing-box-ruleset/rule-set/AdGuardSDNSFilterSingBox.srs"
+        },
+        {
+          tag: "chrome-doh",
+          type: "remote",
+          format: "source",
+          url: "https://gist.githubusercontent.com/xmdhs/71fc5ff6ef29f5ecaf2c52b8de5c3172/raw/chrome-doh.json"
+        },
+        {
+          tag: "ext-cn-domain",
+          type: "remote",
+          format: "binary",
+          url: "https://raw.githubusercontent.com/xmdhs/cn-domain-list/rule-set/ext-cn-list.srs"
         }
-      ],
-      auto_detect_interface: true,
-      override_android_vpn: true
+      ]
     },
     experimental: {
       cache_file: {
         enabled: true
+      },
+      clash_api: {
+        external_controller: "127.0.0.1:9090",
+        secret: ""
       }
     }
   }
