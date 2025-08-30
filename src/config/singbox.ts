@@ -37,7 +37,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       rules: [
         {
           rule_set: ["AdGuardSDNSFilter", "chrome-doh"],
-          action: "predefined"
+          action: "reject"
         },
         {
           query_type: "HTTPS",
@@ -114,14 +114,6 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       {
         type: "direct",
         tag: "direct"
-      },
-      {
-        type: "block",
-        tag: "block"
-      },
-      {
-        type: "dns",
-        tag: "dns-out"
       }
     ],
     route: {
@@ -136,6 +128,10 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         {
           action: "resolve",
           strategy: "prefer_ipv4"
+        },
+        {
+          rule_set: ["AdGuardSDNSFilter"],
+          action: "reject"
         },
         {
           clash_mode: "direct",
