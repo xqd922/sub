@@ -4,7 +4,8 @@
       "WebFetch(domain:sing-box.sagernet.org)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

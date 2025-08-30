@@ -11,6 +11,10 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
     .filter((o): o is NonNullable<typeof o> => o !== null)
 
   return {
+    log: {
+      level: "info",
+      timestamp: true
+    },
     dns: {
       servers: [
         {
