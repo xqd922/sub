@@ -12,7 +12,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
 
   return {
     log: {
-      level: "info"
+      level: "error"
     },
     dns: {
       servers: [
