@@ -142,14 +142,19 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           outbound: "Manual"
         },
         {
-          ip_is_private: true,
+          rule_set: ["geosite-cn", "ext-cn-domain"],
           outbound: "direct"
         },
         {
           rule_set: "geoip-cn",
           outbound: "direct"
+        },
+        {
+          ip_is_private: true,
+          outbound: "direct"
         }
       ],
+      final: "Manual",
       auto_detect_interface: true,
       default_domain_resolver: {
         server: "local"
