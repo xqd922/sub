@@ -49,6 +49,52 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
 }
 
+// 解码可能包含错误编码的首页 URL
+function decodeHomepageUrl(value: string): string {
+  try {
+    // 如果包含类似 ä¸å 这样的错误编码字符，尝试修复
+    if (value.includes('ä¸å') || /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/.test(value)) {
+      // 尝试将错误的 Latin-1 编码转换回 UTF-8
+      const bytes = new Uint8Array(value.length)
+      for (let i = 0; i < value.length; i++) {
+        bytes[i] = value.charCodeAt(i) & 0xFF
+      }
+      const decoded = new TextDecoder('utf-8').decode(bytes)
+      return decoded
+    }
+    return value
+  } catch (error) {
+    return 'https://sub.xqd.pp.ua'
+  }
+}
+
+// 安全编码 HTTP 头部值，确保只包含 ASCII 字符
+function encodeHeaderValue(value: string): string {
+  try {
+    // 检查是否包含非 ASCII 字符
+    if (!/^[\x00-\x7F]*$/.test(value)) {
+      // 如果是 URL，尝试使用 Punycode 编码域名部分
+      if (value.startsWith('http://') || value.startsWith('https://')) {
+        try {
+          const url = new URL(value)
+          // 使用 Punycode 编码域名
+          url.hostname = url.hostname
+          return url.toString()
+        } catch {
+          // URL 解析失败，使用 encodeURIComponent
+          return encodeURIComponent(value)
+        }
+      }
+      // 对于其他非 ASCII 字符串，使用 URL 编码
+      return encodeURIComponent(value)
+    }
+    return value
+  } catch (error) {
+    // 如果编码失败，返回安全的默认值
+    return 'https://sub.xqd.pp.ua'
+  }
+}
+
 // 添加用户友好的错误提示
 const userFriendlyMessage = (status: number) => {
   switch (status) {
@@ -202,7 +248,7 @@ export async function GET(request: Request) {
                 response.headers.get('expire') || 
                 response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
                 ''),
-        homepage: response.headers.get('profile-web-page-url') || 'https://sub.xqd.pp.ua'
+        homepage: decodeHomepageUrl(response.headers.get('profile-web-page-url') || 'https://sub.xqd.pp.ua')
       }
 
       // 打印格式化的订阅信息
@@ -282,7 +328,7 @@ export async function GET(request: Request) {
           'profile-update-interval': '24',
           'profile-title': Buffer.from(subscription.name).toString('base64'),
           'expires': subscription.expire,
-          'profile-web-page-url': subscription.homepage,
+          'profile-web-page-url': encodeHeaderValue(subscription.homepage),
           'profile-expire': subscription.expire,
           'profile-status': 'active'
         }
@@ -379,7 +425,7 @@ export async function GET(request: Request) {
         'profile-update-interval': '24',
         'profile-title': Buffer.from(subscription.name).toString('base64'),
         'expires': subscription.expire,
-        'profile-web-page-url': subscription.homepage,
+        'profile-web-page-url': encodeHeaderValue(subscription.homepage),
         'profile-expire': subscription.expire,
         'profile-status': 'active'
       }
