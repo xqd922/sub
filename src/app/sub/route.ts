@@ -63,7 +63,7 @@ function decodeHomepageUrl(value: string): string {
       return decoded
     }
     return value
-  } catch (error) {
+  } catch {
     return 'https://sub.xqd.pp.ua'
   }
 }
@@ -89,7 +89,7 @@ function encodeHeaderValue(value: string): string {
       return encodeURIComponent(value)
     }
     return value
-  } catch (error) {
+  } catch {
     // 如果编码失败，返回安全的默认值
     return 'https://sub.xqd.pp.ua'
   }
