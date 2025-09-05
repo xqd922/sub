@@ -10,6 +10,8 @@ import { SingleNodeParser } from '@/lib/singleNode'
 import { fetchNodesFromRemote } from '@/lib/remoteNodes'
 import { subscriptionCache, CachedResponse } from '@/lib/cache'
 import { logger } from '@/lib/logger'
+import { AppError, ErrorCode, ErrorFactory } from '@/lib/errors'
+import { handleError, createErrorResponse } from '@/lib/error-reporter'
 
 export const runtime = 'nodejs'
 
@@ -98,19 +100,6 @@ function encodeHeaderValue(value: string): string {
 }
 
 // 添加用户友好的错误提示
-const userFriendlyMessage = (status: number) => {
-  switch (status) {
-    case 521:
-      return '订阅服务器暂时不可用，请稍后再试';
-    case 404:
-      return '订阅链接无效或已过期';
-    case 403:
-      return '无权访问此订阅';
-    default:
-      return '订阅获取失败，请检查链接是否正确';
-  }
-}
-
 // 添加重试和超时处理的 fetch 函数
 async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let i = 0; i < maxRetries; i++) {
@@ -197,17 +186,28 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
 
 export async function GET(request: Request) {
   const startTime = Date.now()
+  const userAgent = request.headers.get('user-agent') || ''
+  const clientIp = request.headers.get('x-forwarded-for') || 
+                   request.headers.get('x-real-ip') || 
+                   'unknown'
   
   try {
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
     
+    // 验证URL参数
     if (!url) {
-      return new NextResponse('Missing subscription url', { status: 400 })
+      throw AppError.validation('缺少订阅链接参数', 'url', undefined)
+    }
+
+    // 基本URL格式验证
+    try {
+      new URL(url)
+    } catch {
+      throw ErrorFactory.subscription.invalidUrl(url)
     }
 
     // 检测客户端类型用于缓存key
-    const userAgent = request.headers.get('user-agent') || ''
     const isSingBox = /sing-box/i.test(userAgent) || /mihomo/i.test(userAgent)
     const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|clash/i.test(userAgent)
     const clientType = isSingBox ? 'singbox' : isBrowser ? 'browser' : 'clash'
@@ -494,67 +494,94 @@ export async function GET(request: Request) {
     return new NextResponse(responseContent, { headers: responseHeaders })
   } catch (error: unknown) {
     const duration = Date.now() - startTime
+    const url = new URL(request.url).searchParams.get('url') || 'unknown'
     
-    // 提取更详细的错误信息
-    let errorMessage = '未知错误'
-    let statusCode = 500
-    let errorDetails: { originalError: string; stack?: string } | undefined = undefined
-    
-    if (error instanceof Error) {
-      errorMessage = error.message
-      
-      // 根据错误消息判断错误类型
-      if (errorMessage.includes('AbortError') || errorMessage.includes('timeout')) {
-        errorMessage = '请求超时，请稍后重试'
-        statusCode = 408
-      } else if (errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
-        errorMessage = '网络连接失败，请检查网络状态'
-        statusCode = 502
-      } else if (errorMessage.includes('HTTP 4')) {
-        statusCode = 400
-        errorMessage = '订阅链接无效或已过期'
-      } else if (errorMessage.includes('HTTP 5')) {
-        statusCode = 502
-        errorMessage = '订阅服务器错误，请稍后重试'
-      }
-      
-      // 添加调试信息
-      errorDetails = {
-        originalError: error.message,
-        stack: error.stack?.split('\n').slice(0, 5).join('\n')
-      }
-    }
-    
-    // 构建错误响应
-    const errorResponse = {
-      error: true,
-      message: errorMessage,
-      userMessage: error instanceof SubscriptionFetchError ? 
-        userFriendlyMessage(error.statusCode || 500) : 
-        errorMessage,
-      details: error instanceof SubscriptionFetchError ? {
-        code: error.code,
-        statusCode: error.statusCode,
-        details: error.details
-      } : errorDetails,
-      timestamp: new Date().toISOString(),
-      duration: `${duration}ms`
-    }
+    let appError: AppError
 
-    // 记录错误
-    logger.error('\n=== 处理失败 ===')
-    logger.error(JSON.stringify(errorResponse, null, 2))
-    logger.error('================\n')
-
-    return new NextResponse(
-      JSON.stringify(errorResponse),
-      {
-        status: statusCode,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
+    // 将各种错误转换为AppError
+    if (error instanceof AppError) {
+      appError = error
+    } else if (error instanceof Error) {
+      // 根据错误消息和类型创建相应的AppError
+      if (error.message.includes('AbortError') || error.message.includes('timeout')) {
+        appError = AppError.timeout('请求超时，请稍后重试')
+      } else if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+        appError = AppError.network('网络连接失败，请检查网络状态')
+      } else if (error instanceof SubscriptionFetchError) {
+        const statusCode = error.statusCode || 500
+        if (statusCode === 403 || statusCode === 401) {
+          appError = new AppError(
+            ErrorCode.SUBSCRIPTION_FETCH_FAILED,
+            '订阅链接访问被拒绝，请检查链接权限',
+            statusCode,
+            undefined,
+            { originalStatusCode: statusCode, details: error.details }
+          )
+        } else if (statusCode >= 400 && statusCode < 500) {
+          appError = ErrorFactory.subscription.invalidUrl(url)
+        } else if (statusCode >= 500) {
+          appError = new AppError(
+            ErrorCode.SUBSCRIPTION_FETCH_FAILED,
+            '订阅服务器错误，请稍后重试',
+            502,
+            undefined,
+            { originalStatusCode: statusCode }
+          )
+        } else {
+          appError = ErrorFactory.subscription.fetchFailed(url, error)
         }
+      } else {
+        appError = AppError.fromError(error, ErrorCode.UNKNOWN_ERROR, 500, {
+          duration,
+          url
+        })
       }
+    } else {
+      appError = new AppError(
+        ErrorCode.UNKNOWN_ERROR,
+        '发生未知错误',
+        500,
+        undefined,
+        { originalError: String(error), duration }
+      )
+    }
+
+    // 添加请求上下文信息
+    const enhancedError = new AppError(
+      appError.code,
+      appError.message,
+      appError.statusCode,
+      appError.severity,
+      {
+        ...appError.metadata,
+        duration,
+        url,
+        userAgent: userAgent.substring(0, 200), // 限制长度
+        processingTime: `${duration}ms`
+      },
+      appError.cause
     )
+
+    // 报告错误
+    await handleError(enhancedError, {
+      url,
+      userAgent,
+      clientIp,
+      additionalData: {
+        duration,
+        processingTime: `${duration}ms`
+      }
+    })
+
+    // 返回标准化的错误响应
+    const { status, body } = createErrorResponse(enhancedError)
+    return new NextResponse(JSON.stringify(body), {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
   }
 }
