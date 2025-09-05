@@ -112,47 +112,58 @@ const userFriendlyMessage = (status: number) => {
 // 添加重试和超时处理的 fetch 函数
 async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let i = 0; i < maxRetries; i++) {
+    let controller: AbortController | null = null
+    let timeout: NodeJS.Timeout | null = null
+    
     try {
       console.log(`尝试获取订阅 (${i + 1}/${maxRetries})...`)
       
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 30000)
+      // 创建超时控制器
+      controller = new AbortController()
+      timeout = setTimeout(() => {
+        if (controller) {
+          controller.abort()
+        }
+      }, 30000)
       
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'ClashX/1.95.1',
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Accept': '*/*'
         },
         redirect: 'follow',
         signal: controller.signal,
         next: { revalidate: 0 },
-        // 添加以下配置以绕过一些限制
-        cache: 'no-store',
-        credentials: 'omit',
-        mode: 'cors',
-        referrerPolicy: 'no-referrer'
+        cache: 'no-store'
       })
       
-      clearTimeout(timeout)
+      // 清除超时
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = null
+      }
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
       
       return response
     } catch (error) {
-      console.log(`第 ${i + 1} 次尝试失败:`, error)
+      // 清理资源
+      if (timeout) {
+        clearTimeout(timeout)
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.log(`第 ${i + 1} 次尝试失败:`, errorMessage)
       
       if (i === maxRetries - 1) {
-        throw error
+        // 包装为更具体的错误
+        throw new Error(`订阅获取失败: ${errorMessage}`)
       }
       
       // 指数退避重试
-      const delay = Math.min(1000 * Math.pow(2, i), 10000)
+      const delay = Math.min(1000 * Math.pow(2, i), 5000)
       console.log(`等待 ${delay}ms 后重试...`)
       await new Promise(r => setTimeout(r, delay))
     }
@@ -433,18 +444,48 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     const duration = Date.now() - startTime
     
+    // 提取更详细的错误信息
+    let errorMessage = '未知错误'
+    let statusCode = 500
+    let errorDetails: any = undefined
+    
+    if (error instanceof Error) {
+      errorMessage = error.message
+      
+      // 根据错误消息判断错误类型
+      if (errorMessage.includes('AbortError') || errorMessage.includes('timeout')) {
+        errorMessage = '请求超时，请稍后重试'
+        statusCode = 408
+      } else if (errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+        errorMessage = '网络连接失败，请检查网络状态'
+        statusCode = 502
+      } else if (errorMessage.includes('HTTP 4')) {
+        statusCode = 400
+        errorMessage = '订阅链接无效或已过期'
+      } else if (errorMessage.includes('HTTP 5')) {
+        statusCode = 502
+        errorMessage = '订阅服务器错误，请稍后重试'
+      }
+      
+      // 添加调试信息
+      errorDetails = {
+        originalError: error.message,
+        stack: error.stack?.split('\n').slice(0, 5).join('\n')
+      }
+    }
+    
     // 构建错误响应
     const errorResponse = {
       error: true,
-      message: error instanceof Error ? error.message : '未知错误',
+      message: errorMessage,
       userMessage: error instanceof SubscriptionFetchError ? 
         userFriendlyMessage(error.statusCode || 500) : 
-        '订阅获取失败，请稍后重试',
+        errorMessage,
       details: error instanceof SubscriptionFetchError ? {
         code: error.code,
         statusCode: error.statusCode,
         details: error.details
-      } : undefined,
+      } : errorDetails,
       timestamp: new Date().toISOString(),
       duration: `${duration}ms`
     }
@@ -457,7 +498,7 @@ export async function GET(request: Request) {
     return new NextResponse(
       JSON.stringify(errorResponse),
       {
-        status: error instanceof SubscriptionFetchError ? error.statusCode || 500 : 500,
+        status: statusCode,
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store, no-cache, must-revalidate',

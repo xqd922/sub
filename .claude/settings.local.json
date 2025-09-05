@@ -5,7 +5,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "WebSearch"
+      "WebSearch",
+      "Read(/D:\\Me\\sub\\src\\app\\sub/**)",
+      "Read(/D:\\Me\\sub\\src\\app\\sub/**)"
     ],
     "deny": [],
     "ask": []
