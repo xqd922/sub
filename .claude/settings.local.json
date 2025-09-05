@@ -8,7 +8,8 @@
       "WebSearch",
       "Read(/D:\\Me\\sub\\src\\app\\sub/**)",
       "Read(/D:\\Me\\sub\\src\\app\\sub/**)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
