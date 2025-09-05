@@ -8,7 +8,6 @@ import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
 import { SingleNodeParser } from '@/lib/singleNode'
 import { fetchNodesFromRemote } from '@/lib/remoteNodes'
-import { subscriptionCache, CachedResponse } from '@/lib/cache'
 import { logger } from '@/lib/logger'
 import { AppError, ErrorCode, ErrorFactory } from '@/lib/errors'
 import { handleError, createErrorResponse } from '@/lib/error-reporter'
@@ -207,23 +206,10 @@ export async function GET(request: Request) {
       throw ErrorFactory.subscription.invalidUrl(url)
     }
 
-    // 检测客户端类型用于缓存key
+    // 检测客户端类型
     const isSingBox = /sing-box/i.test(userAgent) || /mihomo/i.test(userAgent)
     const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|clash/i.test(userAgent)
-    const clientType = isSingBox ? 'singbox' : isBrowser ? 'browser' : 'clash'
     
-    // 创建缓存键 - 包含URL和客户端类型
-    const cacheKey = `sub:${clientType}:${Buffer.from(url).toString('base64').slice(0, 32)}`
-    
-    // 尝试从缓存获取结果
-    const cachedResult = subscriptionCache.get<CachedResponse>(cacheKey)
-    if (cachedResult) {
-      logger.debug('使用缓存结果:', cacheKey)
-      return new NextResponse(cachedResult.content, {
-        status: 200,
-        headers: cachedResult.headers
-      })
-    }
 
     logger.info('开始处理订阅:', url)
     
@@ -457,12 +443,6 @@ export async function GET(request: Request) {
         'Access-Control-Allow-Origin': '*'
       }
       
-      // 缓存浏览器响应结果 (较短缓存时间)
-      subscriptionCache.set(cacheKey, {
-        content: html,
-        headers: responseHeaders
-      }, 2 * 60 * 1000) // 2分钟缓存
-      
       return new NextResponse(html, { headers: responseHeaders })
     }
 
@@ -484,12 +464,6 @@ export async function GET(request: Request) {
     }
 
     const responseContent = isSingBox ? jsonConfig : yamlConfig
-    
-    // 缓存配置响应结果 (较长缓存时间)
-    subscriptionCache.set(cacheKey, {
-      content: responseContent,
-      headers: responseHeaders
-    }, 5 * 60 * 1000) // 5分钟缓存
     
     return new NextResponse(responseContent, { headers: responseHeaders })
   } catch (error: unknown) {
