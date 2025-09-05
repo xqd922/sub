@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-本文件为 Claude Code (claude.ai/code) 在此代码库中工作时提供指导。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 开发命令
 
@@ -18,20 +18,53 @@
 ### 核心功能
 这是一个完整的订阅转换网页应用，提供用户友好的界面来转换代理订阅链接。应用将订阅链接转换为适用于不同客户端（Clash、Sing-box）的标准化配置，同时提供短链接生成功能。
 
+## 架构设计
+
+### 服务层架构 (src/services/)
+项目采用分层服务架构，将业务逻辑从路由层分离：
+
+- **RequestHandlerService** - 主请求协调器
+  - 整合所有子服务
+  - 处理请求生命周期（验证 → 缓存检查 → 处理 → 响应）
+  - 统一错误处理和日志记录
+
+- **SubscriptionService** - 订阅处理核心
+  - 支持三种输入类型：标准订阅URL、单节点链接、GitHub Gist
+  - 客户端类型自动检测（Clash/Sing-box/Browser）
+  - 集成重试机制和User-Agent轮换
+
+- **ConfigGeneratorService** - 配置文件生成
+  - 支持Clash YAML、Sing-box JSON、浏览器预览HTML
+  - 响应头管理和内容格式化
+  - 节点名称格式化逻辑
+
+- **CacheService** - 缓存管理
+  - 分层缓存策略（浏览器2分钟，客户端5分钟）
+  - 基于URL和客户端类型的缓存键生成
+  - 自动清理和统计功能
+
+### 错误处理系统 (src/lib/errors.ts, error-reporter.ts)
+统一的错误处理架构：
+
+- **AppError类** - 结构化错误信息，包含错误码、严重级别、请求ID
+- **ErrorFactory** - 便捷的错误创建方法
+- **ErrorReporter** - 自动错误收集、上报和监控
+- **GlobalErrorBoundary** - React错误边界组件
+
 ### 关键组件
 
-**前端界面** (`src/app/`):
-- `page.tsx` - 主页面，动态导入主组件（禁用SSR）
-- `layout.tsx` - 应用布局，设置中文语言和元数据
-- `components/HomeContent.tsx` - 主要的React组件，包含完整的UI逻辑
+**前端界面** (`src/app/components/`):
+- `HomeContent.tsx` - 主UI组件，使用自定义hooks
+- `ui/` - 可复用UI组件（按钮、输入框、错误显示等）
+- `ErrorBoundary.tsx` - 全局错误捕获和用户友好错误界面
 
 **API 路由** (`src/app/api/`):
-- `/sub` - 订阅转换端点，支持多种输入格式，自动检测客户端类型
+- `/sub` - 订阅转换端点，现已重构为使用服务层架构
 - `/api/shorten/` - 短链接服务（多个提供商：Bitly、TinyURL、Sink等）
 
 **配置生成器** (`src/config/`):
 - `clash.ts` - 生成带有代理组和规则的 Clash YAML 配置
-- `singbox.ts` - 生成 Sing-box JSON 配置
+- `singbox.ts` - 生成 Sing-box JSON 配置  
 - `regions.ts` - 包含旗帜和国家代码的全面区域映射
 
 **解析器和处理器** (`src/lib/`):
@@ -39,16 +72,16 @@
 - `singleNode.ts` - 单节点链接解析器（ss://、vmess://、trojan:// 等）
 - `remoteNodes.ts` - GitHub Gist 节点获取器
 - `types.ts` - 所有代理协议的完整 TypeScript 定义
+- `cache.ts` - 内存缓存实现
+- `logger.ts` - 智能日志系统（生产环境只输出警告和错误）
 
 ### 用户界面功能
 
-**主要特性**:
-- 现代化响应式设计，支持深色模式
-- 渐变背景和毛玻璃效果
-- 输入验证和错误处理
-- 自动复制功能（支持现代和传统剪贴板API）
-- 加载状态和进度指示器
-- Toast 通知系统
+**组件化架构**:
+- 使用自定义React hooks分离业务逻辑
+- UI组件按功能模块化（`useUrlConverter`, `useShortUrl`, `useToast`, `useClipboard`）
+- 支持现代剪贴板API和传统回退
+- 统一的错误显示和加载状态管理
 
 **用户流程**:
 1. 用户输入订阅链接
@@ -62,17 +95,23 @@
 **前端技术栈**:
 - Next.js 15 (App Router)
 - React 19 (客户端组件)
-- TypeScript
+- TypeScript (严格类型检查)
 - Tailwind CSS (响应式设计和深色模式)
 - 动态导入和 SSR 优化
 
 **后端处理流程**:
+1. **请求验证**：URL格式验证和客户端类型检测
+2. **缓存检查**：基于URL和客户端类型的智能缓存
+3. **订阅处理**：多策略解析（标准订阅/单节点/Gist）
+4. **配置生成**：根据客户端类型生成相应格式
+5. **响应缓存**：分层缓存策略优化性能
 
-1. **输入检测**：识别订阅类型（URL、单节点或 Gist 链接）
-2. **重试获取**：使用多个 User-Agent 字符串绕过反机器人措施
-3. **解析**：支持 base64 编码内容、YAML 配置和单节点链接
-4. **节点处理**：提取区域信息、去除重复、处理协议特定选项
-5. **输出生成**：创建客户端特定配置（Clash YAML 或 Sing-box JSON）
+### 性能优化特性
+
+- **智能缓存**: 内存缓存系统，支持TTL和自动清理
+- **组件化**: 前端组件拆分，提高代码复用性
+- **服务层**: 业务逻辑分层，便于测试和维护
+- **错误边界**: 防止单点故障影响整体用户体验
 
 ### 区域处理系统
 
@@ -87,8 +126,14 @@
 **网络弹性**：
 - 实现指数退避重试和多 User-Agent 轮换
 - 每次尝试 30 秒超时，并进行适当清理
-- 详细的错误日志，包括错误类型和堆栈跟踪
+- 结构化错误日志，包含请求ID追踪
 - 针对不同 HTTP 状态码的用户友好错误消息
+
+**统一错误处理**：
+- AppError类支持错误码、严重级别、元数据
+- ErrorReporter自动收集和上报错误
+- 全局React错误边界捕获前端异常
+- 开发环境显示详细调试信息，生产环境显示友好提示
 
 **User-Agent 轮换**：
 使用真实的 Clash 客户端 User-Agent 绕过服务器检测：
@@ -115,6 +160,7 @@
 - `BITLY_TOKEN` - Bitly API 令牌，用于短链接生成
 - `SINK_URL` - Sink 服务端点
 - `SINK_TOKEN` - Sink 服务认证令牌
+- `NODE_ENV` - 环境配置，影响日志级别和错误处理
 
 ## 部署说明
 
@@ -130,3 +176,11 @@
 - 安全的剪贴板操作（现代 API + 传统回退）
 - 响应式设计适配移动端和桌面端
 - 优雅的加载状态和错误处理
+
+## 代码质量
+
+- **TypeScript严格模式**: 避免any类型，完整的类型定义
+- **错误边界**: React组件级别的错误捕获
+- **分层架构**: 服务层分离，便于测试和维护
+- **统一日志**: 智能日志系统，生产环境优化
+- **缓存策略**: 多层缓存，自动清理和统计
