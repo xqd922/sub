@@ -8,6 +8,8 @@ import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
 import { SingleNodeParser } from '@/lib/singleNode'
 import { fetchNodesFromRemote } from '@/lib/remoteNodes'
+import { subscriptionCache, CachedResponse } from '@/lib/cache'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -127,7 +129,7 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
     const currentUA = userAgents[i % userAgents.length]
     
     try {
-      console.log(`尝试获取订阅 (${i + 1}/${maxRetries}) - User-Agent: ${currentUA}...`)
+      logger.debug(`尝试获取订阅 (${i + 1}/${maxRetries}) - User-Agent: ${currentUA}...`)
       
       // 创建超时控制器
       controller = new AbortController()
@@ -175,8 +177,8 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       const errorName = error instanceof Error ? error.name : 'UnknownError'
       const errorStack = error instanceof Error ? error.stack : 'No stack trace available'
       
-      console.log(`第 ${i + 1} 次尝试失败: [${errorName}] ${errorMessage}`)
-      console.log(`错误详情: ${errorStack?.split('\n')[0] || 'No details'}`)
+      logger.warn(`第 ${i + 1} 次尝试失败: [${errorName}] ${errorMessage}`)
+      logger.debug(`错误详情: ${errorStack?.split('\n')[0] || 'No details'}`)
       
       if (i === maxRetries - 1) {
         // 包装为更具体的错误，包含原始错误信息
@@ -185,7 +187,7 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       
       // 指数退避重试
       const delay = Math.min(1000 * Math.pow(2, i), 5000)
-      console.log(`等待 ${delay}ms 后重试...`)
+      logger.debug(`等待 ${delay}ms 后重试...`)
       await new Promise(r => setTimeout(r, delay))
     }
   }
@@ -204,7 +206,26 @@ export async function GET(request: Request) {
       return new NextResponse('Missing subscription url', { status: 400 })
     }
 
-    console.log('开始处理订阅:', url)
+    // 检测客户端类型用于缓存key
+    const userAgent = request.headers.get('user-agent') || ''
+    const isSingBox = /sing-box/i.test(userAgent) || /mihomo/i.test(userAgent)
+    const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|clash/i.test(userAgent)
+    const clientType = isSingBox ? 'singbox' : isBrowser ? 'browser' : 'clash'
+    
+    // 创建缓存键 - 包含URL和客户端类型
+    const cacheKey = `sub:${clientType}:${Buffer.from(url).toString('base64').slice(0, 32)}`
+    
+    // 尝试从缓存获取结果
+    const cachedResult = subscriptionCache.get<CachedResponse>(cacheKey)
+    if (cachedResult) {
+      logger.debug('使用缓存结果:', cacheKey)
+      return new NextResponse(cachedResult.content, {
+        status: 200,
+        headers: cachedResult.headers
+      })
+    }
+
+    logger.info('开始处理订阅:', url)
     
     // 重置所有计数器
     Object.keys(counters).forEach(key => {
@@ -216,7 +237,7 @@ export async function GET(request: Request) {
 
     // 检查是否是远程 Gist 链接
     if (url.includes('gist.githubusercontent.com')) {
-      console.log('检测到 Gist 订阅，获取所有节点')
+      logger.info('检测到 Gist 订阅，获取所有节点')
       
       // 从远程 Gist 获取节点
       proxies = await fetchNodesFromRemote(url)
@@ -256,11 +277,10 @@ export async function GET(request: Request) {
       // 使用新的 fetchWithRetry 函数
       const response = await fetchWithRetry(url)
 
-      // 打印完整的响应头
-      console.log('\n===== 响应头信息 =====')
       const headers = Object.fromEntries(response.headers.entries())
-      console.log(headers)
-      console.log('=====================\n')
+      logger.devOnly('\n===== 响应头信息 =====')      
+      logger.devOnly(headers)
+      logger.devOnly('=====================\n')
       
       // 从 content-disposition 获取订阅名称
       const contentDisposition = response.headers.get('content-disposition') || ''
@@ -284,15 +304,15 @@ export async function GET(request: Request) {
       }
 
       // 打印格式化的订阅信息
-      console.log('\n=== 订阅基本信息 ===')
-      console.log(`名称: ${subscription.name}`)
-      console.log(`首页: ${subscription.homepage}`)
-      console.log(`流量信息:`)
-      console.log(`  ├─ 上传: ${formatBytes(Number(subscription.upload))}`)
-      console.log(`  ├─ 下载: ${formatBytes(Number(subscription.download))}`)
-      console.log(`  └─ 总量: ${formatBytes(Number(subscription.total))}`)
-      console.log(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
-      console.log('===================\n')
+      logger.devOnly('\n=== 订阅基本信息 ===')
+      logger.devOnly(`名称: ${subscription.name}`)
+      logger.devOnly(`首页: ${subscription.homepage}`)
+      logger.devOnly(`流量信息:`)
+      logger.devOnly(`  ├─ 上传: ${formatBytes(Number(subscription.upload))}`)
+      logger.devOnly(`  ├─ 下载: ${formatBytes(Number(subscription.download))}`)
+      logger.devOnly(`  └─ 总量: ${formatBytes(Number(subscription.total))}`)
+      logger.devOnly(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
+      logger.devOnly('===================\n')
 
       // 解析订阅节点
       proxies = await parseSubscription(url)
@@ -302,17 +322,11 @@ export async function GET(request: Request) {
     Object.keys(counters).forEach(key => {
       counters[key] = 0
     })
-    
-    // 获取 User-Agent 并判断客户端类型
-    const userAgent = request.headers.get('user-agent') || ''
-    const isSingBox = userAgent.toLowerCase().includes('sing-box')
-    const isBrowser = userAgent.includes('Mozilla/') || userAgent.includes('Chrome/') || userAgent.includes('Safari/')
-    
     // 添加客户端类型日志
-    console.log('\n=== 客户端信息 ===')
-    console.log(`类型: ${isSingBox ? 'sing-box' : isBrowser ? '浏览器' : 'clash'}`)
-    console.log(`User-Agent: ${userAgent}`)
-    console.log('===================\n')
+    logger.devOnly('\n=== 客户端信息 ===')
+    logger.devOnly(`类型: ${isSingBox ? 'sing-box' : isBrowser ? '浏览器' : 'clash'}`)
+    logger.devOnly(`User-Agent: ${userAgent}`)
+    logger.devOnly('===================\n')
 
     // 统计节点类型分布
     const nodeTypes = proxies.reduce((acc, proxy) => {
@@ -326,13 +340,13 @@ export async function GET(request: Request) {
       .sort(([,a], [,b]) => b - a)
       .map(([type, count]) => {
         const percentage = ((count / proxies.length) * 100).toFixed(1)
-        return `  ├─ ${type.toUpperCase()}: ${count} (${percentage}%)`
+        return `  ├─ ${type}: ${count} (${percentage}%)`
       })
       .join('\n')
 
-    console.log('\n节点类型分布:')
-    console.log(sortedTypes)
-    console.log(`  └─ 总计: ${proxies.length}\n`)
+    logger.devOnly('\n节点类型分布:')
+    logger.devOnly(sortedTypes)
+    logger.devOnly(`  └─ 总计: ${proxies.length}\n`)
 
     // 检查是否是需要格式化节点名称的来源
     const shouldFormatNames = !(
@@ -404,14 +418,14 @@ export async function GET(request: Request) {
     const jsonConfig = JSON.stringify(singboxConfig, null, 2)
     
     const duration = Date.now() - startTime
-    console.log('\n=== 订阅处理完成 ===')
-    console.log('处理结果:')
-    console.log(`  ├─ 客户端类型: ${isSingBox ? 'sing-box' : isBrowser ? '浏览器' : 'clash'}`)
-    console.log(`  ├─ 节点总数: ${proxies.length}`)
-    console.log(`  ├─ 有效节点: ${formattedProxies.length}`)
-    console.log(`  ├─ 处理耗时: ${duration}ms`)
-    console.log(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
-    console.log('结束时间:', new Date().toLocaleString(), '\n')
+    logger.devOnly('\n=== 订阅处理完成 ===')
+    logger.devOnly('处理结果:')
+    logger.devOnly(`  ├─ 客户端类型: ${isSingBox ? 'sing-box' : isBrowser ? '浏览器' : 'clash'}`)
+    logger.devOnly(`  ├─ 节点总数: ${proxies.length}`)
+    logger.devOnly(`  ├─ 有效节点: ${formattedProxies.length}`)
+    logger.devOnly(`  ├─ 处理耗时: ${duration}ms`)
+    logger.devOnly(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
+    logger.devOnly('结束时间:', new Date().toLocaleString(), '\n')
 
     // 如果是浏览器访问，显示并排配置
     if (isBrowser) {
@@ -436,32 +450,48 @@ export async function GET(request: Request) {
         </body>
         </html>
       `
-      return new NextResponse(html, {
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          'Access-Control-Allow-Origin': '*'
-        }
-      })
+      
+      const responseHeaders = {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*'
+      }
+      
+      // 缓存浏览器响应结果 (较短缓存时间)
+      subscriptionCache.set(cacheKey, {
+        content: html,
+        headers: responseHeaders
+      }, 2 * 60 * 1000) // 2分钟缓存
+      
+      return new NextResponse(html, { headers: responseHeaders })
     }
 
-    return new NextResponse(yamlConfig, {
-      headers: {
-        'Content-Type': 'text/yaml; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Access-Control-Allow-Origin': '*',
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
-        ...(Number(subscription.upload) > 0 || Number(subscription.download) > 0 || Number(subscription.total) > 0 ? {
-          'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
-        } : {}),
-        'profile-update-interval': '24',
-        'profile-title': Buffer.from(subscription.name).toString('base64'),
-        'expires': subscription.expire,
-        'profile-web-page-url': encodeHeaderValue(subscription.homepage),
-        'profile-expire': subscription.expire,
-        'profile-status': 'active'
-      }
-    })
+    // 准备响应头
+    const responseHeaders = {
+      'Content-Type': isSingBox ? 'application/json; charset=utf-8' : 'text/yaml; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': '*',
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
+      ...(Number(subscription.upload) > 0 || Number(subscription.download) > 0 || Number(subscription.total) > 0 ? {
+        'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
+      } : {}),
+      'profile-update-interval': '24',
+      'profile-title': Buffer.from(subscription.name).toString('base64'),
+      'expires': subscription.expire,
+      'profile-web-page-url': encodeHeaderValue(subscription.homepage),
+      'profile-expire': subscription.expire,
+      'profile-status': 'active'
+    }
+
+    const responseContent = isSingBox ? jsonConfig : yamlConfig
+    
+    // 缓存配置响应结果 (较长缓存时间)
+    subscriptionCache.set(cacheKey, {
+      content: responseContent,
+      headers: responseHeaders
+    }, 5 * 60 * 1000) // 5分钟缓存
+    
+    return new NextResponse(responseContent, { headers: responseHeaders })
   } catch (error: unknown) {
     const duration = Date.now() - startTime
     
@@ -512,9 +542,9 @@ export async function GET(request: Request) {
     }
 
     // 记录错误
-    console.error('\n=== 处理失败 ===')
-    console.error(JSON.stringify(errorResponse, null, 2))
-    console.error('================\n')
+    logger.error('\n=== 处理失败 ===')
+    logger.error(JSON.stringify(errorResponse, null, 2))
+    logger.error('================\n')
 
     return new NextResponse(
       JSON.stringify(errorResponse),

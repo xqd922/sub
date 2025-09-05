@@ -1,9 +1,10 @@
 import { Proxy, ProxyConfig, SubscriptionFetchError } from './types'
 import yaml from 'js-yaml'
+import { logger } from './logger'
 
 export async function parseSubscription(url: string): Promise<Proxy[]> {
   const startTime = Date.now()
-  console.log(`\n开始解析订阅: ${url}`)
+  logger.debug(`\n开始解析订阅: ${url}`)
 
   try {
     const urlObj = new URL(url)
@@ -30,7 +31,7 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
         const currentUA = userAgents[i % userAgents.length]
         
         try {
-          console.log(`尝试获取订阅 (${i + 1}/${retries}) - User-Agent: ${currentUA}...`)
+          logger.debug(`尝试获取订阅 (${i + 1}/${retries}) - User-Agent: ${currentUA}...`)
           
           // 创建超时控制器
           controller = new AbortController()
@@ -82,11 +83,11 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
           
           lastError = e instanceof Error ? e : new Error(String(e))
           const errorName = lastError.name || 'UnknownError'
-          console.log(`第 ${i + 1} 次尝试失败: [${errorName}] ${lastError.message}`)
+          logger.warn(`第 ${i + 1} 次尝试失败: [${errorName}] ${lastError.message}`)
           
           if (i < retries - 1) {
             const waitTime = delay * (i + 1)
-            console.log(`等待 ${waitTime}ms 后重试...`)
+            logger.debug(`等待 ${waitTime}ms 后重试...`)
             await new Promise(r => setTimeout(r, waitTime))
           }
         }
@@ -126,17 +127,17 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
           proxies.push(parseTrojan(line))
         }
       } catch (e) {
-        console.error('节点解析失败:', e)
+        logger.error('节点解析失败:', e)
       }
     }
 
     return proxies.filter(Boolean) as Proxy[]
   } catch (error) {
     const duration = Date.now() - startTime
-    console.error('\n=== 订阅解析失败 ===')
-    console.error(`错误信息: ${error instanceof Error ? error.message : String(error)}`)
-    console.error(`处理耗时: ${duration}ms`)
-    console.error('===================\n')
+    logger.error('\n=== 订阅解析失败 ===')
+    logger.error(`错误信息: ${error instanceof Error ? error.message : String(error)}`)
+    logger.error(`处理耗时: ${duration}ms`)
+    logger.error('===================\n')
     throw error
   }
 }
@@ -166,7 +167,7 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
   let infoNodesCount = 0
   let duplicateCount = 0
   
-  console.log('\n节点处理详情:')
+  logger.devOnly('\n节点处理详情:')
   console.log('1. 开始过滤信息节点...')
   
   proxies.forEach(proxy => {
@@ -215,20 +216,11 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     seen.set(key, proxy)
   })
 
-  console.log('\n节点统计信息:')
-  console.log(`  ├─ 原始节点总数: ${proxies.length}`)
-  console.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
-  console.log(`  ├─ 重复节点数量: ${duplicateCount}`)
-  console.log(`  └─ 有效节点数量: ${seen.size}`)
-  
-  console.log('\n节点类型分布:')
-  const typeStats = new Map<string, number>()
-  seen.forEach(proxy => {
-    typeStats.set(proxy.type, (typeStats.get(proxy.type) || 0) + 1)
-  })
-  typeStats.forEach((count, type) => {
-    console.log(`  ├─ ${type}: ${count}`)
-  })
+  logger.devOnly('\n节点统计信息:')
+  logger.devOnly(`  ├─ 原始节点总数: ${proxies.length}`)
+  logger.devOnly(`  ├─ 信息节点数量: ${infoNodesCount}`)
+  logger.devOnly(`  ├─ 重复节点数量: ${duplicateCount}`)
+  logger.devOnly(`  └─ 有效节点数量: ${seen.size}`)
   
   return Array.from(seen.values())
 }

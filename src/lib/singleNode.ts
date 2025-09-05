@@ -1,5 +1,6 @@
 import { Proxy, SingboxProxyConfig } from './types'
 import { REGION_MAP } from '@/config/regions'
+import { logger } from './logger'
 
 /**
  * sing-box出站配置接口
@@ -121,7 +122,7 @@ export class SingleNodeParser {
       }
       throw new Error('不支持的协议类型')
     } catch (error) {
-      console.error('节点解析失败:', error)
+      logger.error('节点解析失败:', error)
       return null
     }
   }
@@ -217,7 +218,7 @@ export class SingleNodeParser {
         decoded = Buffer.from(paddedBase64, 'base64').toString('utf-8')
       }
     } catch (error) {
-      console.error('SS链接解析错误:', {
+      logger.error('SS链接解析错误:', {
         uri,
         error: error instanceof Error ? error.message : error
       })

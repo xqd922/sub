@@ -3,6 +3,7 @@
 import { parseSubscription } from './parsers';
 import { SingleNodeParser } from './singleNode';
 import { Proxy } from './types';
+import { logger } from './logger';
 
 // 定义支持的协议前缀
 const SINGLE_NODE_PREFIXES = [
@@ -28,7 +29,7 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
     }
     return null;
   } catch (error) {
-    console.error(`解析节点失败: ${line}`, error);
+    logger.error(`解析节点失败: ${line}`, error);
     return null;
   }
 }
@@ -64,14 +65,14 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
     
     // 对于特定域名，按地区排序
     if (url.includes('githubusercontent.com') || url.includes('pastebin.com') || url.includes('raw')) {
-      console.log('对远程获取的节点按地区排序（保留原始名称）');
+      logger.debug('对远程获取的节点按地区排序（保留原始名称）');
       return SingleNodeParser.sortProxiesByRegion(filteredProxies);
     }
     
     // 默认返回解析后的节点
     return filteredProxies;
   } catch (error) {
-    console.error('获取远程节点失败:', error);
+    logger.error('获取远程节点失败:', error);
     throw error;
   }
 }
