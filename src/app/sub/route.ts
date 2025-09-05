@@ -115,8 +115,19 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
     let controller: AbortController | null = null
     let timeoutId: ReturnType<typeof setTimeout> | null = null
     
+    // 尝试不同的 User-Agent，模拟真实的 Clash 客户端
+    const userAgents = [
+      'clash.meta/v1.19.13',
+      'ClashX/1.95.1', 
+      'Clash/1.18.0',
+      'clash-verge/v1.3.8',
+      'mihomo/v1.18.5'
+    ]
+    
+    const currentUA = userAgents[i % userAgents.length]
+    
     try {
-      console.log(`尝试获取订阅 (${i + 1}/${maxRetries})...`)
+      console.log(`尝试获取订阅 (${i + 1}/${maxRetries}) - User-Agent: ${currentUA}...`)
       
       // 创建超时控制器
       controller = new AbortController()
@@ -128,8 +139,11 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'ClashX/1.95.1',
-          'Accept': '*/*'
+          'User-Agent': currentUA,
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip, deflate',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Connection': 'keep-alive'
         },
         redirect: 'follow',
         signal: controller.signal,
@@ -144,6 +158,10 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       }
       
       if (!response.ok) {
+        // 如果是403错误，记录详细信息并继续重试
+        if (response.status === 403) {
+          throw new Error(`HTTP 403: 访问被拒绝 (使用 User-Agent: ${currentUA})`)
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
       

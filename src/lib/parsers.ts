@@ -18,8 +18,19 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
         let controller: AbortController | null = null
         let timeoutId: ReturnType<typeof setTimeout> | null = null
         
+        // 尝试不同的 User-Agent，模拟真实的 Clash 客户端
+        const userAgents = [
+          'clash.meta/v1.19.13',
+          'ClashX/1.95.1', 
+          'Clash/1.18.0',
+          'clash-verge/v1.3.8',
+          'mihomo/v1.18.5'
+        ]
+        
+        const currentUA = userAgents[i % userAgents.length]
+        
         try {
-          console.log(`尝试获取订阅 (${i + 1}/${retries})...`)
+          console.log(`尝试获取订阅 (${i + 1}/${retries}) - User-Agent: ${currentUA}...`)
           
           // 创建超时控制器
           controller = new AbortController()
@@ -31,9 +42,12 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
           
           const response = await fetch(urlObj.toString(), {
             headers: {
-              'User-Agent': 'ClashX/1.95.1',
+              'User-Agent': currentUA,
               'Accept': '*/*',
-              'Cache-Control': 'no-cache'
+              'Accept-Encoding': 'gzip, deflate',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive'
             },
             signal: controller.signal,
             next: { revalidate: 0 }
