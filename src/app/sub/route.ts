@@ -113,14 +113,14 @@ const userFriendlyMessage = (status: number) => {
 async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let i = 0; i < maxRetries; i++) {
     let controller: AbortController | null = null
-    let timeout: NodeJS.Timeout | null = null
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
     
     try {
       console.log(`尝试获取订阅 (${i + 1}/${maxRetries})...`)
       
       // 创建超时控制器
       controller = new AbortController()
-      timeout = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (controller) {
           controller.abort()
         }
@@ -138,9 +138,9 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       })
       
       // 清除超时
-      if (timeout) {
-        clearTimeout(timeout)
-        timeout = null
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
       }
       
       if (!response.ok) {
@@ -150,12 +150,13 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       return response
     } catch (error) {
       // 清理资源
-      if (timeout) {
-        clearTimeout(timeout)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
       }
       
       const errorMessage = error instanceof Error ? error.message : String(error)
-      console.log(`第 ${i + 1} 次尝试失败:`, errorMessage)
+      const errorName = error instanceof Error ? error.name : 'UnknownError'
+      console.log(`第 ${i + 1} 次尝试失败: [${errorName}] ${errorMessage}`)
       
       if (i === maxRetries - 1) {
         // 包装为更具体的错误

@@ -15,8 +15,19 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
       let lastError: Error | null = null
       
       for (let i = 0; i < retries; i++) {
+        let controller: AbortController | null = null
+        let timeoutId: ReturnType<typeof setTimeout> | null = null
+        
         try {
           console.log(`尝试获取订阅 (${i + 1}/${retries})...`)
+          
+          // 创建超时控制器
+          controller = new AbortController()
+          timeoutId = setTimeout(() => {
+            if (controller) {
+              controller.abort()
+            }
+          }, 30000)
           
           const response = await fetch(urlObj.toString(), {
             headers: {
@@ -24,8 +35,15 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
               'Accept': '*/*',
               'Cache-Control': 'no-cache'
             },
+            signal: controller.signal,
             next: { revalidate: 0 }
           })
+
+          // 清除超时
+          if (timeoutId) {
+            clearTimeout(timeoutId)
+            timeoutId = null
+          }
 
           // 详细的状态码处理
           if (!response.ok) {
@@ -43,8 +61,14 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 
           return text
         } catch (e) {
+          // 清理资源
+          if (timeoutId) {
+            clearTimeout(timeoutId)
+          }
+          
           lastError = e instanceof Error ? e : new Error(String(e))
-          console.log(`第 ${i + 1} 次尝试失败: ${lastError.message}`)
+          const errorName = lastError.name || 'UnknownError'
+          console.log(`第 ${i + 1} 次尝试失败: [${errorName}] ${lastError.message}`)
           
           if (i < retries - 1) {
             const waitTime = delay * (i + 1)
