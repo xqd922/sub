@@ -447,7 +447,7 @@ export async function GET(request: Request) {
     // 提取更详细的错误信息
     let errorMessage = '未知错误'
     let statusCode = 500
-    let errorDetails: any = undefined
+    let errorDetails: { originalError: string; stack?: string } | undefined = undefined
     
     if (error instanceof Error) {
       errorMessage = error.message
