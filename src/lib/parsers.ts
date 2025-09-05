@@ -50,7 +50,7 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
               'Connection': 'keep-alive'
             },
             signal: controller.signal,
-            next: { revalidate: 0 }
+            cache: 'no-store'
           })
 
           // 清除超时

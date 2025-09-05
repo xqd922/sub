@@ -9,7 +9,7 @@ import { previewStyles } from '@/styles/preview'
 import { SingleNodeParser } from '@/lib/singleNode'
 import { fetchNodesFromRemote } from '@/lib/remoteNodes'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 // 在每次请求开始时重置计数器
 const counters: Record<string, number> = {}
@@ -147,7 +147,6 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
         },
         redirect: 'follow',
         signal: controller.signal,
-        next: { revalidate: 0 },
         cache: 'no-store'
       })
       
@@ -174,11 +173,14 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
       
       const errorMessage = error instanceof Error ? error.message : String(error)
       const errorName = error instanceof Error ? error.name : 'UnknownError'
+      const errorStack = error instanceof Error ? error.stack : 'No stack trace available'
+      
       console.log(`第 ${i + 1} 次尝试失败: [${errorName}] ${errorMessage}`)
+      console.log(`错误详情: ${errorStack?.split('\n')[0] || 'No details'}`)
       
       if (i === maxRetries - 1) {
-        // 包装为更具体的错误
-        throw new Error(`订阅获取失败: ${errorMessage}`)
+        // 包装为更具体的错误，包含原始错误信息
+        throw new Error(`订阅获取失败: ${errorMessage} (${errorName})`)
       }
       
       // 指数退避重试
