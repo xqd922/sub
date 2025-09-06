@@ -1,105 +1,20 @@
-import { Proxy, ProxyConfig, SubscriptionFetchError } from './types'
+import { Proxy, ProxyConfig } from './types'
 import yaml from 'js-yaml'
 import { logger } from './logger'
+import { NetService } from '@/services/Net'
 
 export async function parseSubscription(url: string): Promise<Proxy[]> {
   const startTime = Date.now()
   logger.debug(`\n开始解析订阅: ${url}`)
 
   try {
-    const urlObj = new URL(url)
-    urlObj.searchParams.set('flag', 'meta')
-    urlObj.searchParams.set('types', 'all')
-    
-    // 改进重试逻辑
-    const fetchWithRetry = async (retries = 3, delay = 1000) => {
-      let lastError: Error | null = null
-      
-      for (let i = 0; i < retries; i++) {
-        let controller: AbortController | null = null
-        let timeoutId: ReturnType<typeof setTimeout> | null = null
-        
-        // 尝试不同的 User-Agent，模拟真实的 Clash 客户端
-        const userAgents = [
-          'clash.meta/v1.19.13',
-          'ClashX/1.95.1', 
-          'Clash/1.18.0',
-          'clash-verge/v1.3.8',
-          'mihomo/v1.18.5'
-        ]
-        
-        const currentUA = userAgents[i % userAgents.length]
-        
-        try {
-          logger.debug(`尝试获取订阅 (${i + 1}/${retries}) - User-Agent: ${currentUA}...`)
-          
-          // 创建超时控制器
-          controller = new AbortController()
-          timeoutId = setTimeout(() => {
-            if (controller) {
-              controller.abort()
-            }
-          }, 30000)
-          
-          const response = await fetch(urlObj.toString(), {
-            headers: {
-              'User-Agent': currentUA,
-              'Accept': '*/*',
-              'Accept-Encoding': 'gzip, deflate',
-              'Accept-Language': 'en-US,en;q=0.9',
-              'Cache-Control': 'no-cache',
-              'Connection': 'keep-alive'
-            },
-            signal: controller.signal,
-            cache: 'no-store'
-          })
+    // 使用专用的订阅网络请求方法
+    const response = await NetService.fetchSubscription(url)
 
-          // 清除超时
-          if (timeoutId) {
-            clearTimeout(timeoutId)
-            timeoutId = null
-          }
-
-          // 详细的状态码处理
-          if (!response.ok) {
-            const statusText = getStatusText(response.status)
-            throw new SubscriptionFetchError(
-              `订阅获取失败: ${response.status} (${statusText})`,
-              response.status
-            )
-          }
-
-          const text = await response.text()
-          if (!text || text.length === 0) {
-            throw new Error('订阅内容为空')
-          }
-
-          return text
-        } catch (e) {
-          // 清理资源
-          if (timeoutId) {
-            clearTimeout(timeoutId)
-          }
-          
-          lastError = e instanceof Error ? e : new Error(String(e))
-          const errorName = lastError.name || 'UnknownError'
-          logger.warn(`第 ${i + 1} 次尝试失败: [${errorName}] ${lastError.message}`)
-          
-          if (i < retries - 1) {
-            const waitTime = delay * (i + 1)
-            logger.debug(`等待 ${waitTime}ms 后重试...`)
-            await new Promise(r => setTimeout(r, waitTime))
-          }
-        }
-      }
-      
-      throw new SubscriptionFetchError(
-        `订阅获取失败 (已重试 ${retries} 次): ${lastError?.message}`,
-        lastError instanceof SubscriptionFetchError ? lastError.statusCode : undefined
-      )
+    const text = await response.text()
+    if (!text || text.length === 0) {
+      throw new Error('订阅内容为空')
     }
-
-    const text = await fetchWithRetry()
     
     if (text.includes('proxies:')) {
       const config = yaml.load(text) as ProxyConfig
@@ -140,25 +55,6 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
     logger.error('===================\n')
     throw error
   }
-}
-
-// 获取HTTP状态码的说明
-function getStatusText(status: number): string {
-  const statusMap: Record<number, string> = {
-    400: '请求无效',
-    401: '未授权',
-    403: '禁止访问',
-    404: '未找到',
-    500: '服务器错误',
-    502: '网关错误',
-    503: '服务不可用',
-    504: '网关超时',
-    521: 'Web 服务器已关闭',
-    522: '连接超时',
-    // ... 可以添加更多状态码
-  }
-  
-  return statusMap[status] || '未知错误'
 }
 
 // 节点去重函数

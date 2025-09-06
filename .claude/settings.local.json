@@ -9,7 +9,9 @@
       "Read(/D:\\Me\\sub\\src\\app\\sub/**)",
       "Read(/D:\\Me\\sub\\src\\app\\sub/**)",
       "Bash(bun run:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

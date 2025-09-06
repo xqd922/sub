@@ -1,45 +1,100 @@
 import { logger } from '@/lib/logger'
 
 /**
+ * 网络配置接口
+ */
+export interface NetworkConfig {
+  timeout: number
+  retries: number
+  delay: number
+  userAgents: string[]
+  defaultHeaders: Record<string, string>
+}
+
+/**
  * 网络请求服务 - 统一管理所有HTTP请求
  */
 export class NetService {
-  private static readonly USER_AGENTS = [
-    'clash.meta/v1.19.13',
-    'ClashX/1.95.1', 
-    'Clash/1.18.0',
-    'clash-verge/v1.3.8',
-    'mihomo/v1.18.5'
-  ]
+  private static readonly DEFAULT_CONFIG: NetworkConfig = {
+    timeout: 30000,
+    retries: 3,
+    delay: 1000,
+    userAgents: [
+      'clash.meta/v1.19.13',
+      'ClashX/1.95.1', 
+      'Clash/1.18.0',
+      'clash-verge/v1.3.8',
+      'mihomo/v1.18.5'
+    ],
+    defaultHeaders: {
+      'Accept': '*/*',
+      'Accept-Encoding': 'gzip, deflate',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache'
+    }
+  }
 
-  private static readonly DEFAULT_TIMEOUT = 30000
-  private static readonly DEFAULT_RETRIES = 3
+  private static config: NetworkConfig = { ...this.DEFAULT_CONFIG }
 
   /**
-   * 带重试的网络请求
+   * 配置网络参数
+   */
+  static configure(config: Partial<NetworkConfig>): void {
+    this.config = { ...this.config, ...config }
+    logger.debug('网络配置已更新:', config)
+  }
+
+  /**
+   * 获取当前配置
+   */
+  static getConfig(): NetworkConfig {
+    return { ...this.config }
+  }
+
+  /**
+   * 重置配置为默认值
+   */
+  static resetConfig(): void {
+    this.config = { ...this.DEFAULT_CONFIG }
+    logger.debug('网络配置已重置为默认值')
+  }
+
+  /**
+   * 带重试的网络请求 - 增强版
    */
   static async fetchWithRetry(
     url: string, 
     options: {
       retries?: number
       timeout?: number
+      delay?: number
       headers?: Record<string, string>
+      userAgentRotation?: boolean
     } = {}
   ): Promise<Response> {
+    const startTime = Date.now()
     const { 
-      retries = this.DEFAULT_RETRIES, 
-      timeout = this.DEFAULT_TIMEOUT,
-      headers = {}
+      retries = this.config.retries,
+      timeout = this.config.timeout,
+      delay = this.config.delay,
+      headers = {},
+      userAgentRotation = true
     } = options
+
+    let lastError: Error | null = null
 
     for (let i = 0; i < retries; i++) {
       let controller: AbortController | null = null
       let timeoutId: ReturnType<typeof setTimeout> | null = null
       
-      const currentUA = this.USER_AGENTS[i % this.USER_AGENTS.length]
+      // 用户代理轮换策略
+      const currentUA = userAgentRotation 
+        ? this.config.userAgents[i % this.config.userAgents.length]
+        : this.config.userAgents[0]
       
       try {
-        logger.debug(`尝试获取订阅 (${i + 1}/${retries}) - User-Agent: ${currentUA}`)
+        logger.debug(`网络请求尝试 (${i + 1}/${retries}) - User-Agent: ${currentUA}`)
         
         controller = new AbortController()
         timeoutId = setTimeout(() => {
@@ -50,12 +105,8 @@ export class NetService {
         
         const response = await fetch(url, {
           headers: {
+            ...this.config.defaultHeaders,
             'User-Agent': currentUA,
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'no-cache',
             ...headers
           },
           redirect: 'follow',
@@ -69,30 +120,37 @@ export class NetService {
         }
         
         if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error(`HTTP 403: 访问被拒绝 (使用 User-Agent: ${currentUA})`)
-          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
         
+        // 记录成功统计
+        const responseTime = Date.now() - startTime
+        this.recordStats(true, responseTime)
+        
+        logger.debug(`网络请求成功: ${response.status} (${responseTime}ms)`)
         return response
       } catch (error) {
         if (timeoutId) {
           clearTimeout(timeoutId)
         }
         
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        const errorName = error instanceof Error ? error.name : 'UnknownError'
+        lastError = error instanceof Error ? error : new Error(String(error))
+        const errorMessage = lastError.message
+        const errorName = lastError.name
         
         logger.warn(`第 ${i + 1} 次尝试失败: [${errorName}] ${errorMessage}`)
         
         if (i === retries - 1) {
+          // 记录失败统计
+          const responseTime = Date.now() - startTime
+          this.recordStats(false, responseTime, `${errorName}: ${errorMessage}`)
+          
           throw new Error(`网络请求失败: ${errorMessage} (${errorName})`)
         }
         
-        const delay = Math.min(1000 * Math.pow(2, i), 5000)
-        logger.debug(`等待 ${delay}ms 后重试...`)
-        await new Promise(r => setTimeout(r, delay))
+        const waitTime = delay * Math.pow(2, i) // 指数退避
+        logger.debug(`等待 ${waitTime}ms 后重试...`)
+        await new Promise(r => setTimeout(r, waitTime))
       }
     }
     
@@ -107,5 +165,111 @@ export class NetService {
     urlObj.searchParams.set('flag', 'meta')
     urlObj.searchParams.set('types', 'all')
     return urlObj.toString()
+  }
+
+  /**
+   * 订阅专用网络请求 - 优化配置
+   */
+  static async fetchSubscription(url: string): Promise<Response> {
+    const processedUrl = this.processSubscriptionUrl(url)
+    
+    return this.fetchWithRetry(processedUrl, {
+      retries: 3,
+      timeout: 30000,
+      userAgentRotation: true,
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    })
+  }
+
+  /**
+   * 远程节点专用网络请求
+   */
+  static async fetchRemoteNodes(url: string): Promise<Response> {
+    return this.fetchWithRetry(url, {
+      retries: 2,
+      timeout: 15000,
+      userAgentRotation: false, // 远程节点通常不需要轮换
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    })
+  }
+
+  /**
+   * 短链接专用网络请求 - 快速响应
+   */
+  static async fetchShortUrl(url: string): Promise<Response> {
+    return this.fetchWithRetry(url, {
+      retries: 2,
+      timeout: 5000,
+      userAgentRotation: false,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+  }
+
+  /**
+   * 网络统计和监控
+   */
+  private static stats = {
+    totalRequests: 0,
+    successRequests: 0,
+    failedRequests: 0,
+    averageResponseTime: 0,
+    errors: new Map<string, number>()
+  }
+
+  /**
+   * 获取网络统计信息
+   */
+  static getStats() {
+    const successRate = this.stats.totalRequests > 0 
+      ? (this.stats.successRequests / this.stats.totalRequests * 100).toFixed(2)
+      : '0'
+
+    return {
+      ...this.stats,
+      successRate: `${successRate}%`,
+      errorTypes: Object.fromEntries(this.stats.errors)
+    }
+  }
+
+  /**
+   * 重置统计信息
+   */
+  static resetStats(): void {
+    this.stats = {
+      totalRequests: 0,
+      successRequests: 0,
+      failedRequests: 0,
+      averageResponseTime: 0,
+      errors: new Map()
+    }
+    logger.debug('网络统计已重置')
+  }
+
+  /**
+   * 记录请求统计
+   */
+  private static recordStats(success: boolean, responseTime: number, error?: string): void {
+    this.stats.totalRequests++
+    
+    if (success) {
+      this.stats.successRequests++
+    } else {
+      this.stats.failedRequests++
+      if (error) {
+        const count = this.stats.errors.get(error) || 0
+        this.stats.errors.set(error, count + 1)
+      }
+    }
+
+    // 更新平均响应时间
+    this.stats.averageResponseTime = 
+      (this.stats.averageResponseTime * (this.stats.totalRequests - 1) + responseTime) / 
+      this.stats.totalRequests
   }
 }

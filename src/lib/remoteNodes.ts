@@ -1,9 +1,8 @@
-// 在 src/lib/remoteNodes.ts 文件中
-
 import { parseSubscription } from './parsers';
 import { SingleNodeParser } from './singleNode';
 import { Proxy } from './types';
 import { logger } from './logger';
+import { NetService } from '@/services/Net';
 
 // 定义支持的协议前缀
 const SINGLE_NODE_PREFIXES = [
@@ -39,40 +38,33 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
  */
 export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
   try {
-    // 获取远程文本内容
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'ClashX/1.95.1',
-        'Cache-Control': 'no-cache'
-      },
-      next: { revalidate: 0 },
-      cache: 'no-store'
-    });
+    // 使用专用的远程节点网络请求方法
+    const response = await NetService.fetchRemoteNodes(url)
     
     if (!response.ok) {
-      throw new Error(`获取节点信息失败: ${response.status}`);
+      throw new Error(`获取节点信息失败: ${response.status}`)
     }
     
-    const content = await response.text();
+    const content = await response.text()
     
     // 处理其他域名的节点解析
-    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-    const proxies = await Promise.all(lines.map(parseNodeOrSubscription));
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line)
+    const proxies = await Promise.all(lines.map(parseNodeOrSubscription))
     
     const filteredProxies = proxies
       .filter((item): item is Proxy | Proxy[] => item !== null)
-      .flatMap(item => Array.isArray(item) ? item : [item]);
+      .flatMap(item => Array.isArray(item) ? item : [item])
     
     // 对于特定域名，按地区排序
     if (url.includes('githubusercontent.com') || url.includes('pastebin.com') || url.includes('raw')) {
-      logger.debug('对远程获取的节点按地区排序（保留原始名称）');
-      return SingleNodeParser.sortProxiesByRegion(filteredProxies);
+      logger.debug('对远程获取的节点按地区排序（保留原始名称）')
+      return SingleNodeParser.sortProxiesByRegion(filteredProxies)
     }
     
     // 默认返回解析后的节点
-    return filteredProxies;
+    return filteredProxies
   } catch (error) {
-    logger.error('获取远程节点失败:', error);
-    throw error;
+    logger.error('获取远程节点失败:', error)
+    throw error
   }
 }

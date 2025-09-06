@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { Proxy } from '@/lib/types'
 import { SubService, SubscriptionInfo } from './Sub'
 import { ConfigService } from './Config'
-import { CacheService } from './Cache'
 import { logger } from '@/lib/logger'
 import { AppError, ErrorCode, ErrorFactory } from '@/lib/errors'
 import { handleError, createErrorResponse } from '@/lib/error-reporter'
@@ -37,7 +36,7 @@ export class CoreService {
         throw ErrorFactory.subscription.invalidUrl(url)
       }
 
-      // 2. 检测客户端类型
+      // 3. 检测客户端类型
       const { isSingBox, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
       
       logger.devOnly('\n=== 客户端信息 ===')
@@ -45,16 +44,7 @@ export class CoreService {
       logger.devOnly(`User-Agent: ${userAgent}`)
       logger.devOnly('===================\n')
 
-      // 3. 检查缓存
-      const cacheKey = CacheService.generateKey(url, clientType)
-      const cachedResult = CacheService.get<NextResponse>(cacheKey)
-      
-      if (cachedResult) {
-        logger.info('缓存命中，直接返回结果')
-        return cachedResult
-      }
-
-      // 4. 处理订阅
+      // 4. 处理订阅（移除缓存检查）
       const { proxies, subscription } = await SubService.processSubscription(url)
       
       // 5. 记录订阅统计信息
@@ -78,10 +68,7 @@ export class CoreService {
       const duration = Date.now() - startTime
       ConfigService.logConfigStats(proxies, formattedProxies, '', clientType, duration)
 
-      // 9. 缓存结果
-      const ttl = isBrowser ? 2 : 5 // 浏览器2分钟，客户端5分钟
-      CacheService.set(cacheKey, response, ttl)
-
+      // 9. 直接返回结果（移除缓存）
       return response
 
     } catch (error: unknown) {
