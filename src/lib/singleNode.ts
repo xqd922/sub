@@ -169,7 +169,11 @@ export class SingleNodeParser {
     const decodedContent = decodeURIComponent(content)
 
     // 分离主体和备注
-    const [mainPart, remark = ''] = decodedContent.split('#')
+    const [mainPart = '', remark = ''] = decodedContent.split('#')
+
+    if (!mainPart) {
+      throw new Error('SS链接格式错误：缺少主体部分')
+    }
 
     // 解析主体部分
     let decoded: string
@@ -177,7 +181,7 @@ export class SingleNodeParser {
 
     try {
       // 检查是否有插件参数
-      const [basePart, queryString] = mainPart.split('/?')
+      const [basePart = '', queryString] = mainPart.split('/?')
 
       if (queryString) {
         const params = new URLSearchParams(queryString)
@@ -210,7 +214,10 @@ export class SingleNodeParser {
       // 检查是否包含 @ 符号
       if (basePart.includes('@')) {
         // 新格式: userInfo@server:port
-        const [userInfo, serverPart] = paddedBase64.split('@')
+        const [userInfo = '', serverPart] = paddedBase64.split('@')
+        if (!userInfo) {
+          throw new Error('SS链接格式错误：缺少用户信息')
+        }
         const decodedUserInfo = Buffer.from(userInfo, 'base64').toString('utf-8')
         decoded = `${decodedUserInfo}@${serverPart}`
       } else {
@@ -239,10 +246,11 @@ export class SingleNodeParser {
 
       if (parts.length === 2) {
         // 标准两部分格式
-        [method, password] = parts
+        method = parts[0] || 'aes-256-gcm'
+        password = parts[1] || ''
       } else if (parts.length > 2) {
         // 多部分密码格式
-        method = parts[0]
+        method = parts[0] || 'aes-256-gcm'
         // 将除第一个部分外的所有部分作为密码
         password = parts.slice(1).join(':')
       } else {
@@ -269,7 +277,9 @@ export class SingleNodeParser {
 
     if (ipv6Match) {
       // IPv6 格式
-      [, server, port] = ipv6Match
+      const [, ipv6Server, ipv6Port] = ipv6Match
+      server = ipv6Server || 'localhost'
+      port = ipv6Port || '8080'
     } else {
       // IPv4 或域名格式
       const lastColon = serverAndPort.lastIndexOf(':')
@@ -292,7 +302,7 @@ export class SingleNodeParser {
     }
 
     // 清理密码中 \r 及之后的所有内容
-    const cleanPassword = password.split('\r')[0].trim();
+    const cleanPassword = (password || '').split('\r')[0]?.trim() || '';
 
     // 尝试解码备注
     let decodedRemark = ''
@@ -317,8 +327,8 @@ export class SingleNodeParser {
     if (pluginOpts['obfs']) {
       proxy.plugin = 'obfs'
       proxy['plugin-opts'] = {
-        mode: pluginOpts['obfs'],
-        host: pluginOpts['obfs-host']
+        mode: pluginOpts['obfs'] || 'http',
+        ...(pluginOpts['obfs-host'] && { host: pluginOpts['obfs-host'] })
       }
     }
 
@@ -580,7 +590,7 @@ export class SingleNodeParser {
           tag: proxy.name,
           server: proxy.server,
           server_port: proxy.port,
-          password: proxy.password,
+          password: proxy.password || '',
           tls: {
             enabled: true,
             server_name: proxy.sni || proxy.server,
