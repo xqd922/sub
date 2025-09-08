@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Proxy } from '@/lib/types'
 import { SubService, SubscriptionInfo } from './Sub'
 import { ConfigService } from './Config'
+import { MetricsService } from './Metrics'
 import { logger } from '@/lib/logger'
 import { AppError, ErrorCode, ErrorFactory } from '@/lib/errors'
 import { handleError, createErrorResponse } from '@/lib/error-reporter'
@@ -68,7 +69,10 @@ export class CoreService {
       const duration = Date.now() - startTime
       ConfigService.logConfigStats(proxies, formattedProxies, '', clientType, duration)
 
-      // 9. 直接返回结果（移除缓存）
+      // 9. 记录性能指标
+      MetricsService.recordApiCall('/sub', duration, true)
+
+      // 10. 直接返回结果（移除缓存）
       return response
 
     } catch (error: unknown) {
@@ -178,6 +182,9 @@ export class CoreService {
         processingTime: `${duration}ms`
       }
     })
+
+    // 记录错误性能指标
+    MetricsService.recordApiCall('/sub', duration, false, enhancedError.code)
 
     // 返回错误响应
     const { status, body } = createErrorResponse(enhancedError)
