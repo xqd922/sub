@@ -14,13 +14,13 @@ interface ErrorReport {
  * 错误上下文信息
  */
 interface ErrorContext {
-  url?: string
-  userAgent?: string
-  clientIp?: string
-  userId?: string
-  sessionId?: string
-  requestBody?: unknown
-  additionalData?: Record<string, unknown>
+  url?: string | undefined
+  userAgent?: string | undefined  
+  clientIp?: string | undefined
+  userId?: string | undefined
+  sessionId?: string | undefined
+  requestBody?: unknown | undefined
+  additionalData?: Record<string, unknown> | undefined
 }
 
 /**

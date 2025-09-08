@@ -132,15 +132,15 @@ export function parseSS(line: string): Proxy {
     type: 'ss',
     server: url.hostname,
     port: parseInt(url.port),
-    cipher: method,
-    password: password
+    cipher: method || 'aes-256-gcm',
+    password: password || ''
   }
 }
 
 export function parseVmess(line: string): Proxy {
   const config = JSON.parse(Buffer.from(line.slice(8), 'base64').toString())
   
-  return {
+  const proxy: Proxy = {
     name: config.ps || `${config.add}:${config.port}`,
     type: 'vmess',
     server: config.add,
@@ -150,9 +150,14 @@ export function parseVmess(line: string): Proxy {
     cipher: 'auto',
     tls: config.tls === 'tls',
     network: config.net,
-    wsPath: config.path,
-    wsHeaders: config.host ? { Host: config.host } : undefined
+    wsPath: config.path
   }
+
+  if (config.host) {
+    proxy.wsHeaders = { Host: config.host }
+  }
+
+  return proxy
 }
 
 export function parseTrojan(line: string): Proxy {

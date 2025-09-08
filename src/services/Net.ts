@@ -106,7 +106,7 @@ export class NetService {
         const response = await fetch(url, {
           headers: {
             ...this.config.defaultHeaders,
-            'User-Agent': currentUA,
+            ...(currentUA && { 'User-Agent': currentUA }),
             ...headers
           },
           redirect: 'follow',

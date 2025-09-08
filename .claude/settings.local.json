@@ -12,7 +12,8 @@
       "Bash(find:*)",
       "Bash(mkdir:*)",
       "Bash(taskkill:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(bun add:*)"
     ],
     "deny": [],
     "ask": []

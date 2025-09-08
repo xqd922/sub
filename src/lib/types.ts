@@ -134,14 +134,14 @@ export interface ProxyGroup {
 // 添加错误相关类型
 export interface SubscriptionError extends Error {
   code: string;
-  statusCode?: number;
-  details?: unknown;
+  statusCode?: number | undefined;
+  details?: unknown | undefined;
 }
 
 export class SubscriptionFetchError extends Error implements SubscriptionError {
   code: string;
-  statusCode?: number;
-  details?: unknown;
+  statusCode?: number | undefined;
+  details?: unknown | undefined;
 
   constructor(message: string, statusCode?: number, details?: unknown) {
     super(message);

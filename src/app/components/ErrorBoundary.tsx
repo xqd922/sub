@@ -8,13 +8,13 @@ import { logger } from '@/lib/logger'
 interface ErrorBoundaryState {
   hasError: boolean
   error?: AppError
-  errorId?: string
+  errorId?: string | undefined
 }
 
 interface ErrorBoundaryProps {
   children: ReactNode
-  fallback?: (error: AppError, retry: () => void) => ReactNode
-  onError?: (error: AppError, errorInfo: ErrorInfo) => void
+  fallback?: ((error: AppError, retry: () => void) => ReactNode) | undefined
+  onError?: ((error: AppError, errorInfo: ErrorInfo) => void) | undefined
 }
 
 /**
@@ -51,7 +51,7 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
     }
   }
 
-  async componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override async componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     try {
       // 创建或使用现有的AppError
       const appError = this.state.error || AppError.fromError(error)
@@ -103,13 +103,11 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
    */
   retry = () => {
     this.setState({
-      hasError: false,
-      error: undefined,
-      errorId: undefined
+      hasError: false
     })
   }
 
-  render() {
+  override render() {
     if (this.state.hasError && this.state.error) {
       // 如果提供了自定义fallback，使用自定义UI
       if (this.props.fallback) {

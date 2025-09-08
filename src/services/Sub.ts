@@ -152,7 +152,7 @@ export class SubService {
     // 从 content-disposition 获取订阅名称
     const contentDisposition = response.headers.get('content-disposition') || ''
     const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
-    const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : '订阅'
+    const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1] || '') : '订阅'
     
     // 获取订阅到期时间和流量信息
     const userInfo = response.headers.get('subscription-userinfo') || ''

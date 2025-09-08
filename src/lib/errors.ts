@@ -59,7 +59,7 @@ export class AppError extends Error {
     public readonly statusCode: number = 500,
     public readonly severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     public readonly metadata?: Record<string, unknown>,
-    public readonly cause?: Error
+    public override readonly cause?: Error
   ) {
     super(message)
     this.name = 'AppError'

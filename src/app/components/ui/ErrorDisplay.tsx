@@ -162,6 +162,7 @@ export function ErrorToast({
       const timer = setTimeout(onDismiss, duration)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [autoHide, duration, onDismiss])
 
   return (
