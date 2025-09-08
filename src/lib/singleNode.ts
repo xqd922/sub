@@ -120,7 +120,7 @@ export class SingleNodeParser {
       } else if (uri.startsWith('hysteria2://') || uri.startsWith('hy2://')) {
         return this.parseHysteria2(uri)
       }
-      throw new Error('不支持的协议类型')
+      throw new Error('不支持的代理协议类型，请检查链接格式')
     } catch (error) {
       logger.error('节点解析失败:', error)
       return null

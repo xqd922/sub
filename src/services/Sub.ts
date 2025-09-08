@@ -157,6 +157,12 @@ export class SubService {
     // 获取订阅到期时间和流量信息
     const userInfo = response.headers.get('subscription-userinfo') || ''
     
+    // 尝试从多个可能的头部获取首页URL
+    const homepageUrl = response.headers.get('profile-web-page-url') || 
+                       response.headers.get('web-page-url') ||
+                       response.headers.get('homepage') || 
+                       response.headers.get('website') || ''
+    
     return {
       name: subName,
       upload: String(userInfo.match(/upload=(\d+)/)?.[1] || 0),
@@ -168,7 +174,7 @@ export class SubService {
               response.headers.get('expire') || 
               response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
               ''),
-      homepage: this.decodeHomepageUrl(response.headers.get('profile-web-page-url') || 'https://sub.xqd.pp.ua')
+      homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://love.521pokemon.com'
     }
   }
 

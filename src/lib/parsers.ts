@@ -13,7 +13,7 @@ export async function parseSubscription(url: string): Promise<Proxy[]> {
 
     const text = await response.text()
     if (!text || text.length === 0) {
-      throw new Error('订阅内容为空')
+      throw new Error('订阅内容为空，请检查订阅链接是否正确')
     }
     
     if (text.includes('proxies:')) {
@@ -64,7 +64,7 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
   let duplicateCount = 0
   
   logger.devOnly('\n节点处理详情:')
-  console.log('1. 开始过滤信息节点...')
+  logger.devOnly('1. 开始过滤信息节点...')
   
   proxies.forEach(proxy => {
     const excludeKeywords = [
@@ -76,7 +76,7 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     ]
     
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
-      console.log(`  [信息] 排除节点: ${proxy.name}`)
+      logger.devOnly(`  [信息] 排除节点: ${proxy.name}`)
       infoNodesCount++
       return
     }
@@ -106,7 +106,7 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     }
 
     if (seen.has(key)) {
-      console.log(`  [重复] 发现重复节点: ${proxy.name}`)
+      logger.devOnly(`  [重复] 发现重复节点: ${proxy.name}`)
       duplicateCount++
     }
     seen.set(key, proxy)

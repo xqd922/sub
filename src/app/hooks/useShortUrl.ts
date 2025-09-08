@@ -22,7 +22,7 @@ export function useShortUrl() {
       })
       
       if (!response.ok) {
-        throw new Error('短链接生成失败')
+        throw new Error('短链接生成服务暂时不可用，请稍后重试')
       }
       
       const data = await response.json()

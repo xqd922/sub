@@ -28,16 +28,14 @@ export function useClipboard() {
       textArea.select()
       
       try {
-        document.execCommand('copy')
+        const success = document.execCommand('copy')
         textArea.remove()
-        return true
-      } catch (err) {
-        console.error('复制失败:', err)
+        return success
+      } catch {
         textArea.remove()
         return false
       }
-    } catch (err) {
-      console.error('复制失败:', err)
+    } catch {
       return false
     } finally {
       setIsCopying(false)
