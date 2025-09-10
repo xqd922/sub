@@ -144,7 +144,8 @@ export class ConfigService {
     isBrowser: boolean
     clientType: 'clash' | 'singbox' | 'browser'
   } {
-    const isSingBox = /sing-box/i.test(userAgent) || /mihomo/i.test(userAgent)
+    // 只检测明确的 sing-box 客户端标识
+    const isSingBox = /^sing-box/i.test(userAgent)
     const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|clash/i.test(userAgent)
     
     let clientType: 'clash' | 'singbox' | 'browser'
@@ -153,7 +154,7 @@ export class ConfigService {
     } else if (isBrowser) {
       clientType = 'browser'
     } else {
-      clientType = 'clash'
+      clientType = 'clash' // 默认为 Clash（包括 clash.meta、mihomo 等）
     }
 
     return { isSingBox, isBrowser, clientType }
