@@ -1,5 +1,5 @@
 import { Proxy, SingboxProxyConfig } from './types'
-import { REGION_MAP } from '@/config/regions'
+import { REGION_MAP } from '@/lib/regions'
 import { logger } from './logger'
 
 /**
