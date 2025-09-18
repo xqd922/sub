@@ -5,9 +5,9 @@ class Logger {
   
   private shouldLog(level: LogLevel): boolean {
     if (this.isDevelopment) return true
-    
-    // 生产环境只输出警告和错误
-    return level === 'warn' || level === 'error'
+
+    // 生产环境输出 info、警告和错误
+    return level === 'info' || level === 'warn' || level === 'error'
   }
 
   debug(...args: unknown[]): void {
