@@ -212,15 +212,15 @@ export class SubService {
    * 打印订阅统计信息
    */
   static logSubscriptionStats(subscription: SubscriptionInfo, proxies: Proxy[]): void {
-    logger.devOnly('\n=== 订阅基本信息 ===')
-    logger.devOnly(`名称: ${subscription.name}`)
-    logger.devOnly(`首页: ${subscription.homepage}`)
-    logger.devOnly(`流量信息:`)
-    logger.devOnly(`  ├─ 上传: ${this.formatBytes(Number(subscription.upload))}`)
-    logger.devOnly(`  ├─ 下载: ${this.formatBytes(Number(subscription.download))}`)
-    logger.devOnly(`  └─ 总量: ${this.formatBytes(Number(subscription.total))}`)
-    logger.devOnly(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
-    logger.devOnly('===================\n')
+    logger.info('\n=== 订阅基本信息 ===')
+    logger.info(`名称: ${subscription.name}`)
+    logger.info(`首页: ${subscription.homepage}`)
+    logger.info(`流量信息:`)
+    logger.info(`  ├─ 上传: ${this.formatBytes(Number(subscription.upload))}`)
+    logger.info(`  ├─ 下载: ${this.formatBytes(Number(subscription.download))}`)
+    logger.info(`  └─ 总量: ${this.formatBytes(Number(subscription.total))}`)
+    logger.info(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
+    logger.info('===================\n')
 
     // 统计节点类型分布
     const nodeTypes = proxies.reduce((acc, proxy) => {
@@ -237,9 +237,9 @@ export class SubService {
       })
       .join('\n')
 
-    logger.devOnly('\n节点类型分布:')
-    logger.devOnly(sortedTypes)
-    logger.devOnly(`  └─ 总计: ${proxies.length}\n`)
+    logger.info('\n节点类型分布:')
+    logger.info(sortedTypes)
+    logger.info(`  └─ 总计: ${proxies.length}\n`)
   }
 }
 

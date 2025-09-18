@@ -165,20 +165,20 @@ export class ConfigService {
    * 记录配置生成统计信息
    */
   static logConfigStats(
-    proxies: Proxy[], 
-    formattedProxies: Proxy[], 
+    proxies: Proxy[],
+    formattedProxies: Proxy[],
     yamlConfig: string,
     clientType: string,
     duration: number
   ): void {
-    logger.devOnly('\n=== 订阅处理完成 ===')
-    logger.devOnly('处理结果:')
-    logger.devOnly(`  ├─ 客户端类型: ${clientType}`)
-    logger.devOnly(`  ├─ 节点总数: ${proxies.length}`)
-    logger.devOnly(`  ├─ 有效节点: ${formattedProxies.length}`)
-    logger.devOnly(`  ├─ 处理耗时: ${duration}ms`)
-    logger.devOnly(`  └─ 配置大小: ${this.formatBytes(yamlConfig.length)}`)
-    logger.devOnly('结束时间:', new Date().toLocaleString(), '\n')
+    logger.info('\n=== 订阅处理完成 ===')
+    logger.info('处理结果:')
+    logger.info(`  ├─ 客户端类型: ${clientType}`)
+    logger.info(`  ├─ 节点总数: ${proxies.length}`)
+    logger.info(`  ├─ 有效节点: ${formattedProxies.length}`)
+    logger.info(`  ├─ 处理耗时: ${duration}ms`)
+    logger.info(`  └─ 配置大小: ${this.formatBytes(yamlConfig.length)}`)
+    logger.info('结束时间:', new Date().toLocaleString(), '\n')
   }
 
   /**

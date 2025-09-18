@@ -40,10 +40,10 @@ export class CoreService {
       // 3. 检测客户端类型
       const { isSingBox, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
       
-      logger.devOnly('\n=== 客户端信息 ===')
-      logger.devOnly(`类型: ${clientType}`)
-      logger.devOnly(`User-Agent: ${userAgent}`)
-      logger.devOnly('===================\n')
+      logger.info('\n=== 客户端信息 ===')
+      logger.info(`类型: ${clientType}`)
+      logger.info(`User-Agent: ${userAgent}`)
+      logger.info('===================\n')
 
       // 4. 处理订阅（移除缓存检查）
       const { proxies, subscription } = await SubService.processSubscription(url)
