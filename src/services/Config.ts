@@ -144,9 +144,10 @@ export class ConfigService {
     isBrowser: boolean
     clientType: 'clash' | 'singbox' | 'browser'
   } {
-    // 只检测明确的 sing-box 客户端标识
-    const isSingBox = /^sing-box/i.test(userAgent)
-    const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|clash/i.test(userAgent)
+    // 检测 sing-box 客户端标识（支持所有平台）
+    // SFA: Sing-box For Android, SFI: Sing-box For iOS, SFM: Sing-box For MAC, SFT: Sing-box For tvOS
+    const isSingBox = /sing-box|SFA|SFI|SFM|SFT/i.test(userAgent)
+    const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|SFA|SFI|SFM|SFT|clash/i.test(userAgent)
     
     let clientType: 'clash' | 'singbox' | 'browser'
     if (isSingBox) {
