@@ -49,12 +49,12 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           server: "fakeip"
         },
         {
-          clash_mode: "global",
-          server: "remote"
+          clash_mode: "Direct",
+          server: "local"
         },
         {
-          clash_mode: "direct",
-          server: "local"
+          clash_mode: "Global",
+          server: "remote"
         },
         {
           rule_set: "geosite-cn",
@@ -134,11 +134,11 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           action: "reject"
         },
         {
-          clash_mode: "direct",
+          clash_mode: "Direct",
           outbound: "direct"
         },
         {
-          clash_mode: "global",
+          clash_mode: "Global",
           outbound: "Manual"
         },
         {
