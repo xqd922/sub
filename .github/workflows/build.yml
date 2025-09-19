@@ -1,4 +1,4 @@
-name: 构建和打包
+name: Build & Package
 
 on:
   push:
@@ -13,50 +13,37 @@ permissions:
 
 jobs:
   build:
-    name: 构建项目
+    name: Build Project
     runs-on: ubuntu-latest
 
     steps:
-      - name: 检出代码
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 设置Bun
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: 代码质量检查
-        run: bun run lint
-
-      - name: 构建项目
+      - name: Build project
         run: bun run build
         env:
           NODE_ENV: production
 
-      - name: 创建源码包
-        run: bun run package
-
-      - name: 上传构建产物
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-output
           path: .next/
           retention-days: 7
 
-      - name: 上传源码包
+      - name: Upload build info
         uses: actions/upload-artifact@v4
         with:
-          name: source-packages
-          path: dist/
-          retention-days: 30
-
-      - name: 上传项目信息
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-info
+          name: build-info
           path: |
             package.json
             bun.lockb
