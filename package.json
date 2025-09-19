@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "package": "node scripts/package.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",
