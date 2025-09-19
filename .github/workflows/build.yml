@@ -1,0 +1,38 @@
+name: 源码打包
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  release:
+    name: 创建源码发布
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 创建Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Release v1.0.${{ github.run_number }}
+          body: |
+            📦 源代码发布
+
+            **发布信息:**
+            - 提交: ${{ github.sha }}
+            - 发布时间: ${{ github.event.head_commit.timestamp }}
+            - 构建号: ${{ github.run_number }}
+
+            **更改内容:**
+            ${{ github.event.head_commit.message }}
+
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
