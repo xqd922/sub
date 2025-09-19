@@ -1,51 +1,67 @@
-name: Build & Package
+name: Create Release
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      title:
+        description: 'Release title'
+        required: true
+        default: 'Release v1.0.0'
 
 permissions:
-  contents: read
-  actions: read
+  contents: write
 
 jobs:
-  build:
-    name: Build Project
+  release:
+    name: Create Release with Source Code
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Create source packages
+        run: |
+          # 创建临时目录
+          mkdir -p temp-release
+
+          # 复制源码到临时目录(排除不需要的文件)
+          rsync -av --exclude='node_modules' --exclude='.next' --exclude='dist' --exclude='.git' --exclude='.vercel' --exclude='*.log' --exclude='.env*' --exclude='.claude' . temp-release/
+
+          # 创建tar.gz
+          tar -czf source-code.tar.gz -C temp-release .
+
+          # 创建zip
+          cd temp-release && zip -r ../source-code.zip . && cd ..
+
+          # 清理临时目录
+          rm -rf temp-release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          bun-version: latest
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.title }}
+          body: |
+            📦 源代码发布
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+            **发布信息:**
+            - 提交: ${{ github.sha }}
+            - 发布时间: ${{ github.event.repository.updated_at }}
+            - 标签: ${{ github.event.inputs.tag }}
 
-      - name: Build project
-        run: bun run build
+            **下载说明:**
+            - Source code (zip) - 源代码ZIP压缩包
+            - Source code (tar.gz) - 源代码TAR.GZ压缩包
+
+          files: |
+            source-code.zip
+            source-code.tar.gz
+          draft: false
+          prerelease: false
         env:
-          NODE_ENV: production
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: .next/
-          retention-days: 7
-
-      - name: Upload build info
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-info
-          path: |
-            package.json
-            bun.lockb
-            next.config.js
-          retention-days: 7
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
