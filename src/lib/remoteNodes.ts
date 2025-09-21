@@ -55,13 +55,7 @@ export async function fetchNodesFromRemote(url: string): Promise<Proxy[]> {
       .filter((item): item is Proxy | Proxy[] => item !== null)
       .flatMap(item => Array.isArray(item) ? item : [item])
     
-    // 对于特定域名，按地区排序
-    if (url.includes('githubusercontent.com') || url.includes('pastebin.com') || url.includes('raw')) {
-      logger.debug('对远程获取的节点按地区排序（保留原始名称）')
-      return SingleNodeParser.sortProxiesByRegion(filteredProxies)
-    }
-    
-    // 默认返回解析后的节点
+    // 直接返回解析后的节点
     return filteredProxies
   } catch (error) {
     logger.error('获取远程节点失败:', error)

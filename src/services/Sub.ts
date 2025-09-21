@@ -38,7 +38,6 @@ export class SubService {
       if (!proxies.length) {
         throw new Error('无效的节点链接')
       }
-      proxies = SingleNodeParser.sortProxiesByRegion(proxies)
       subscription = this.createDefaultSubscription()
     } else {
       // 标准订阅链接处理
