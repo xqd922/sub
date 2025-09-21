@@ -1,5 +1,5 @@
 import { parseSubscription } from './parsers';
-import { SingleNodeParser } from './singleNode';
+import { SingleNodeParser } from './nodeParser';
 import { Proxy } from './types';
 import { logger } from './logger';
 import { NetService } from '@/services/Net';

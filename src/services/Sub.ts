@@ -1,6 +1,6 @@
 import { Proxy } from '@/lib/types'
 import { parseSubscription } from '@/lib/parsers'
-import { SingleNodeParser } from '@/lib/singleNode'
+import { SingleNodeParser } from '@/lib/nodeParser'
 import { fetchNodesFromRemote } from '@/lib/remoteNodes'
 import { REGION_MAP, RegionCode } from '@/lib/regions'
 import { NetService } from './Net'

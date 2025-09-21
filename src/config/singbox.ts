@@ -1,5 +1,5 @@
 import { Proxy } from '@/lib/types'
-import { SingleNodeParser } from '@/lib/singleNode'
+import { SingleNodeParser } from '@/lib/nodeParser'
 import { filterNodes } from '@/lib/nodeUtils'
 
 export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean = true) {
