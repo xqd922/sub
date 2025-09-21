@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { AppError, ErrorSeverity, ErrorCode } from '@/lib/errors'
+import { AppError, ErrorSeverity, ErrorCode } from '@/lib/error/errors'
 
 interface ErrorDisplayProps {
   error: AppError | string

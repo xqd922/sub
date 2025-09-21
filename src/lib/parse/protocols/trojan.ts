@@ -1,4 +1,4 @@
-import { Proxy, SingboxProxyConfig } from '../types'
+import { Proxy, SingboxProxyConfig } from '../../core/types'
 
 /**
  * Trojan 协议解析器

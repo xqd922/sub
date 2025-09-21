@@ -14,7 +14,9 @@
       "Bash(taskkill:*)",
       "Bash(rm:*)",
       "Bash(bun add:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(grep:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

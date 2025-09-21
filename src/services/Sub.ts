@@ -1,10 +1,10 @@
-import { Proxy } from '@/lib/types'
-import { parseSubscription } from '@/lib/parsers'
-import { SingleNodeParser } from '@/lib/nodeParser'
-import { fetchNodesFromRemote } from '@/lib/remoteNodes'
-import { REGION_MAP, RegionCode } from '@/lib/regions'
+import { Proxy } from '@/lib/core/types'
+import { parseSubscription } from '@/lib/parse/subscription'
+import { SingleNodeParser } from '@/lib/parse/node'
+import { fetchNodesFromRemote } from '@/lib/parse/remote'
+import { REGION_MAP, RegionCode } from '@/lib/format/region'
 import { NetService } from './Net'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/core/logger'
 
 /**
  * 订阅处理服务 - 处理各种订阅源

@@ -1,5 +1,5 @@
-import { Proxy, SingboxProxyConfig } from '../types'
-import { logger } from '../logger'
+import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { logger } from '../../core/logger'
 
 /**
  * Shadowsocks 协议解析器

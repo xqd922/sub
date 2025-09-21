@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { Proxy } from '@/lib/types'
+import { Proxy } from '@/lib/core/types'
 import { SubService, SubscriptionInfo } from './Sub'
 import { ConfigService } from './Config'
 import { MetricsService } from './Metrics'
-import { logger } from '@/lib/logger'
-import { AppError, ErrorCode, ErrorFactory } from '@/lib/errors'
-import { handleError, createErrorResponse } from '@/lib/error-reporter'
+import { logger } from '@/lib/core/logger'
+import { AppError, ErrorCode, ErrorFactory } from '@/lib/error/errors'
+import { handleError, createErrorResponse } from '@/lib/error/reporter'
 
 /**
  * 核心请求处理器 - 统一处理所有订阅转换请求

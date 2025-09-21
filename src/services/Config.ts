@@ -1,10 +1,10 @@
 import yaml from 'js-yaml'
-import { Proxy } from '@/lib/types'
+import { Proxy } from '@/lib/core/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
 import { SubscriptionInfo } from './Sub'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/core/logger'
 
 /**
  * 配置生成服务 - 生成各种格式的配置文件

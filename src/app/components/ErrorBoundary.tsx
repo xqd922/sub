@@ -1,9 +1,9 @@
 'use client'
 
 import React, { Component, ReactNode, ErrorInfo } from 'react'
-import { AppError, ErrorCode, ErrorSeverity } from '@/lib/errors'
-import { handleError } from '@/lib/error-reporter'
-import { logger } from '@/lib/logger'
+import { AppError, ErrorCode, ErrorSeverity } from '@/lib/error/errors'
+import { handleError } from '@/lib/error/reporter'
+import { logger } from '@/lib/core/logger'
 
 interface ErrorBoundaryState {
   hasError: boolean

@@ -1,5 +1,5 @@
 import { AppError, ErrorSeverity } from './errors'
-import { logger } from './logger'
+import { logger } from '../core/logger'
 
 /**
  * 错误报告接口

@@ -1,5 +1,5 @@
-import { Proxy } from './types'
-import { logger } from './logger'
+import { Proxy } from '../core/types'
+import { logger } from '../core/logger'
 import {
   SSProtocol,
   VMessProtocol,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ShortService } from '@/services'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/core/logger'
 
 export const runtime = 'nodejs'
 
