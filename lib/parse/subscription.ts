@@ -3,13 +3,13 @@ import yaml from 'js-yaml'
 import { logger } from '../core/logger'
 import { NetService } from '@/features'
 
-export async function parseSubscription(url: string): Promise<Proxy[]> {
+export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()
   logger.debug(`\n开始解析订阅: ${url}`)
 
   try {
-    // 使用专用的订阅网络请求方法
-    const response = await NetService.fetchSubscription(url)
+    // 使用专用的订阅网络请求方法，传递客户端 User-Agent
+    const response = await NetService.fetchSubscription(url, clientUserAgent)
 
     const text = await response.text()
     if (!text || text.length === 0) {

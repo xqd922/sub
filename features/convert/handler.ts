@@ -45,8 +45,8 @@ export class CoreService {
       logger.info(`User-Agent: ${userAgent}`)
       logger.info('===================\n')
 
-      // 4. 处理订阅（移除缓存检查）
-      const { proxies, subscription } = await SubService.processSubscription(url)
+      // 4. 处理订阅（传递客户端 User-Agent）
+      const { proxies, subscription } = await SubService.processSubscription(url, userAgent)
       
       // 5. 记录订阅统计信息
       SubService.logSubscriptionStats(subscription, proxies)

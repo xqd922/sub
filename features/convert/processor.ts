@@ -16,7 +16,7 @@ export class SubService {
   /**
    * 处理订阅请求的主入口
    */
-  static async processSubscription(url: string): Promise<{
+  static async processSubscription(url: string, clientUserAgent?: string): Promise<{
     proxies: Proxy[]
     subscription: SubscriptionInfo
   }> {
@@ -43,7 +43,7 @@ export class SubService {
       // 标准订阅链接处理
       const response = await NetService.fetchWithRetry(url)
       subscription = this.extractSubscriptionInfo(response)
-      proxies = await parseSubscription(url)
+      proxies = await parseSubscription(url, clientUserAgent)
     }
 
     return { proxies, subscription }

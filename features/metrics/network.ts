@@ -21,9 +21,6 @@ export class NetService {
     delay: 1000,
     userAgents: [
       'clash.meta/v1.19.13',
-      'ClashX/1.95.1', 
-      'Clash/1.18.0',
-      'clash-verge/v1.3.8',
       'mihomo/v1.18.5'
     ],
     defaultHeaders: {
@@ -64,22 +61,24 @@ export class NetService {
    * 带重试的网络请求 - 增强版
    */
   static async fetchWithRetry(
-    url: string, 
+    url: string,
     options: {
       retries?: number
       timeout?: number
       delay?: number
       headers?: Record<string, string>
-      userAgentRotation?: boolean
+      userAgent?: string  // 指定具体的 User-Agent
+      fallbackRotation?: boolean  // 是否启用容灾轮换
     } = {}
   ): Promise<Response> {
     const startTime = Date.now()
-    const { 
+    const {
       retries = this.config.retries,
       timeout = this.config.timeout,
       delay = this.config.delay,
       headers = {},
-      userAgentRotation = true
+      userAgent,
+      fallbackRotation = false
     } = options
 
     let lastError: Error | null = null
@@ -87,11 +86,12 @@ export class NetService {
     for (let i = 0; i < retries; i++) {
       let controller: AbortController | null = null
       let timeoutId: ReturnType<typeof setTimeout> | null = null
-      
-      // 用户代理轮换策略
-      const currentUA = userAgentRotation 
-        ? this.config.userAgents[i % this.config.userAgents.length]
-        : this.config.userAgents[0]
+
+      // User-Agent 策略：优先使用指定的，否则容灾轮换
+      const currentUA = userAgent ||
+        (fallbackRotation
+          ? this.config.userAgents[i % this.config.userAgents.length]
+          : this.config.userAgents[0])
       
       try {
         logger.debug(`网络请求尝试 (${i + 1}/${retries}) - User-Agent: ${currentUA}`)
@@ -168,15 +168,16 @@ export class NetService {
   }
 
   /**
-   * 订阅专用网络请求 - 优化配置
+   * 订阅专用网络请求 - 根据客户端类型发送请求
    */
-  static async fetchSubscription(url: string): Promise<Response> {
+  static async fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
     const processedUrl = this.processSubscriptionUrl(url)
-    
+
     return this.fetchWithRetry(processedUrl, {
       retries: 3,
       timeout: 30000,
-      userAgentRotation: true,
+      userAgent: clientUserAgent,  // 使用客户端的真实 User-Agent
+      fallbackRotation: !clientUserAgent,  // 只有在没有指定时才启用容灾轮换
       headers: {
         'Cache-Control': 'no-cache'
       }
@@ -190,7 +191,7 @@ export class NetService {
     return this.fetchWithRetry(url, {
       retries: 2,
       timeout: 15000,
-      userAgentRotation: false, // 远程节点通常不需要轮换
+      fallbackRotation: true, // 远程节点使用容灾轮换
       headers: {
         'Cache-Control': 'no-cache'
       }
@@ -204,7 +205,7 @@ export class NetService {
     return this.fetchWithRetry(url, {
       retries: 2,
       timeout: 5000,
-      userAgentRotation: false,
+      fallbackRotation: false,
       headers: {
         'Content-Type': 'application/json'
       }
