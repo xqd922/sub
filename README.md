@@ -1,166 +1,280 @@
-# 通用订阅转换服务
+# 🚀 通用订阅转换 Universal Subscription Converter
 
-这是一个现代化的订阅转换服务，支持多种代理协议的转换和短链接生成。
+<div align="center">
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/your-repo-name&env=BITLY_TOKEN,SINK_URL,SINK_TOKEN)
+![Next.js](https://img.shields.io/badge/Next.js-15.1.6-black?style=for-the-badge&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
+![Bun](https://img.shields.io/badge/Bun-1.0-ff1e1e?style=for-the-badge&logo=bun)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06b6d4?style=for-the-badge&logo=tailwindcss)
 
-## 一键部署
+**一个现代化的全栈订阅转换服务，支持智能客户端检测和多格式输出**
 
-1. 点击上方的 "Deploy with Vercel" 按钮
-2. 如果未登录，请先注册或登录 Vercel 账号
-3. 点击 "Deploy" 开始部署
-4. 等待部署完成后，即可访问你的服务
+[🌟 在线体验](https://sub.xqd.pp.ua/) • [📖 文档](./docs/API.md) • [🛠️ 部署](#部署) • [🤝 贡献](#贡献)
 
-## 功能特点
+</div>
 
-- 🔄 订阅转换：支持多种代理协议的转换
-- 🔗 短链接生成：支持多个短链接服务（Bitly、TinyURL、Sink）
-- 🌍 多客户端支持：生成适用于 Clash 和 Sing-box 的配置
-- 🌐 智能分流：基于地区的智能分流规则
-- 🎨 现代化界面：响应式设计，支持深色模式
-- 📋 便捷复制：一键复制功能，带有视觉反馈
-- 🔒 安全可靠：完善的错误处理机制
+## ✨ 特性
 
-## 技术栈
+### 🎯 核心功能
+- **🔄 智能转换**: 自动将订阅链接转换为 Clash、Sing-box 等客户端配置
+- **🤖 智能检测**: 根据 User-Agent 自动识别客户端类型并返回对应格式
+- **🌐 多源支持**: 支持标准订阅、单节点链接、GitHub Gist 等多种输入格式
+- **🔗 短链接**: 内置短链接生成服务，方便分享
+- **📱 响应式**: 完美适配桌面端和移动端
 
-- **前端框架**: Next.js 15.1.6
-- **UI框架**: React 19
-- **样式**: TailwindCSS
-- **语言**: TypeScript
-- **API**: Next.js API Routes
-- **包管理**: Bun
+### 🚀 技术亮点
+- **⚡ Turbopack**: 启用 Next.js 最新打包器，极速开发体验
+- **🎨 现代UI**: 基于 Tailwind CSS 的精美界面，支持深色模式
+- **🛡️ 类型安全**: 完整的 TypeScript 类型定义
+- **📊 性能监控**: 内置请求统计和性能分析
+- **🔧 模块化**: 清晰的功能模块划分，易于维护和扩展
 
-## 项目结构
+### 🌍 支持的协议
+- **Shadowsocks** (`ss://`)
+- **VMess** (`vmess://`)
+- **Trojan** (`trojan://`)
+- **VLESS** (`vless://`)
+- **Hysteria2** (`hysteria2://`, `hy2://`)
 
+## 🏗️ 架构设计
+
+### 📁 项目结构
 ```
-src/
-├── app/                    # Next.js应用主目录
-│   ├── api/               # API路由
-│   │   ├── shorten/      # 短链接服务
-│   │   └── sub/          # 订阅转换
-│   ├── components/       # React组件
-│   └── page.tsx          # 主页面
-├── config/               # 配置文件
-│   ├── clash.ts         # Clash配置
-│   ├── regions.ts       # 地区配置
-│   └── singbox.ts       # Sing-box配置
-└── lib/                 # 工具库
-    ├── nodeUtils.ts     # 节点处理工具
-    ├── parsers.ts       # 解析器
-    ├── remoteNodes.ts   # 远程节点处理
-    ├── singleNode.ts    # 单节点处理
-    └── types.ts         # 类型定义
-```
-
-## 主要功能说明
-
-### 1. 订阅转换
-- 支持输入订阅链接
-- 自动识别订阅类型
-- 转换为统一格式
-- 生成新的订阅地址
-
-### 2. 短链接服务
-支持多个短链接提供商：
-- Bitly
-- TinyURL
-- Sink
-具有自动故障转移机制，确保服务可用性。
-
-### 3. 配置生成
-支持生成两种格式的配置：
-- **Clash配置**
-  - 自定义代理组
-  - 智能分流规则
-  - 自动测速功能
-  
-- **Sing-box配置**
-  - DNS配置优化
-  - 智能路由规则
-  - 多入站支持
-
-### 4. 地区识别
-- 支持多个地区的节点识别
-- 智能分类系统
-- 支持自定义地区标识
-
-## API 接口
-
-### 1. 订阅转换接口
-```typescript
-GET /sub?url={订阅链接}
+project/
+├── app/            # Next.js App Router (路由和页面)
+│   ├── api/        # API 路由
+│   ├── components/ # React 组件
+│   └── hooks/      # 自定义 Hooks
+├── lib/            # 工具库
+│   ├── core/       # 核心工具 (types, cache, logger)
+│   ├── parse/      # 解析器 (订阅、节点、协议)
+│   ├── format/     # 格式化器 (节点名称、地区)
+│   └── error/      # 错误处理
+├── features/       # 功能模块 (业务逻辑)
+│   ├── convert/    # 订阅转换
+│   ├── shorten/    # 短链接
+│   └── metrics/    # 指标收集
+├── config/         # 配置生成器
+└── public/         # 静态资源
 ```
 
-### 2. 短链接服务
-```typescript
-POST /api/shorten
-Content-Type: application/json
+### 🔄 请求处理流程
+```mermaid
+graph LR
+    A[客户端请求] --> B[智能检测]
+    B --> C[订阅解析]
+    C --> D[节点处理]
+    D --> E[配置生成]
+    E --> F[格式化输出]
+    F --> G[返回结果]
+```
 
+## 🚀 快速开始
+
+### 📋 环境要求
+- **Node.js** >= 18.0.0
+- **Bun** >= 1.0.0 (推荐) 或 npm/yarn
+
+### ⚡ 本地开发
+
+```bash
+# 克隆项目
+git clone https://github.com/xqd922/sub.git
+cd sub
+
+# 安装依赖
+bun install
+
+# 启动开发服务器
+bun dev
+# 或使用极速模式 (跳过类型检查)
+bun dev:fast
+
+# 访问 http://localhost:3000
+```
+
+### 🛠️ 可用命令
+
+```bash
+# 开发
+bun dev                 # 标准开发模式 (启用 Turbopack)
+bun dev:fast           # 极速模式 (跳过 lint 和类型检查)
+
+# 构建
+bun run build          # 构建生产版本
+bun start              # 启动生产服务器
+
+# 代码质量
+bun run lint           # ESLint 检查
+```
+
+## 💻 使用方法
+
+### 🌐 Web 界面
+1. 访问应用主页
+2. 输入订阅链接或节点链接
+3. 点击「转换」按钮
+4. 自动复制转换后的链接
+5. 可选择生成短链接便于分享
+
+### 🔗 API 调用
+
+#### 基本转换
+```bash
+# Clash 客户端
+curl -H "User-Agent: clash.meta/v1.19.13" \
+  "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
+
+# Sing-box 客户端
+curl -H "User-Agent: sing-box/1.0.0" \
+  "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
+
+# 浏览器访问 (返回 HTML 预览)
+curl "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
+```
+
+#### 支持的输入格式
+```bash
+# 标准订阅链接
+?url=https://example.com/subscription
+
+# 单节点链接
+?url=ss://base64encodedstring
+
+# GitHub Gist
+?url=https://gist.githubusercontent.com/user/id/raw/file
+```
+
+### 📱 客户端配置
+
+#### Clash
+```yaml
+# 使用转换后的链接更新 Clash 订阅
+proxies: []
+proxy-groups: []
+rules: []
+```
+
+#### Sing-box
+```json
 {
-  "url": "需要缩短的链接"
+  "outbounds": [],
+  "route": {
+    "rules": []
+  }
 }
 ```
 
-## 开发指南
+## 🔧 配置说明
 
-### 环境要求
-- Node.js >= 18
-- Bun >= 1.0
-
-### 安装步骤
-1. 克隆项目
+### 🌍 环境变量
 ```bash
-git clone [项目地址]
+# 短链接服务 (可选)
+BITLY_TOKEN=your_bitly_api_token
+SINK_URL=https://your-sink-instance.com
+SINK_TOKEN=your_sink_auth_token
+
+# 环境配置
+NODE_ENV=production
 ```
 
-2. 安装依赖
-```bash
-bun install
+### ⚙️ 高级配置
+
+#### Next.js 配置 (`next.config.ts`)
+```typescript
+const nextConfig = {
+  experimental: {
+    turbo: {},  // 启用 Turbopack
+  },
+  reactStrictMode: false,  // 优化开发体验
+  // ...其他配置
+}
 ```
 
-3. 启动开发服务器
-```bash
-bun dev
+#### TypeScript 配置 (`tsconfig.json`)
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "paths": {
+      "@/*": ["./*"]  // 路径别名
+    }
+  }
+}
 ```
 
-4. 构建生产版本
+## 🚀 部署
+
+### 🌐 Vercel (推荐)
 ```bash
-bun run build
+# 一键部署到 Vercel
+vercel --prod
+
+# 或使用 Vercel CLI
+npx vercel
 ```
 
-### 配置说明
-
-项目配置主要包含在以下文件中：
-- `next.config.ts`: Next.js配置
-- `src/config/`: 功能配置目录
-
-## 部署说明
-
-### 环境变量
-需要配置的环境变量：
-- `BITLY_TOKEN`: Bitly API Token
-- `SINK_URL`: Sink 服务地址
-- `SINK_TOKEN`: Sink 服务 Token
-
-### 部署步骤
-1. 构建项目
-```bash
-bun run build
+### 🐳 Docker
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
 ```
 
-2. 启动服务
-```bash
-bun start
-```
+### 📋 部署检查清单
+- ✅ 设置正确的环境变量
+- ✅ 确保使用 Node.js 运行时 (API 路由)
+- ✅ 配置域名和 SSL 证书
+- ✅ 设置缓存策略
 
-## 贡献指南
+## 🤝 贡献
 
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
+### 🔧 开发指南
+1. Fork 本仓库
+2. 创建功能分支: `git checkout -b feature/amazing-feature`
+3. 提交更改: `git commit -m 'feat: add amazing feature'`
+4. 推送分支: `git push origin feature/amazing-feature`
+5. 提交 Pull Request
 
-## 许可证
+### 📝 提交规范
+使用 [Conventional Commits](https://conventionalcommits.org/) 规范:
+- `feat:` 新功能
+- `fix:` 修复问题
+- `docs:` 文档更新
+- `style:` 代码格式调整
+- `refactor:` 代码重构
+- `test:` 添加测试
+- `chore:` 工具配置等
 
-[MIT License](LICENSE) 
+### 🐛 问题报告
+发现问题？请 [提交 Issue](https://github.com/xqd922/sub/issues) 并提供:
+- 详细的问题描述
+- 复现步骤
+- 期望行为
+- 环境信息
+
+## 📄 许可证
+
+本项目采用 [MIT 许可证](LICENSE)。
+
+## 🙏 致谢
+
+- [Next.js](https://nextjs.org/) - React 全栈框架
+- [Tailwind CSS](https://tailwindcss.com/) - CSS 框架
+- [Bun](https://bun.sh/) - 快速的 JavaScript 运行时
+- [js-yaml](https://github.com/nodeca/js-yaml) - YAML 解析库
+
+---
+
+<div align="center">
+
+**如果这个项目对你有帮助，请给个 ⭐ Star 支持一下！**
+
+Made with ❤️ by [xqd922](https://github.com/xqd922)
+
+</div>
