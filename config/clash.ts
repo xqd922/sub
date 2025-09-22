@@ -126,6 +126,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,nodeseek.com,Manual',
     'DOMAIN-SUFFIX,mefun.org,Manual',
     'DOMAIN-SUFFIX,1009.com.cn,DIRECT',
+    'DOMAIN,msmp.abchina.com.cn,REJECT',
 
     // Emby
     'DOMAIN,ll.sdxya.top,DIRECT',
