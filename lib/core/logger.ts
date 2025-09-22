@@ -1,53 +1,68 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+/**
+ * 脱敏处理函数
+ */
+function maskSensitiveInfo(args: unknown[]): unknown[] {
+  return args.map(arg => {
+    if (typeof arg === 'string') {
+      // 脱敏代理协议链接 (ss://, vmess://, trojan://, vless://, hysteria2://, hy2://)
+      let maskedArg = arg.replace(/(ss|vmess|trojan|vless|hysteria2|hy2):\/\/[^\s]+/gi, '$1://***')
+
+      // 脱敏HTTP/HTTPS URL - 保留协议和域名，路径和参数全脱敏
+      maskedArg = maskedArg.replace(/(https?:\/\/[^\/\s]+)\/[^\s]*/gi, '$1/***')
+
+      return maskedArg
+    }
+    return arg
+  })
+}
+
+/**
+ * 环境检测
+ */
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
+function isVercel(): boolean {
+  return !!process.env.VERCEL
+}
+
+function isCloudEnvironment(): boolean {
+  return isProduction() || isVercel()
+}
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development'
-  
-  private shouldLog(level: LogLevel): boolean {
-    // 所有环境都输出所有级别的日志
-    return true
-  }
-
-  debug(...args: unknown[]): void {
-    if (this.shouldLog('debug')) {
+  log(...args: unknown[]): void {
+    if (isCloudEnvironment()) {
+      // 云端环境：脱敏输出
+      console.log(...maskSensitiveInfo(args))
+    } else {
+      // 本地环境：原始输出
       console.log(...args)
     }
   }
 
-  info(...args: unknown[]): void {
-    if (this.shouldLog('info')) {
-      console.log(...args)
-    }
-  }
-
-  warn(...args: unknown[]): void {
-    if (this.shouldLog('warn')) {
-      console.warn(...args)
-    }
-  }
-
-  error(...args: unknown[]): void {
-    if (this.shouldLog('error')) {
-      console.error(...args)
-    }
-  }
+  // 兼容旧的方法名
+  debug = this.log
+  info = this.log
+  warn = this.log
+  error = this.log
 
   // 性能调试专用方法
   perf(label: string, fn: () => void): void {
-    if (this.isDevelopment) {
-      console.time(label)
-      fn()
-      console.timeEnd(label)
-    } else {
-      fn()
-    }
+    console.time(label)
+    fn()
+    console.timeEnd(label)
   }
 
-  // 条件日志 - 只在开发环境输出
-  devOnly(...args: unknown[]): void {
-    if (this.isDevelopment) {
-      console.log(...args)
-    }
+  // 强制脱敏方法（无论什么环境都脱敏）
+  safe(...args: unknown[]): void {
+    console.log(...maskSensitiveInfo(args))
+  }
+
+  // 强制原始输出方法（无论什么环境都不脱敏）
+  raw(...args: unknown[]): void {
+    console.log(...args)
   }
 }
 

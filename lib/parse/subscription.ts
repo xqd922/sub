@@ -62,9 +62,9 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
   const seen = new Map<string, Proxy>()
   let infoNodesCount = 0
   let duplicateCount = 0
-  
-  logger.devOnly('\n节点处理详情:')
-  logger.devOnly('1. 开始过滤信息节点...')
+
+  logger.log('\n节点处理详情:')
+  logger.log('1. 开始过滤信息节点...')
   
   proxies.forEach(proxy => {
     const excludeKeywords = [
@@ -76,7 +76,7 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     ]
     
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
-      logger.devOnly(`  [信息] 排除节点: ${proxy.name}`)
+      logger.log(`  [信息] 排除节点: ${proxy.name}`)
       infoNodesCount++
       return
     }
@@ -106,17 +106,17 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     }
 
     if (seen.has(key)) {
-      logger.devOnly(`  [重复] 发现重复节点: ${proxy.name}`)
+      logger.log(`  [重复] 发现重复节点: ${proxy.name}`)
       duplicateCount++
     }
     seen.set(key, proxy)
   })
 
-  logger.devOnly('\n节点统计信息:')
-  logger.devOnly(`  ├─ 原始节点总数: ${proxies.length}`)
-  logger.devOnly(`  ├─ 信息节点数量: ${infoNodesCount}`)
-  logger.devOnly(`  ├─ 重复节点数量: ${duplicateCount}`)
-  logger.devOnly(`  └─ 有效节点数量: ${seen.size}`)
+  logger.log('\n节点统计信息:')
+  logger.log(`  ├─ 原始节点总数: ${proxies.length}`)
+  logger.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
+  logger.log(`  ├─ 重复节点数量: ${duplicateCount}`)
+  logger.log(`  └─ 有效节点数量: ${seen.size}`)
   
   return Array.from(seen.values())
 }

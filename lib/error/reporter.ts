@@ -89,19 +89,19 @@ export class ErrorReporter {
 
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        logger.error('[CRITICAL ERROR]', logData)
+        logger.error('CRITICAL ERROR', logData)
         break
       case ErrorSeverity.HIGH:
-        logger.error('[HIGH ERROR]', logData)
+        logger.error('HIGH ERROR', logData)
         break
       case ErrorSeverity.MEDIUM:
-        logger.warn('[MEDIUM ERROR]', logData)
+        logger.warn('MEDIUM ERROR', logData)
         break
       case ErrorSeverity.LOW:
-        logger.info('[LOW ERROR]', logData)
+        logger.info('LOW ERROR', logData)
         break
       default:
-        logger.error('[UNKNOWN SEVERITY]', logData)
+        logger.error('UNKNOWN SEVERITY', logData)
     }
   }
 
@@ -182,7 +182,7 @@ export class ErrorReporter {
   private async handleCriticalError(report: ErrorReport): Promise<void> {
     try {
       // 关键错误的特殊处理逻辑
-      logger.error('⚠️  CRITICAL ERROR DETECTED ⚠️ ', {
+      logger.error('⚠️  CRITICAL ERROR DETECTED ⚠️', {
         requestId: report.error.requestId,
         code: report.error.code,
         message: report.error.message
