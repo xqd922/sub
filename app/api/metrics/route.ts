@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { MetricsService } from '@/features'
+import { logger } from '@/lib/core/logger'
 
 export const runtime = 'nodejs'
 
@@ -26,7 +27,7 @@ export async function GET() {
     })
 
   } catch (error: unknown) {
-    console.error('获取性能指标失败:', error)
+    logger.error('获取性能指标失败:', error)
     
     return NextResponse.json({
       success: false,
@@ -50,7 +51,7 @@ export async function DELETE() {
     })
 
   } catch (error: unknown) {
-    console.error('重置性能统计失败:', error)
+    logger.error('重置性能统计失败:', error)
     
     return NextResponse.json({
       success: false,

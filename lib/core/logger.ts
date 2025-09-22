@@ -4,33 +4,31 @@ class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development'
   
   private shouldLog(level: LogLevel): boolean {
-    if (this.isDevelopment) return true
-
-    // 生产环境输出 info、警告和错误
-    return level === 'info' || level === 'warn' || level === 'error'
+    // 所有环境都输出所有级别的日志
+    return true
   }
 
   debug(...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      console.log('[DEBUG]', ...args)
+      console.log(...args)
     }
   }
 
   info(...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      console.log('[INFO]', ...args)
+      console.log(...args)
     }
   }
 
   warn(...args: unknown[]): void {
     if (this.shouldLog('warn')) {
-      console.warn('[WARN]', ...args)
+      console.warn(...args)
     }
   }
 
   error(...args: unknown[]): void {
     if (this.shouldLog('error')) {
-      console.error('[ERROR]', ...args)
+      console.error(...args)
     }
   }
 
