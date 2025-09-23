@@ -173,7 +173,7 @@ export class SubService {
               response.headers.get('expire') || 
               response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
               ''),
-      homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://love.521pokemon.com'
+      homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://sub.xqd.pp.ua'
     }
   }
 
