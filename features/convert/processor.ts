@@ -1,10 +1,11 @@
-import { Proxy } from '@/lib/core/types'
-import { parseSubscription } from '@/lib/parse/subscription'
+import { Proxy, ProxyConfig } from '@/lib/core/types'
+import { parseSS, parseVmess, parseTrojan } from '@/lib/parse/subscription'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
 import { REGION_MAP, RegionCode } from '@/lib/format/region'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
+import yaml from 'js-yaml'
 
 /**
  * 订阅处理服务 - 处理各种订阅源
@@ -21,7 +22,7 @@ export class SubService {
     subscription: SubscriptionInfo
   }> {
     logger.info('开始处理订阅:', url)
-    
+
     // 重置计数器
     this.resetCounters()
 
@@ -40,10 +41,23 @@ export class SubService {
       }
       subscription = this.createDefaultSubscription()
     } else {
-      // 标准订阅链接处理
-      const response = await NetService.fetchWithRetry(url)
+      // 标准订阅链接处理 - 只请求一次，共享响应
+      const response = await NetService.fetchSubscription(url, clientUserAgent)
+      
+      // 打印完整的响应头用于调试
+      logger.info('\n===== 响应头信息 =====')
+      const headers = Object.fromEntries(response.headers.entries())
+      Object.entries(headers).forEach(([key, value]) => {
+        logger.info(`${key}: ${value}`)
+      })
+      logger.info('=====================\n')
+      
       subscription = this.extractSubscriptionInfo(response)
-      proxies = await parseSubscription(url, clientUserAgent)
+
+      // 克隆响应用于解析节点（因为响应流只能读取一次）
+      const responseClone = response.clone()
+      const responseText = await responseClone.text()
+      proxies = await this.parseSubscriptionFromText(responseText, url)
     }
 
     return { proxies, subscription }
@@ -53,24 +67,24 @@ export class SubService {
    * 格式化节点名称（保留原有的地区重命名逻辑）
    */
   static formatProxyName(proxy: Proxy): Proxy {
-    const regionMatch = Object.keys(REGION_MAP).find(key => 
+    const regionMatch = Object.keys(REGION_MAP).find(key =>
       proxy.name.toLowerCase().includes(key.toLowerCase())
     )
-    
+
     if (!regionMatch) {
       return proxy
     }
-    
+
     const { flag, name } = REGION_MAP[regionMatch as RegionCode]
-    
+
     // 提取倍率信息
     const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
     const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : ''
-    
+
     // 初始化计数器
     this.counters[name] = this.counters[name] || 0
     const num = String(++this.counters[name]).padStart(2, '0')
-    
+
     return {
       ...proxy,
       name: `${flag} ${name} ${num}${multiplier}`.trim()
@@ -92,12 +106,12 @@ export class SubService {
    */
   static shouldFormatNames(url: string): boolean {
     return !(
-      url.startsWith('ss://') || 
-      url.startsWith('vmess://') || 
-      url.startsWith('trojan://') || 
-      url.startsWith('vless://') || 
-      url.startsWith('hysteria2://') || 
-      url.startsWith('hy2://') || 
+      url.startsWith('ss://') ||
+      url.startsWith('vmess://') ||
+      url.startsWith('trojan://') ||
+      url.startsWith('vless://') ||
+      url.startsWith('hysteria2://') ||
+      url.startsWith('hy2://') ||
       url.includes('gist.githubusercontent.com')
     )
   }
@@ -122,12 +136,12 @@ export class SubService {
    * 检查是否为单节点URL
    */
   private static isSingleNodeUrl(url: string): boolean {
-    return url.startsWith('ss://') || 
-           url.startsWith('vmess://') || 
-           url.startsWith('trojan://') || 
-           url.startsWith('vless://') ||
-           url.startsWith('hysteria2://') || 
-           url.startsWith('hy2://')
+    return url.startsWith('ss://') ||
+      url.startsWith('vmess://') ||
+      url.startsWith('trojan://') ||
+      url.startsWith('vless://') ||
+      url.startsWith('hysteria2://') ||
+      url.startsWith('hy2://')
   }
 
   /**
@@ -152,28 +166,28 @@ export class SubService {
     const contentDisposition = response.headers.get('content-disposition') || ''
     const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
     const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1] || '') : '订阅'
-    
+
     // 获取订阅到期时间和流量信息
     const userInfo = response.headers.get('subscription-userinfo') || ''
-    
+
     // 尝试从多个可能的头部获取首页URL
-    const homepageUrl = response.headers.get('profile-web-page-url') || 
-                       response.headers.get('web-page-url') ||
-                       response.headers.get('homepage') || 
-                       response.headers.get('website') || ''
-    
+    const homepageUrl = response.headers.get('profile-web-page-url') ||
+      response.headers.get('web-page-url') ||
+      response.headers.get('homepage') ||
+      response.headers.get('website') || ''
+
     return {
       name: subName,
       upload: String(userInfo.match(/upload=(\d+)/)?.[1] || 0),
       download: String(userInfo.match(/download=(\d+)/)?.[1] || 0),
       total: String(userInfo.match(/total=(\d+)/)?.[1] || 0),
-      expire: String(userInfo.match(/expire=(\d+)/)?.[1] || 
-              response.headers.get('profile-expire') || 
-              response.headers.get('expires') || 
-              response.headers.get('expire') || 
-              response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
-              ''),
-      homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://sub.xqd.pp.ua'
+      expire: String(userInfo.match(/expire=(\d+)/)?.[1] ||
+        response.headers.get('profile-expire') ||
+        response.headers.get('expires') ||
+        response.headers.get('expire') ||
+        response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
+        ''),
+      homepage: this.decodeHomepageUrl(homepageUrl || 'https://sub.xqd.pp.ua')
     }
   }
 
@@ -194,6 +208,116 @@ export class SubService {
     } catch {
       return 'https://sub.xqd.pp.ua'
     }
+  }
+
+  /**
+   * 从文本内容解析订阅节点（避免重复网络请求）
+   */
+  private static async parseSubscriptionFromText(text: string, url: string): Promise<Proxy[]> {
+    try {
+      if (!text || text.length === 0) {
+        throw new Error('订阅内容为空，请检查订阅链接是否正确')
+      }
+
+      if (text.includes('proxies:')) {
+        const config = yaml.load(text) as ProxyConfig
+        const proxies = config.proxies || []
+
+        // 节点去重
+        return this.removeDuplicates(proxies)
+      }
+
+      const decodedText = Buffer.from(text, 'base64').toString()
+      const proxies = []
+      const lines = decodedText.split('\n')
+
+      for (const line of lines) {
+        if (!line) continue
+
+        try {
+          if (line.startsWith('ss://')) {
+            proxies.push(parseSS(line))
+          } else if (line.startsWith('vmess://')) {
+            proxies.push(parseVmess(line))
+          } else if (line.startsWith('trojan://')) {
+            proxies.push(parseTrojan(line))
+          }
+        } catch (e) {
+          logger.error('节点解析失败:', e)
+        }
+      }
+
+      return proxies.filter(Boolean) as Proxy[]
+    } catch (error) {
+      logger.error('订阅文本解析失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 节点去重函数
+   */
+  private static removeDuplicates(proxies: Proxy[]): Proxy[] {
+    const seen = new Map<string, Proxy>()
+    let infoNodesCount = 0
+    let duplicateCount = 0
+
+    logger.log('\n节点处理详情:')
+    logger.log('1. 开始过滤信息节点...')
+
+    proxies.forEach(proxy => {
+      const excludeKeywords = [
+        '官网',
+        '剩余流量',
+        '距离下次重置',
+        '套餐到期',
+        '订阅'
+      ]
+
+      if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
+        logger.log(`  [信息] 排除节点: ${proxy.name}`)
+        infoNodesCount++
+        return
+      }
+
+      let key = `${proxy.type}:${proxy.server}:${proxy.port}`
+
+      // 根据不同协议添加额外的识别字段
+      switch (proxy.type) {
+        case 'hysteria2':
+          key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
+          break
+        case 'vless':
+          key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
+          if (proxy['reality-opts']) {
+            key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
+          }
+          break
+        case 'vmess':
+          key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
+          break
+        case 'ss':
+          key += `:${proxy.cipher || ''}:${proxy.password || ''}`
+          break
+        case 'trojan':
+          key += `:${proxy.password || ''}:${proxy.sni || ''}`
+          break
+      }
+
+      if (seen.has(key)) {
+        logger.log(`  [重复] 发现重复节点: ${proxy.name}`)
+        duplicateCount++
+      }
+      seen.set(key, proxy)
+    })
+
+    logger.log('\n节点统计信息:')
+    logger.log(`  ├─ 原始节点总数: ${proxies.length}`)
+    logger.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
+    logger.log(`  ├─ 重复节点数量: ${duplicateCount}`)
+    logger.log(`  └─ 有效节点数量: ${seen.size}`)
+
+    return Array.from(seen.values())
   }
 
   /**
@@ -229,7 +353,7 @@ export class SubService {
     }, {} as Record<string, number>)
 
     const sortedTypes = Object.entries(nodeTypes)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .map(([type, count]) => {
         const percentage = ((count / proxies.length) * 100).toFixed(1)
         return `  ├─ ${type}: ${count} (${percentage}%)`

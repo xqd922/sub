@@ -111,7 +111,10 @@ export class NetService {
           },
           redirect: 'follow',
           signal: controller.signal,
-          cache: 'no-store'
+          cache: 'no-store',
+          credentials: 'omit',
+          mode: 'cors',
+          referrerPolicy: 'no-referrer'
         })
         
         if (timeoutId) {
@@ -171,17 +174,41 @@ export class NetService {
    * 订阅专用网络请求 - 根据客户端类型发送请求
    */
   static async fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
-    const processedUrl = this.processSubscriptionUrl(url)
-
-    return this.fetchWithRetry(processedUrl, {
-      retries: 3,
-      timeout: 30000,
-      userAgent: clientUserAgent,  // 使用客户端的真实 User-Agent
-      fallbackRotation: !clientUserAgent,  // 只有在没有指定时才启用容灾轮换
-      headers: {
-        'Cache-Control': 'no-cache'
+    // 直接使用与旧代码完全相同的 fetch 逻辑
+    logger.info(`订阅请求 User-Agent: ClashX/1.95.1 (原始: ${clientUserAgent || 'undefined'})`)
+    
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'ClashX/1.95.1',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        redirect: 'follow',
+        signal: controller.signal,
+        cache: 'no-store',
+        credentials: 'omit',
+        mode: 'cors',
+        referrerPolicy: 'no-referrer'
+      })
+      
+      clearTimeout(timeout)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-    })
+      
+      return response
+    } catch (error) {
+      clearTimeout(timeout)
+      throw error
+    }
   }
 
   /**
