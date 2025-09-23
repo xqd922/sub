@@ -23,14 +23,13 @@ export class ConfigService {
     
     return yaml.dump(clashConfig, {
       flowLevel: 2,
-      lineWidth: 1000,
+      lineWidth: -1,
       indent: 2,
       noRefs: true,
       forceQuotes: false,
+      quotingType: '"',
       styles: {
-        '!!null': 'empty',
-        '!!map': 'flow',
-        '!!seq': 'flow'
+        '!!null': 'empty'
       }
     })
   }
