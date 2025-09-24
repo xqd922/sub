@@ -40,10 +40,14 @@ export class SubService {
       }
       subscription = this.createDefaultSubscription()
     } else {
-      // 标准订阅链接处理
-      const response = await NetService.fetchWithRetry(url)
+      // 标准订阅链接处理 - 分别优化两次请求
+      // 第一次：使用修复的方法获取响应头信息
+      const response = await NetService.fetchSubscription(url, clientUserAgent)
       subscription = this.extractSubscriptionInfo(response)
-      proxies = await parseSubscription(url, clientUserAgent)
+
+      // 第二次：使用原来的方法解析节点（确保兼容性）
+      const { parseSubscription } = await import('@/lib/parse/subscription')
+      proxies = await this.parseSubscriptionWithOriginalMethod(url, clientUserAgent)
     }
 
     return { proxies, subscription }
@@ -175,6 +179,128 @@ export class SubService {
               ''),
       homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://love.521pokemon.com'
     }
+  }
+
+  /**
+   * 使用原来的方法解析订阅节点（确保兼容性）
+   */
+  private static async parseSubscriptionWithOriginalMethod(url: string, clientUserAgent?: string): Promise<Proxy[]> {
+    // 使用原来的网络请求方法
+    const response = await NetService.fetchWithRetry(url)
+    const text = await response.text()
+
+    if (!text || text.length === 0) {
+      return []
+    }
+
+    // 直接处理文本内容
+    return this.parseSubscriptionContent(text)
+  }
+
+  /**
+   * 解析订阅文本内容为节点
+   */
+  private static async parseSubscriptionContent(text: string): Promise<Proxy[]> {
+    const yaml = await import('js-yaml')
+
+    if (text.includes('proxies:')) {
+      const config = yaml.load(text) as any
+      const proxies = config.proxies || []
+
+      // 使用原来的去重逻辑
+      return this.removeDuplicateProxies(proxies)
+    }
+
+    // Base64 解码处理
+    try {
+      const decodedText = Buffer.from(text, 'base64').toString()
+      const lines = decodedText.split('\n')
+      const proxies: Proxy[] = []
+
+      const { SingleNodeParser } = await import('@/lib/parse/node')
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try {
+          const proxy = SingleNodeParser.parse(line)
+          if (proxy) {
+            proxies.push(proxy)
+          }
+        } catch (e) {
+          logger.warn('节点解析失败:', e)
+        }
+      }
+
+      return proxies
+    } catch (e) {
+      return []
+    }
+  }
+
+  /**
+   * 去除重复节点
+   */
+  private static removeDuplicateProxies(proxies: Proxy[]): Proxy[] {
+    const seen = new Map<string, Proxy>()
+    let infoNodesCount = 0
+    let duplicateCount = 0
+
+    logger.log('\n节点处理详情:')
+    logger.log('1. 开始过滤信息节点...')
+
+    proxies.forEach(proxy => {
+      const excludeKeywords = [
+        '官网',
+        '剩余流量',
+        '距离下次重置',
+        '套餐到期',
+        '订阅'
+      ]
+
+      if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
+        logger.log(`  [信息] 排除节点: ${proxy.name}`)
+        infoNodesCount++
+        return
+      }
+
+      let key = `${proxy.type}:${proxy.server}:${proxy.port}`
+
+      // 根据不同协议添加额外的识别字段
+      switch (proxy.type) {
+        case 'hysteria2':
+          key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
+          break
+        case 'vless':
+          key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
+          if (proxy['reality-opts']) {
+            key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
+          }
+          break
+        case 'vmess':
+          key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
+          break
+        case 'ss':
+          key += `:${proxy.cipher || ''}:${proxy.password || ''}`
+          break
+        case 'trojan':
+          key += `:${proxy.password || ''}:${proxy.sni || ''}`
+          break
+      }
+
+      if (seen.has(key)) {
+        logger.log(`  [重复] 发现重复节点: ${proxy.name}`)
+        duplicateCount++
+      }
+      seen.set(key, proxy)
+    })
+
+    logger.log('\n节点统计信息:')
+    logger.log(`  ├─ 原始节点总数: ${proxies.length}`)
+    logger.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
+    logger.log(`  ├─ 重复节点数量: ${duplicateCount}`)
+    logger.log(`  └─ 有效节点数量: ${seen.size}`)
+
+    return Array.from(seen.values())
   }
 
   /**
