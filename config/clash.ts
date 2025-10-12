@@ -40,6 +40,11 @@ export function generateProxyGroups(proxies: Proxy[]) {
       name: 'Emby',
       type: 'select',
       proxies: embyProxies
+    },
+    {
+      name: 'AI',
+      type: 'select',
+      proxies: ['Manual', 'Auto', 'DIRECT', ...proxyNames]
     }
   ]
 
@@ -208,6 +213,27 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,zoxfree.3767483.xyz,Emby',
     'DOMAIN,lite.cn2gias.uk,Emby',
     'DOMAIN-KEYWORD,emby,Emby',
+
+    // AI Services
+    'DOMAIN-SUFFIX,openai.com,AI',
+    'DOMAIN-SUFFIX,ai.com,AI',
+    'DOMAIN-SUFFIX,chatgpt.com,AI',
+    'DOMAIN-SUFFIX,anthropic.com,AI',
+    'DOMAIN-SUFFIX,claude.ai,AI',
+    'DOMAIN-SUFFIX,gemini.google.com,AI',
+    'DOMAIN-SUFFIX,bard.google.com,AI',
+    'DOMAIN-SUFFIX,copilot.microsoft.com,AI',
+    'DOMAIN-SUFFIX,perplexity.ai,AI',
+    'DOMAIN-SUFFIX,midjourney.com,AI',
+    'DOMAIN-SUFFIX,stability.ai,AI',
+    'DOMAIN-SUFFIX,huggingface.co,AI',
+    'DOMAIN-SUFFIX,cohere.com,AI',
+    'DOMAIN-SUFFIX,poe.com,AI',
+    'DOMAIN-SUFFIX,character.ai,AI',
+    'DOMAIN-KEYWORD,openai,AI',
+    'DOMAIN-KEYWORD,chatgpt,AI',
+    'DOMAIN-KEYWORD,claude,AI',
+
     // 默认
     'DOMAIN-SUFFIX,services.googleapis.cn,Manual',
     'DOMAIN-SUFFIX,xn--ngstr-lra8j.com,Manual',
