@@ -3,12 +3,30 @@ import { ClashConfig, Proxy } from '@/lib/core/types'
 // 生成代理组配置
 export function generateProxyGroups(proxies: Proxy[]) {
   const proxyNames = proxies.map(proxy => proxy.name);
-  
-  return [
+
+  // 筛选 HK 节点
+  const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p))
+
+  // 筛选低延迟节点
+  const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
+
+  // 动态构建 Manual 的 proxies 列表
+  const manualProxies = ['Auto', 'DIRECT']
+  if (hkProxies.length > 0) manualProxies.push('HK')
+  if (minProxies.length > 0) manualProxies.push('Min')
+  manualProxies.push(...proxyNames)
+
+  // 动态构建 Emby 的 proxies 列表
+  const embyProxies = ['Manual']
+  if (minProxies.length > 0) embyProxies.push('Min')
+  embyProxies.push(...proxyNames)
+
+  // 构建代理组数组
+  const groups: any[] = [
     {
       name: 'Manual',
       type: 'select',
-      proxies: ['Auto', 'DIRECT', 'HK', 'Min', ...proxyNames]
+      proxies: manualProxies
     },
     {
       name: 'Auto',
@@ -21,31 +39,35 @@ export function generateProxyGroups(proxies: Proxy[]) {
     {
       name: 'Emby',
       type: 'select',
-      proxies: ['Manual', 'Min', ...proxyNames]
-    },
-    {
-      name: 'HK',
-      type: 'url-test',
-      proxies: (() => {
-        const filtered = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p)).map(p => p)
-        return filtered.length > 0 ? filtered : ['DIRECT']
-      })(),
-      url: 'http://www.gstatic.com/generate_204',
-      interval: 300,
-      tolerance: 50
-    },
-    {
-      name: 'Min',
-      type: 'url-test',
-      proxies: (() => {
-        const filtered = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p)).map(p => p)
-        return filtered.length > 0 ? filtered : ['DIRECT']
-      })(),
-      url: 'http://www.gstatic.com/generate_204',
-      interval: 300,
-      tolerance: 50
+      proxies: embyProxies
     }
   ]
+
+  // 只有存在 HK 节点时才添加 HK 代理组
+  if (hkProxies.length > 0) {
+    groups.push({
+      name: 'HK',
+      type: 'url-test',
+      proxies: hkProxies,
+      url: 'http://www.gstatic.com/generate_204',
+      interval: 300,
+      tolerance: 50
+    })
+  }
+
+  // 只有存在低延迟节点时才添加 Min 代理组
+  if (minProxies.length > 0) {
+    groups.push({
+      name: 'Min',
+      type: 'url-test',
+      proxies: minProxies,
+      url: 'http://www.gstatic.com/generate_204',
+      interval: 300,
+      tolerance: 50
+    })
+  }
+
+  return groups
 }
 
 // 默认配置

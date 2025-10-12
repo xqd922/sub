@@ -12,7 +12,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
 
   return {
     log: {
-      disabled: true,
+      disabled: false,
       level: "info",
       output: "box.log",
       timestamp: true
