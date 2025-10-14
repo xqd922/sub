@@ -19,19 +19,22 @@ export class SubService {
   static async processSubscription(url: string, clientUserAgent?: string): Promise<{
     proxies: Proxy[]
     subscription: SubscriptionInfo
+    isAirportSubscription: boolean  // 新增：标识是否为机场订阅
   }> {
     logger.info('开始处理订阅:', url)
-    
+
     // 重置计数器
     this.resetCounters()
 
     let proxies: Proxy[]
     let subscription: SubscriptionInfo
+    let isAirportSubscription = false  // 默认为非机场订阅
 
     if (this.isGistUrl(url)) {
       logger.info('检测到 Gist 订阅，获取所有节点')
       proxies = await fetchNodesFromRemote(url)
       subscription = this.createDefaultSubscription()
+      isAirportSubscription = false  // Gist 节点不生成 HK 组
     } else if (this.isSingleNodeUrl(url)) {
       logger.info('检测到节点链接，使用节点解析器')
       proxies = SingleNodeParser.parseMultiple(url)
@@ -39,6 +42,7 @@ export class SubService {
         throw new Error('无效的节点链接')
       }
       subscription = this.createDefaultSubscription()
+      isAirportSubscription = false  // 单节点不生成 HK 组
     } else {
       // 标准订阅链接处理 - 分别优化两次请求
       // 第一次：使用修复的方法获取响应头信息
@@ -48,9 +52,10 @@ export class SubService {
       // 第二次：使用原来的方法解析节点（确保兼容性）
       const { parseSubscription } = await import('@/lib/parse/subscription')
       proxies = await this.parseSubscriptionWithOriginalMethod(url, clientUserAgent)
+      isAirportSubscription = true  // 标准订阅生成 HK 组
     }
 
-    return { proxies, subscription }
+    return { proxies, subscription, isAirportSubscription }
   }
 
   /**

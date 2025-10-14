@@ -46,8 +46,8 @@ export class CoreService {
       logger.info('===================\n')
 
       // 4. 处理订阅（传递客户端 User-Agent）
-      const { proxies, subscription } = await SubService.processSubscription(url, userAgent)
-      
+      const { proxies, subscription, isAirportSubscription } = await SubService.processSubscription(url, userAgent)
+
       // 5. 记录订阅统计信息
       SubService.logSubscriptionStats(subscription, proxies)
 
@@ -62,7 +62,8 @@ export class CoreService {
         subscription,
         isSingBox,
         isBrowser,
-        shouldFormat
+        shouldFormat,
+        isAirportSubscription  // 传递订阅类型标识
       )
 
       // 8. 记录处理统计
@@ -89,26 +90,27 @@ export class CoreService {
     subscription: SubscriptionInfo,
     isSingBox: boolean,
     isBrowser: boolean,
-    shouldFormatNames: boolean
+    shouldFormatNames: boolean,
+    isAirportSubscription: boolean  // 新增参数
   ): Promise<NextResponse> {
-    
+
     if (isSingBox) {
       // Sing-box JSON 配置
       const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
       const headers = ConfigService.generateResponseHeaders(subscription, true, false)
-      
+
       return new NextResponse(jsonConfig, { headers })
     }
 
-    // 生成配置内容
-    const yamlConfig = ConfigService.generateClashConfig(formattedProxies)
+    // 生成配置内容（传递订阅类型）
+    const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)
     const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
 
     if (isBrowser) {
       // 浏览器预览页面
       const html = ConfigService.generatePreviewHtml(yamlConfig, jsonConfig)
       const headers = ConfigService.generateResponseHeaders(subscription, false, true)
-      
+
       return new NextResponse(html, { headers })
     }
 

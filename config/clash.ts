@@ -1,11 +1,13 @@
 import { ClashConfig, Proxy } from '@/lib/core/types'
 
 // 生成代理组配置
-export function generateProxyGroups(proxies: Proxy[]) {
+export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true) {
   const proxyNames = proxies.map(proxy => proxy.name);
 
-  // 筛选 HK 节点
-  const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p))
+  // 筛选 HK 节点（仅当为机场订阅时）
+  const hkProxies = isAirportSubscription
+    ? proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p))
+    : []
 
   // 筛选低延迟节点
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
@@ -48,8 +50,8 @@ export function generateProxyGroups(proxies: Proxy[]) {
     }
   ]
 
-  // 只有存在 HK 节点时才添加 HK 代理组
-  if (hkProxies.length > 0) {
+  // 只有存在 HK 节点时才添加 HK 代理组（且必须是机场订阅）
+  if (isAirportSubscription && hkProxies.length > 0) {
     groups.push({
       name: 'HK',
       type: 'url-test',

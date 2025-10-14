@@ -14,13 +14,13 @@ export class ConfigService {
   /**
    * 生成 Clash YAML 配置
    */
-  static generateClashConfig(proxies: Proxy[]): string {
+  static generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
     const clashConfig = {
       ...defaultConfig,
       proxies: proxies,
-      'proxy-groups': generateProxyGroups(proxies)
+      'proxy-groups': generateProxyGroups(proxies, isAirportSubscription)
     }
-    
+
     return yaml.dump(clashConfig, {
       flowLevel: 2,
       lineWidth: -1,
