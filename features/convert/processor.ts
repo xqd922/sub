@@ -32,9 +32,12 @@ export class SubService {
 
     if (this.isGistUrl(url)) {
       logger.info('检测到 Gist 订阅，获取所有节点')
-      proxies = await fetchNodesFromRemote(url)
+      const result = await fetchNodesFromRemote(url)
+      proxies = result.proxies
       subscription = this.createDefaultSubscription()
-      isAirportSubscription = false  // Gist 节点不生成 HK 组
+      // 只有当 Gist 中包含订阅链接时才生成 HK 组
+      isAirportSubscription = result.hasSubscriptionUrls
+      logger.info(`Gist 包含订阅链接: ${result.hasSubscriptionUrls}, 是否生成 HK 组: ${isAirportSubscription}`)
     } else if (this.isSingleNodeUrl(url)) {
       logger.info('检测到节点链接，使用节点解析器')
       proxies = SingleNodeParser.parseMultiple(url)
