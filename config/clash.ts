@@ -14,8 +14,11 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
 
   // 动态构建 Manual 的 proxies 列表
   const manualProxies = ['Auto', 'DIRECT']
-  if (hkProxies.length > 0) manualProxies.push('HK')
-  if (minProxies.length > 0) manualProxies.push('Min')
+  if (hkProxies.length > 0) {
+    manualProxies.push('HK')
+    // 只有当有 HK 组时，才添加 Min 组到 Manual
+    if (minProxies.length > 0) manualProxies.push('Min')
+  }
   manualProxies.push(...proxyNames)
 
   // 动态构建 Emby 的 proxies 列表
