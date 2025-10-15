@@ -71,7 +71,7 @@ export class VMessProtocol {
       type: 'vmess',
       tag: proxy.name,
       server: proxy.server,
-      server_port: proxy.port,
+      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
       uuid: proxy.uuid || '',
       security: proxy.cipher || 'auto',
       alter_id: proxy.alterId || 0

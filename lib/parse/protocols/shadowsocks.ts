@@ -221,7 +221,7 @@ export class SSProtocol {
       type: 'shadowsocks',
       tag: proxy.name,
       server: proxy.server,
-      server_port: proxy.port,
+      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
       method: proxy['encrypt-method'] || proxy.cipher || 'aes-256-gcm',
       password: proxy.password || '',
       // 添加插件支持

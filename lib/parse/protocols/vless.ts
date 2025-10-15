@@ -86,7 +86,7 @@ export class VLessProtocol {
       type: 'vless',
       tag: proxy.name,
       server: proxy.server,
-      server_port: proxy.port,
+      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
       uuid: proxy.uuid || '',
       flow: proxy.flow || '',
       packet_encoding: 'xudp'

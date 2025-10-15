@@ -67,7 +67,7 @@ export class TrojanProtocol {
       type: 'trojan',
       tag: proxy.name,
       server: proxy.server,
-      server_port: proxy.port,
+      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
       password: proxy.password || '',
       tls: {
         enabled: true,
