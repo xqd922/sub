@@ -77,7 +77,7 @@ export class SubService {
     
     // 提取倍率信息
     const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
-    const multiplier = multiplierMatch ? ` | ${multiplierMatch[1]}x` : ''
+    const multiplier = multiplierMatch ? ` [${multiplierMatch[1]}x]` : ''
     
     // 初始化计数器
     this.counters[name] = this.counters[name] || 0
