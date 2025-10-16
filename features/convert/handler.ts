@@ -26,7 +26,8 @@ export class CoreService {
       // 1. 验证和解析请求参数
       const { searchParams } = new URL(request.url)
       const url = searchParams.get('url')
-      
+      const templateName = searchParams.get('template') || undefined
+
       if (!url) {
         throw AppError.validation('缺少订阅链接参数', 'url', undefined)
       }
@@ -39,6 +40,11 @@ export class CoreService {
 
       // 3. 检测客户端类型
       const { isSingBox, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
+
+      // 3.5. 记录模板信息
+      if (templateName) {
+        logger.info(`使用自定义模板: ${templateName}`)
+      }
       
       logger.info('\n=== 客户端信息 ===')
       logger.info(`类型: ${clientType}`)
@@ -63,7 +69,8 @@ export class CoreService {
         isSingBox,
         isBrowser,
         shouldFormat,
-        isAirportSubscription  // 传递订阅类型标识
+        isAirportSubscription,  // 传递订阅类型标识
+        templateName  // 传递模板名称
       )
 
       // 8. 记录处理统计
@@ -91,7 +98,8 @@ export class CoreService {
     isSingBox: boolean,
     isBrowser: boolean,
     shouldFormatNames: boolean,
-    isAirportSubscription: boolean  // 新增参数
+    isAirportSubscription: boolean,  // 新增参数
+    templateName?: string  // 新增参数：模板名称
   ): Promise<NextResponse> {
 
     if (isSingBox) {
@@ -102,8 +110,8 @@ export class CoreService {
       return new NextResponse(jsonConfig, { headers })
     }
 
-    // 生成配置内容（传递订阅类型）
-    const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)
+    // 生成配置内容（传递订阅类型和模板名称）
+    const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription, templateName)
     const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
 
     if (isBrowser) {

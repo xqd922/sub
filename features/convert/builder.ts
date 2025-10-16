@@ -5,20 +5,49 @@ import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
 import { SubscriptionInfo } from './processor'
 import { logger } from '@/lib/core/logger'
+import { TemplateLoader } from '@/config/templates/loader'
 
 /**
  * 配置生成服务 - 生成各种格式的配置文件
  */
 export class ConfigService {
-  
+
   /**
    * 生成 Clash YAML 配置
+   * @param proxies 节点列表
+   * @param isAirportSubscription 是否为机场订阅
+   * @param templateName 模板名称（可选）
    */
-  static generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
-    const clashConfig = {
-      ...defaultConfig,
-      proxies: proxies,
-      'proxy-groups': generateProxyGroups(proxies, isAirportSubscription)
+  static generateClashConfig(
+    proxies: Proxy[],
+    isAirportSubscription: boolean = true,
+    templateName?: string
+  ): string {
+    let clashConfig
+
+    // 如果指定了模板，使用模板生成配置
+    if (templateName) {
+      logger.info(`使用模板生成配置: ${templateName}`)
+      const template = TemplateLoader.loadClashTemplate(templateName)
+
+      if (template) {
+        clashConfig = TemplateLoader.applyTemplate(template, proxies)
+      } else {
+        logger.warn(`模板加载失败，使用默认配置: ${templateName}`)
+        // 模板加载失败，回退到默认配置
+        clashConfig = {
+          ...defaultConfig,
+          proxies: proxies,
+          'proxy-groups': generateProxyGroups(proxies, isAirportSubscription)
+        }
+      }
+    } else {
+      // 未指定模板，使用默认配置
+      clashConfig = {
+        ...defaultConfig,
+        proxies: proxies,
+        'proxy-groups': generateProxyGroups(proxies, isAirportSubscription)
+      }
     }
 
     return yaml.dump(clashConfig, {
