@@ -19,7 +19,10 @@
       "Bash(mv:*)",
       "WebFetch(domain:github.com)",
       "Bash(bun:*)",
-      "Bash(npx update-browserslist-db:*)"
+      "Bash(npx update-browserslist-db:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(curl:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
