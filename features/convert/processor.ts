@@ -16,7 +16,7 @@ export class SubService {
   /**
    * 处理订阅请求的主入口
    */
-  static async processSubscription(url: string, clientUserAgent?: string): Promise<{
+  static async processSubscription(url: string, clientUserAgent?: string, chainRules?: string): Promise<{
     proxies: Proxy[]
     subscription: SubscriptionInfo
     isAirportSubscription: boolean  // 新增：标识是否为机场订阅
@@ -56,6 +56,22 @@ export class SubService {
       const { parseSubscription } = await import('@/lib/parse/subscription')
       proxies = await this.parseSubscriptionWithOriginalMethod(url, clientUserAgent)
       isAirportSubscription = true  // 标准订阅生成 HK 组
+    }
+
+    // 应用链式代理规则
+    if (chainRules) {
+      const { ChainProxyHandler } = await import('@/lib/format/chain')
+      proxies = ChainProxyHandler.applyChainRules(proxies, chainRules)
+
+      // 打印链式代理统计
+      const stats = ChainProxyHandler.getChainStats(proxies)
+      logger.info(`\n链式代理统计: ${stats.totalChained} 个节点使用了链式代理`)
+      if (stats.chainDepth.size > 0) {
+        logger.info('链式深度分布:')
+        stats.chainDepth.forEach((count, depth) => {
+          logger.info(`  ${depth} 跳: ${count} 个节点`)
+        })
+      }
     }
 
     return { proxies, subscription, isAirportSubscription }
