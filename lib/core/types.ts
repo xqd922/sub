@@ -61,6 +61,8 @@ export interface Proxy {
   insecure?: boolean
   up_mbps?: number
   down_mbps?: number
+  up?: string | null
+  down?: string | null
 
   // 添加 Reality 相关属性
   reality?: boolean

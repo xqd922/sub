@@ -19,6 +19,10 @@ export class Hysteria2Protocol {
       server = server.substring(1, server.length - 1)
     }
 
+    // 解析 up 和 down 参数
+    const upParam = url.searchParams.get('up')
+    const downParam = url.searchParams.get('down')
+
     return {
       type: 'hysteria2',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
@@ -28,6 +32,8 @@ export class Hysteria2Protocol {
       sni: url.searchParams.get('sni') || '',
       'skip-cert-verify': url.searchParams.get('insecure') === '1',
       alpn: url.searchParams.get('alpn')?.split(',') || ['h3'],
+      up: upParam || null,
+      down: downParam || null,
       tfo: false
     }
   }

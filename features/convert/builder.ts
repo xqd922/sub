@@ -29,7 +29,7 @@ export class ConfigService {
       forceQuotes: false,
       quotingType: '"',
       styles: {
-        '!!null': 'empty'
+        '!!null': 'lowercase'
       }
     })
   }
