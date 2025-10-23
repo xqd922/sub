@@ -102,6 +102,11 @@ export class VMessProtocol {
       }
     }
 
+    // 链式代理支持: Clash 的 dialer-proxy 对应 sing-box 的 detour
+    if (proxy['dialer-proxy']) {
+      config.detour = proxy['dialer-proxy']
+    }
+
     return config
   }
 }

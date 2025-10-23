@@ -67,7 +67,11 @@ export class Hysteria2Protocol {
         enabled: true,
         server_name: proxy.sni || proxy.server,
         insecure: true
-      }
+      },
+      // 链式代理支持: Clash 的 dialer-proxy 对应 sing-box 的 detour
+      ...(proxy['dialer-proxy'] && {
+        detour: proxy['dialer-proxy']
+      })
     }
   }
 }

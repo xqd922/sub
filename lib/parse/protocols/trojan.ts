@@ -100,6 +100,11 @@ export class TrojanProtocol {
       }
     }
 
+    // 链式代理支持: Clash 的 dialer-proxy 对应 sing-box 的 detour
+    if (proxy['dialer-proxy']) {
+      trojanConfig.detour = proxy['dialer-proxy']
+    }
+
     return trojanConfig
   }
 }

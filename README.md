@@ -173,7 +173,8 @@ https://sub.xqd.pp.ua/sub?url=订阅链接&chain=*IPv6->*BGP;*IPLC->*直连;US->
 
 **注意事项**：
 - ⚠️ 链式代理会增加延迟（每跳约 +50-200ms）
-- ⚠️ 需要 Clash Premium/Meta/mihomo 内核支持
+- ⚠️ Clash 需要 Premium/Meta/mihomo 内核支持 `dialer-proxy`
+- ⚠️ Sing-box 使用 `detour` 字段实现链式代理（自动转换）
 - ⚠️ 自动防止循环引用
 - ⚠️ 已有 `dialer-proxy` 的节点不会被覆盖
 
