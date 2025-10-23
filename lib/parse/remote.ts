@@ -20,16 +20,37 @@ const SUBSCRIPTION_PREFIXES = ['http://', 'https://'];
  */
 async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | null> {
   try {
-    // 判断是单节点还是订阅链接
-    if (SINGLE_NODE_PREFIXES.some(prefix => line.startsWith(prefix))) {
-      return SingleNodeParser.parse(line);
-    } else if (SUBSCRIPTION_PREFIXES.some(prefix => line.startsWith(prefix))) {
-      return parseSubscription(line);
+    // 检查是否包含链式代理标记 (用 | 分隔)
+    // 支持: |dialer-proxy: (Clash) 或 |detour: (Sing-box) 或 |chain: (通用)
+    const proxyMatch = line.match(/\|(dialer-proxy|detour|chain):\s*(.+?)$/i)
+    let dialerProxy = ''
+    let cleanLine = line
+
+    if (proxyMatch) {
+      dialerProxy = proxyMatch[2].trim()
+      // 移除链式代理部分，保留原始节点链接
+      cleanLine = line.replace(/\|(dialer-proxy|detour|chain):.+$/i, '')
+      logger.info(`节点指定前置代理: ${dialerProxy}`)
     }
-    return null;
+
+    // 判断是单节点还是订阅链接
+    let proxy: Proxy | Proxy[] | null = null
+
+    if (SINGLE_NODE_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
+      proxy = SingleNodeParser.parse(cleanLine)
+
+      // 如果有 dialer-proxy，添加到节点上
+      if (dialerProxy && proxy && !Array.isArray(proxy)) {
+        proxy['dialer-proxy'] = dialerProxy
+      }
+    } else if (SUBSCRIPTION_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
+      proxy = await parseSubscription(cleanLine)
+    }
+
+    return proxy
   } catch (error) {
-    logger.error(`解析节点失败: ${line}`, error);
-    return null;
+    logger.error(`解析节点失败: ${line}`, error)
+    return null
   }
 }
 
