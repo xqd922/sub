@@ -11,7 +11,12 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
 
   // 动态构建 Manual 的 proxies 列表
-  const manualProxies = ['Auto', 'DIRECT']
+  // 判断是否会添加 Min 组
+  const willAddMin = hkProxies.length > 0 && isAirportSubscription && minProxies.length > 0
+
+  // 只有在会添加 Min 时才包含 DIRECT
+  const manualProxies = willAddMin ? ['Auto', 'DIRECT'] : ['Auto']
+
   if (hkProxies.length > 0) {
     manualProxies.push('HK')
     // 只有当为机场订阅且有 HK 组和 Min 节点时，才添加 Min 组到 Manual
