@@ -4,10 +4,8 @@ import { ClashConfig, Proxy } from '@/lib/core/types'
 export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true) {
   const proxyNames = proxies.map(proxy => proxy.name);
 
-  // 筛选 HK 节点（仅当为机场订阅时）
-  const hkProxies = isAirportSubscription
-    ? proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p))
-    : []
+  // 筛选 HK 节点
+  const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p))
 
   // 筛选低延迟节点
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
@@ -16,14 +14,14 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   const manualProxies = ['Auto', 'DIRECT']
   if (hkProxies.length > 0) {
     manualProxies.push('HK')
-    // 只有当有 HK 组时，才添加 Min 组到 Manual
-    if (minProxies.length > 0) manualProxies.push('Min')
+    // 只有当为机场订阅且有 HK 组和 Min 节点时，才添加 Min 组到 Manual
+    if (isAirportSubscription && minProxies.length > 0) manualProxies.push('Min')
   }
   manualProxies.push(...proxyNames)
 
   // 动态构建 Emby 的 proxies 列表
   const embyProxies = ['Manual']
-  if (minProxies.length > 0) embyProxies.push('Min')
+  if (isAirportSubscription && minProxies.length > 0) embyProxies.push('Min')
   embyProxies.push(...proxyNames)
 
   // 构建代理组数组
@@ -53,8 +51,8 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     }
   ]
 
-  // 只有存在 HK 节点时才添加 HK 代理组（且必须是机场订阅）
-  if (isAirportSubscription && hkProxies.length > 0) {
+  // 只要存在 HK 节点就添加 HK 代理组
+  if (hkProxies.length > 0) {
     groups.push({
       name: 'HK',
       type: 'url-test',
@@ -65,8 +63,8 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     })
   }
 
-  // 只有存在低延迟节点时才添加 Min 代理组
-  if (minProxies.length > 0) {
+  // 只有为机场订阅且存在低延迟节点时才添加 Min 代理组
+  if (isAirportSubscription && minProxies.length > 0) {
     groups.push({
       name: 'Min',
       type: 'url-test',
@@ -136,6 +134,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN-SUFFIX,sudugu.com,DIRECT',
     'DOMAIN,chat.qwen.ai,DIRECT',
+    'DOMAIN-KEYWORD,zijieapi,REJECT',
     'IP-CIDR,1.1.1.1/32,Manual,no-resolve',
     'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
     'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
