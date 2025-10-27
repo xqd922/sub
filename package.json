@@ -1,7 +1,24 @@
 {
-  "name": "clash-sub-api",
-  "version": "0.1.0",
+  "name": "sub",
+  "version": "1.0.0",
   "private": true,
+  "description": "订阅转换服务 - 支持 Clash、Sing-box 等代理客户端的订阅链接转换",
+  "author": "",
+  "license": "MIT",
+  "packageManager": "bun@latest",
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "subscription",
+    "converter",
+    "clash",
+    "sing-box",
+    "proxy",
+    "vpn",
+    "next.js"
+  ],
   "scripts": {
     "dev": "next dev --turbo",
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
