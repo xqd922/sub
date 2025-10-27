@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { MetricsService } from '@/features'
 import { logger } from '@/lib/core/logger'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 /**
  * 获取系统性能指标

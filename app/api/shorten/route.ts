@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { ShortService } from '@/features'
 import { logger } from '@/lib/core/logger'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 export async function POST(request: Request) {
   const startTime = Date.now()

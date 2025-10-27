@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 运行时配置
 
-**重要**：订阅转换 API 路由 (`/sub`) 使用 Node.js 运行时 (`export const runtime = 'nodejs'`) 而不是 Edge 运行时。这对于 Vercel 部署兼容性至关重要，因为 Edge 运行时在网络请求方面有限制，会在获取外部订阅 URL 时导致"内部错误"问题。
+**重要**：所有 API 路由使用 Edge 运行时 (`export const runtime = 'edge'`)，这是为了兼容 Cloudflare Pages 部署。Edge 运行时支持全球边缘部署，提供更快的响应速度和更好的可扩展性。
 
 ## 项目概述
 
@@ -137,6 +137,20 @@ project/
 - 使用 Bun 作为包管理器，避免使用 npm
 
 ### 部署配置
-- 专为 Vercel 部署优化
-- 必须使用 Node.js 运行时处理订阅转换 API
+- 支持 Cloudflare Pages 和 Vercel 部署
+- 使用 Edge Runtime 实现全球边缘部署
 - 支持静态生成和服务器渲染的混合模式
+
+## Cloudflare Pages 部署
+
+### 部署步骤
+1. 连接 GitHub 仓库到 Cloudflare Pages
+2. 配置构建设置：
+   - 构建命令：`bun run build`
+   - 构建输出目录：`.vercel/output/static`
+   - Node.js 版本：18 或更高
+3. 部署完成后自动生成预览和生产环境 URL
+
+### 环境变量（可选）
+- 在 Cloudflare Pages 设置中添加所需的环境变量
+- 支持生产和预览环境的独立配置

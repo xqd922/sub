@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { NetService } from '@/features'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 /**
  * 获取网络统计信息 - 用于监控和调试
