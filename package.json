@@ -23,9 +23,10 @@
     "dev": "next dev --turbo",
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
     "build": "next build",
+    "pages:build": "bun x @cloudflare/next-on-pages",
     "start": "next start",
     "lint": "next lint",
-    "package": "node scripts/package.js"
+    "package": "bun scripts/package.js"
   },
   "dependencies": {
     "caniuse-lite": "^1.0.30001743",
@@ -35,6 +36,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1",
     "@eslint/eslintrc": "^3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",

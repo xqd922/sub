@@ -143,14 +143,38 @@ project/
 
 ## Cloudflare Pages 部署
 
+### 前置准备
+项目使用 `@cloudflare/next-on-pages` 适配器将 Next.js 应用转换为 Cloudflare Pages 兼容格式。
+
 ### 部署步骤
 1. 连接 GitHub 仓库到 Cloudflare Pages
 2. 配置构建设置：
-   - 构建命令：`bun run build`
+   - 框架预设：`Next.js`
+   - 构建命令：`bun run build && bun run pages:build`
    - 构建输出目录：`.vercel/output/static`
-   - Node.js 版本：18 或更高
+   - 环境变量（必须）：
+     - `NODE_VERSION=18`
+     - `BUN_VERSION=latest`
 3. 部署完成后自动生成预览和生产环境 URL
+
+### 本地测试 Cloudflare 构建
+```bash
+# 安装依赖
+bun install
+
+# 构建 Next.js
+bun run build
+
+# 构建 Cloudflare Pages 版本
+bun run pages:build
+```
 
 ### 环境变量（可选）
 - 在 Cloudflare Pages 设置中添加所需的环境变量
 - 支持生产和预览环境的独立配置
+
+### 注意事项
+- 所有 API 路由必须使用 `export const runtime = 'edge'`
+- Edge Runtime 不支持 Node.js 特定的 API（如 fs、path 等）
+- 静态资源会自动部署到 Cloudflare CDN
+- 必须使用 Bun 作为包管理器和运行时
