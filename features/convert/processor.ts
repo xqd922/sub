@@ -262,6 +262,54 @@ export class SubService {
   }
 
   /**
+   * 信息节点过滤关键词
+   */
+  private static readonly INFO_NODE_KEYWORDS = [
+    '官网',
+    '剩余流量',
+    '距离下次重置',
+    '套餐到期',
+    '订阅'
+  ] as const
+
+  /**
+   * 检查是否为信息节点
+   */
+  private static isInfoNode(proxy: Proxy): boolean {
+    return this.INFO_NODE_KEYWORDS.some(keyword => proxy.name.includes(keyword))
+  }
+
+  /**
+   * 生成节点唯一标识键
+   */
+  private static generateProxyKey(proxy: Proxy): string {
+    let key = `${proxy.type}:${proxy.server}:${proxy.port}`
+
+    switch (proxy.type) {
+      case 'hysteria2':
+        key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
+        break
+      case 'vless':
+        key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
+        if (proxy['reality-opts']) {
+          key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
+        }
+        break
+      case 'vmess':
+        key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
+        break
+      case 'ss':
+        key += `:${proxy.cipher || ''}:${proxy.password || ''}`
+        break
+      case 'trojan':
+        key += `:${proxy.password || ''}:${proxy.sni || ''}`
+        break
+    }
+
+    return key
+  }
+
+  /**
    * 去除重复节点
    */
   private static removeDuplicateProxies(proxies: Proxy[]): Proxy[] {
@@ -273,43 +321,13 @@ export class SubService {
     logger.log('1. 开始过滤信息节点...')
 
     proxies.forEach(proxy => {
-      const excludeKeywords = [
-        '官网',
-        '剩余流量',
-        '距离下次重置',
-        '套餐到期',
-        '订阅'
-      ]
-
-      if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
+      if (this.isInfoNode(proxy)) {
         logger.log(`  [信息] 排除节点: ${proxy.name}`)
         infoNodesCount++
         return
       }
 
-      let key = `${proxy.type}:${proxy.server}:${proxy.port}`
-
-      // 根据不同协议添加额外的识别字段
-      switch (proxy.type) {
-        case 'hysteria2':
-          key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
-          break
-        case 'vless':
-          key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
-          if (proxy['reality-opts']) {
-            key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
-          }
-          break
-        case 'vmess':
-          key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
-          break
-        case 'ss':
-          key += `:${proxy.cipher || ''}:${proxy.password || ''}`
-          break
-        case 'trojan':
-          key += `:${proxy.password || ''}:${proxy.sni || ''}`
-          break
-      }
+      const key = this.generateProxyKey(proxy)
 
       if (seen.has(key)) {
         logger.log(`  [重复] 发现重复节点: ${proxy.name}`)
