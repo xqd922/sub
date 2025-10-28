@@ -22,7 +22,8 @@
       "Bash(npx update-browserslist-db:*)",
       "mcp__ide__getDiagnostics",
       "Bash(curl:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

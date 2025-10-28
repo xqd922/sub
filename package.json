@@ -22,8 +22,9 @@
   "scripts": {
     "dev": "next dev --turbo",
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
-    "build": "next build && bun x @cloudflare/next-on-pages",
+    "build": "next build",
     "pages:build": "bun x @cloudflare/next-on-pages",
+    "pages:deploy": "bun run build && bun run pages:build",
     "start": "next start",
     "lint": "next lint",
     "package": "bun scripts/package.js"

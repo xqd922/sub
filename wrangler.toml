@@ -2,7 +2,7 @@ name = "sub"
 compatibility_date = "2025-10-28"
 
 [build]
-command = "bun install && bun run build"
+command = "bun install && bun run pages:deploy"
 
 [build.upload]
 format = "service-worker"
