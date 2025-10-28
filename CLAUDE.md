@@ -53,7 +53,6 @@ project/
 - **core/** - 核心基础设施
   - `types.ts` - 类型定义
   - `utils.ts` - 通用工具
-  - `cache.ts` - 缓存管理
   - `logger.ts` - 日志系统
 
 - **parse/** - 解析器
@@ -101,7 +100,6 @@ project/
 ### 性能优化特性
 
 - **Turbopack**: 启用 Next.js 的下一代打包器
-- **智能缓存**: 内存缓存系统，支持 TTL 和自动清理
 - **智能 User-Agent 策略**: 根据客户端类型发送对应的真实 User-Agent，未知客户端时启用容灾轮换
 - **代码分割**: 组件级别的懒加载和动态导入
 
