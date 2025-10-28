@@ -41,7 +41,6 @@ project/
   - `builder.ts` - 配置构建器（ConfigService）
 
 - **metrics/** - 监控和网络
-  - `metrics.ts` - 性能监控（MetricsService）
   - `network.ts` - 网络请求服务（NetService）
 
 - **shorten/** - 短链接服务
