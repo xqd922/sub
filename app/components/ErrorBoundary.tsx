@@ -245,38 +245,3 @@ function DefaultErrorFallback({ error, retry }: DefaultErrorFallbackProps) {
     </div>
   )
 }
-
-/**
- * 高阶组件：为组件添加错误边界
- */
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: (error: AppError, retry: () => void) => ReactNode
-) {
-  return function WrappedComponent(props: P) {
-    return (
-      <GlobalErrorBoundary fallback={fallback}>
-        <Component {...props} />
-      </GlobalErrorBoundary>
-    )
-  }
-}
-
-/**
- * Hook：在函数组件中处理错误
- */
-export function useErrorHandler() {
-  const reportError = async (error: Error | AppError, context?: Record<string, unknown>) => {
-    const appError = error instanceof AppError ? error : AppError.fromError(error)
-    
-    await handleError(appError, {
-      userAgent: window.navigator.userAgent,
-      url: window.location.href,
-      additionalData: context
-    })
-    
-    return appError
-  }
-
-  return { reportError }
-}

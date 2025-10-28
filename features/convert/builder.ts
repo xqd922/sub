@@ -5,6 +5,7 @@ import { generateSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/styles/preview'
 import { SubscriptionInfo } from './processor'
 import { logger } from '@/lib/core/logger'
+import { formatBytes } from '@/lib/core/utils'
 
 /**
  * 配置生成服务 - 生成各种格式的配置文件
@@ -176,18 +177,7 @@ export class ConfigService {
     logger.info(`  ├─ 节点总数: ${proxies.length}`)
     logger.info(`  ├─ 有效节点: ${formattedProxies.length}`)
     logger.info(`  ├─ 处理耗时: ${duration}ms`)
-    logger.info(`  └─ 配置大小: ${this.formatBytes(yamlConfig.length)}`)
+    logger.info(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
     logger.info('结束时间:', new Date().toLocaleString(), '\n')
-  }
-
-  /**
-   * 格式化字节数
-   */
-  private static formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
   }
 }

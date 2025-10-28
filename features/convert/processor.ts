@@ -5,6 +5,7 @@ import { fetchNodesFromRemote } from '@/lib/parse/remote'
 import { REGION_MAP, RegionCode } from '@/lib/format/region'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
+import { formatBytes } from '@/lib/core/utils'
 
 /**
  * 订阅处理服务 - 处理各种订阅源
@@ -365,17 +366,6 @@ export class SubService {
   }
 
   /**
-   * 格式化字节数
-   */
-  static formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
-  }
-
-  /**
    * 打印订阅统计信息
    */
   static logSubscriptionStats(subscription: SubscriptionInfo, proxies: Proxy[]): void {
@@ -383,9 +373,9 @@ export class SubService {
     logger.info(`名称: ${subscription.name}`)
     logger.info(`首页: ${subscription.homepage}`)
     logger.info(`流量信息:`)
-    logger.info(`  ├─ 上传: ${this.formatBytes(Number(subscription.upload))}`)
-    logger.info(`  ├─ 下载: ${this.formatBytes(Number(subscription.download))}`)
-    logger.info(`  └─ 总量: ${this.formatBytes(Number(subscription.total))}`)
+    logger.info(`  ├─ 上传: ${formatBytes(Number(subscription.upload))}`)
+    logger.info(`  ├─ 下载: ${formatBytes(Number(subscription.download))}`)
+    logger.info(`  └─ 总量: ${formatBytes(Number(subscription.total))}`)
     logger.info(`到期时间: ${subscription.expire ? new Date(Number(subscription.expire) * 1000).toLocaleString() : '未知'}`)
     logger.info('===================\n')
 
