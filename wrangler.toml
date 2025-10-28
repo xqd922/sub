@@ -1,0 +1,8 @@
+name = "sub"
+compatibility_date = "2025-10-28"
+
+[build]
+command = "bun install && bun run build"
+
+[build.upload]
+format = "service-worker"
