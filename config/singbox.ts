@@ -201,7 +201,8 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
       },
       clash_api: {
         external_controller: "127.0.0.1:9090",
-        external_ui: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
+        external_ui: "ui",
+        external_ui_download_url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
         external_ui_download_detour: "Manual",
         secret: ""
       }
