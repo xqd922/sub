@@ -23,6 +23,10 @@ export class Hysteria2Protocol {
     const upParam = url.searchParams.get('up')
     const downParam = url.searchParams.get('down')
 
+    // 解析 obfs 参数
+    const obfs = url.searchParams.get('obfs')
+    const obfsPassword = url.searchParams.get('obfs-password')
+
     return {
       type: 'hysteria2',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
@@ -34,6 +38,8 @@ export class Hysteria2Protocol {
       alpn: url.searchParams.get('alpn')?.split(',') || ['h3'],
       up: upParam || null,
       down: downParam || null,
+      obfs: obfs || undefined,
+      'obfs-password': obfsPassword || undefined,
       tfo: false
     }
   }
@@ -57,7 +63,7 @@ export class Hysteria2Protocol {
       return null;
     }
 
-    return {
+    const config: SingboxProxyConfig = {
       type: 'hysteria2',
       tag: proxy.name,
       server: proxy.server,
@@ -67,12 +73,23 @@ export class Hysteria2Protocol {
         enabled: true,
         server_name: proxy.sni || proxy.server,
         insecure: true
-      },
-      // 链式代理支持: Clash 的 dialer-proxy 对应 sing-box 的 detour
-      ...(proxy['dialer-proxy'] && {
-        detour: proxy['dialer-proxy']
-      })
+      }
+    };
+
+    // 添加 obfs 配置
+    if (proxy.obfs && proxy['obfs-password']) {
+      config.obfs = {
+        type: proxy.obfs,
+        password: proxy['obfs-password']
+      };
     }
+
+    // 添加链式代理支持
+    if (proxy['dialer-proxy']) {
+      config.detour = proxy['dialer-proxy'];
+    }
+
+    return config;
   }
 }
 

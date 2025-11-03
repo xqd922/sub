@@ -63,6 +63,7 @@ export interface Proxy {
   down_mbps?: number
   up?: string | null
   down?: string | null
+  'obfs-password'?: string
 
   // 添加 Reality 相关属性
   reality?: boolean
