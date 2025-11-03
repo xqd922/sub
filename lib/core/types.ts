@@ -108,6 +108,9 @@ export interface ClashConfig {
   ipv6?: boolean
   'tcp-concurrent'?: boolean
   'external-controller'?: string
+  'external-ui'?: string
+  'external-ui-url'?: string
+  secret?: string
   dns?: DnsConfig
   proxies: Proxy[]
   'proxy-groups': ProxyGroup[]

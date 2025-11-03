@@ -20,7 +20,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   manualProxies.push(...proxyNames)
 
   // 动态构建 Emby 的 proxies 列表
-  const embyProxies = ['Manual']
+  const embyProxies = ['Manual', 'DIRECT']
   if (isAirportSubscription && minProxies.length > 0) embyProxies.push('Min')
   embyProxies.push(...proxyNames)
 
@@ -85,7 +85,10 @@ export const defaultConfig: ClashConfig = {
   'allow-lan': true,
   mode: 'Rule',
   'log-level': 'info',
-  'external-controller': ':9090',
+  'external-controller': '0.0.0.0:9090',
+  'external-ui': 'ui',
+  'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
+  secret: '',
   sniffer: {
     sniff: {
       TLS: { ports: [1, 65535], 'override-destination': true },
