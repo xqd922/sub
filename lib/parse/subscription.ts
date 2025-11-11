@@ -65,51 +65,40 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
 
   logger.log('\n节点处理详情:')
   logger.log('1. 开始过滤信息节点...')
-  
+
   proxies.forEach(proxy => {
+    // 过滤信息节点
     const excludeKeywords = [
       '官网',
       '剩余流量',
       '距离下次重置',
       '套餐到期',
-      '订阅'
+      '订阅',
+      '过期时间',
+      '流量重置',
+      '产品官网'
     ]
-    
+
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
       logger.log(`  [信息] 排除节点: ${proxy.name}`)
       infoNodesCount++
       return
     }
 
-    let key = `${proxy.type}:${proxy.server}:${proxy.port}`
-    
-    // 根据不同协议添加额外的识别字段
-    switch (proxy.type) {
-      case 'hysteria2':
-        key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
-        break
-      case 'vless':
-        key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
-        if (proxy['reality-opts']) {
-          key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
-        }
-        break
-      case 'vmess':
-        key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
-        break
-      case 'ss':
-        key += `:${proxy.cipher || ''}:${proxy.password || ''}`
-        break
-      case 'trojan':
-        key += `:${proxy.password || ''}:${proxy.sni || ''}`
-        break
-    }
+    // 生成节点唯一标识符
+    const key = generateProxyKey(proxy)
 
     if (seen.has(key)) {
-      logger.log(`  [重复] 发现重复节点: ${proxy.name}`)
+      const existing = seen.get(key)!
+      logger.log(`  [重复] 发现重复节点: ${proxy.name} (已有: ${existing.name})`)
       duplicateCount++
+      // 保留名称更短或更规范的节点
+      if (proxy.name.length < existing.name.length) {
+        seen.set(key, proxy)
+      }
+    } else {
+      seen.set(key, proxy)
     }
-    seen.set(key, proxy)
   })
 
   logger.log('\n节点统计信息:')
@@ -117,8 +106,93 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
   logger.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
   logger.log(`  ├─ 重复节点数量: ${duplicateCount}`)
   logger.log(`  └─ 有效节点数量: ${seen.size}`)
-  
+
   return Array.from(seen.values())
+}
+
+/**
+ * 生成节点唯一标识符
+ * 根据节点类型和关键配置字段生成唯一 key
+ */
+function generateProxyKey(proxy: Proxy): string {
+  const parts = [proxy.type, proxy.server, proxy.port.toString()]
+
+  // 根据不同协议添加额外的识别字段
+  switch (proxy.type) {
+    case 'hysteria2':
+      parts.push(
+        proxy.password || '',
+        proxy.sni || '',
+        proxy.obfs || '',
+        proxy.up || '',
+        proxy.down || ''
+      )
+      break
+
+    case 'vless':
+      parts.push(
+        proxy.uuid || '',
+        proxy.flow || '',
+        proxy.network || '',
+        proxy.servername || proxy.sni || ''
+      )
+      if (proxy['reality-opts']) {
+        parts.push(
+          proxy['reality-opts']['public-key'] || '',
+          proxy['reality-opts']['short-id'] || ''
+        )
+      }
+      if (proxy['ws-opts']) {
+        parts.push(proxy['ws-opts'].path || '')
+      }
+      break
+
+    case 'vmess':
+      parts.push(
+        proxy.uuid || '',
+        proxy.network || '',
+        proxy.wsPath || '',
+        proxy['ws-opts']?.path || ''
+      )
+      if (proxy.wsHeaders?.Host) {
+        parts.push(proxy.wsHeaders.Host)
+      }
+      if (proxy['ws-opts']?.headers?.Host) {
+        parts.push(proxy['ws-opts'].headers.Host)
+      }
+      break
+
+    case 'ss':
+      parts.push(
+        proxy.cipher || proxy['encrypt-method'] || '',
+        proxy.password || '',
+        proxy.plugin || '',
+        proxy.obfs || ''
+      )
+      break
+
+    case 'trojan':
+      parts.push(
+        proxy.password || '',
+        proxy.sni || '',
+        proxy.network || ''
+      )
+      if (proxy['ws-opts']) {
+        parts.push(proxy['ws-opts'].path || '')
+      }
+      if (proxy['grpc-opts']) {
+        parts.push(proxy['grpc-opts']['grpc-service-name'] || '')
+      }
+      break
+
+    default:
+      // 未知协议，使用基本字段
+      parts.push(proxy.password || proxy.uuid || '')
+      break
+  }
+
+  // 过滤空字符串并用 : 连接
+  return parts.filter(p => p !== '').join(':')
 }
 
 export function parseSS(line: string): Proxy {
