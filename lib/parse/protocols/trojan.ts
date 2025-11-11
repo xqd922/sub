@@ -20,7 +20,7 @@ export class TrojanProtocol {
       password: url.username,
       sni: params.get('sni') || url.hostname,
       udp: true,
-      skipCertVerify: params.get('allowInsecure') === '1'
+      'skip-cert-verify': params.get('allowInsecure') === '1'
     }
 
     // 处理传输协议
@@ -72,7 +72,7 @@ export class TrojanProtocol {
       tls: {
         enabled: true,
         server_name: proxy.sni || proxy.server,
-        insecure: proxy.skipCertVerify || true
+        insecure: proxy['skip-cert-verify'] ?? false
       }
     }
 
