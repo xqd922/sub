@@ -97,7 +97,7 @@ export class VLessProtocol {
       config.tls = {
         enabled: true,
         server_name: proxy.servername || proxy.sni || proxy.server,
-        insecure: true,
+        insecure: proxy['skip-cert-verify'] ?? false,
         ...(realityOpts ? {
           reality: {
             enabled: true,

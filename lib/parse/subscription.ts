@@ -171,7 +171,7 @@ export function parseTrojan(line: string): Proxy {
     port: parseInt(url.port),
     password: url.username,
     sni: params.get('sni') || url.hostname,
-    skipCertVerify: params.get('allowInsecure') === '1'
+    'skip-cert-verify': params.get('allowInsecure') === '1'
   }
 
   // 处理传输协议

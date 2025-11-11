@@ -17,7 +17,7 @@ export interface Proxy {
   wsPath?: string
   wsHeaders?: Record<string, string>
   tls?: boolean
-  skipCertVerify?: boolean
+  'skip-cert-verify'?: boolean
   sni?: string
   // SS obfs 配置 - Clash 格式
   obfs?: string
@@ -36,7 +36,6 @@ export interface Proxy {
   ports?: string
   mport?: string
   udp?: boolean
-  'skip-cert-verify'?: boolean
   flow?: string
   'client-fingerprint'?: string
   servername?: string

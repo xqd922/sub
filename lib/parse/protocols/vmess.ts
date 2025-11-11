@@ -82,7 +82,7 @@ export class VMessProtocol {
       config.tls = {
         enabled: true,
         server_name: proxy.servername || proxy.server,
-        insecure: true
+        insecure: proxy['skip-cert-verify'] ?? false
       }
     }
 
