@@ -2,6 +2,8 @@ import { Proxy, ProxyConfig } from '../core/types'
 import yaml from 'js-yaml'
 import { logger } from '../core/logger'
 import { NetService } from '@/features'
+import { VLessProtocol } from './protocols/vless'
+import { Hysteria2Protocol } from './protocols/hysteria2'
 
 export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()
@@ -112,15 +114,16 @@ function parseBase64Subscription(text: string): Proxy[] {
 }
 
 /**
- * 导入协议解析器（使用懒加载避免循环依赖）
+ * 解析 VLESS 节点
  */
 function parseVless(line: string): Proxy {
-  const { VLessProtocol } = require('./protocols/vless')
   return VLessProtocol.parse(line)
 }
 
+/**
+ * 解析 Hysteria2 节点
+ */
 function parseHysteria2(line: string): Proxy {
-  const { Hysteria2Protocol } = require('./protocols/hysteria2')
   return Hysteria2Protocol.parse(line)
 }
 
