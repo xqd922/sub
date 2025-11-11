@@ -129,14 +129,6 @@ function parseHysteria2(line: string): Proxy {
 
 // 节点去重函数
 function removeDuplicates(proxies: Proxy[]): Proxy[] {
-  // 当节点数量较少时，直接使用详细模式
-  const isVerbose = proxies.length < 100
-
-  if (isVerbose) {
-    logger.log('\n节点处理详情:')
-    logger.log('1. 开始过滤信息节点...')
-  }
-
   const seen = new Map<string, Proxy>()
   let infoNodesCount = 0
   let duplicateCount = 0
@@ -147,30 +139,23 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     '订阅', '过期时间', '流量重置', '产品官网'
   ]
 
-  // 批量处理节点
+  // 高性能批量处理节点
   for (let i = 0; i < proxies.length; i++) {
     const proxy = proxies[i]
     if (!proxy) continue
 
     // 快速过滤信息节点
     if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
-      if (isVerbose) {
-        logger.log(`  [信息] 排除节点: ${proxy.name}`)
-      }
       infoNodesCount++
       continue
     }
 
-    // 生成节点唯一标识符（缓存优化）
+    // 生成节点唯一标识符
     const key = generateProxyKey(proxy)
 
     if (seen.has(key)) {
       const existing = seen.get(key)!
-      if (isVerbose) {
-        logger.log(`  [重复] 发现重复节点: ${proxy.name} (已有: ${existing.name})`)
-      }
       duplicateCount++
-
       // 保留名称更短或更规范的节点
       if (proxy.name.length < existing.name.length) {
         seen.set(key, proxy)
@@ -180,8 +165,8 @@ function removeDuplicates(proxies: Proxy[]): Proxy[] {
     }
   }
 
-  // 只在详细模式或有重要信息时输出
-  if (isVerbose || infoNodesCount > 0 || duplicateCount > 0) {
+  // 详细统计输出
+  if (infoNodesCount > 0 || duplicateCount > 0 || seen.size !== proxies.length) {
     logger.log('\n节点统计信息:')
     logger.log(`  ├─ 原始节点总数: ${proxies.length}`)
     if (infoNodesCount > 0) {
