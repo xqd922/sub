@@ -35,12 +35,12 @@ export class Hysteria2Protocol {
       password: url.username,
       sni: url.searchParams.get('sni') || '',
       'skip-cert-verify': url.searchParams.get('insecure') === '1',
+      'client-fingerprint': url.searchParams.get('fp') || url.searchParams.get('fingerprint') || 'chrome',
       alpn: url.searchParams.get('alpn')?.split(',') || ['h3'],
-      up: upParam || null,
-      down: downParam || null,
+      up: upParam || undefined,
+      down: downParam || undefined,
       obfs: obfs || undefined,
-      'obfs-password': obfsPassword || undefined,
-      tfo: false
+      'obfs-password': obfsPassword || undefined
     }
   }
 
@@ -72,7 +72,7 @@ export class Hysteria2Protocol {
       tls: {
         enabled: true,
         server_name: proxy.sni || proxy.server,
-        insecure: true
+        insecure: proxy['skip-cert-verify'] ?? false
       }
     };
 
