@@ -27,10 +27,11 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
     let cleanLine = line
 
     if (proxyMatch) {
+      const proxyType = proxyMatch[1].toLowerCase()  // dialer-proxy, detour, 或 chain
       dialerProxy = proxyMatch[2].trim()
       // 移除链式代理部分，保留原始节点链接
       cleanLine = line.replace(/\|(dialer-proxy|detour|chain):.+$/i, '')
-      logger.info(`节点指定前置代理: ${dialerProxy}`)
+      logger.info(`节点指定前置代理 (${proxyType}): ${dialerProxy}`)
     }
 
     // 判断是单节点还是订阅链接
@@ -39,11 +40,21 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
     if (SINGLE_NODE_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
       proxy = SingleNodeParser.parse(cleanLine)
 
-      // 如果有链式代理，同时添加两种格式的字段
-      // Clash 使用 dialer-proxy，Sing-box 使用 detour
-      if (dialerProxy && proxy && !Array.isArray(proxy)) {
-        proxy['dialer-proxy'] = dialerProxy  // Clash 格式
-        proxy['detour'] = dialerProxy         // Sing-box 格式
+      // 根据用户指定的标记类型添加对应字段
+      if (proxyMatch && dialerProxy && proxy && !Array.isArray(proxy)) {
+        const proxyType = proxyMatch[1].toLowerCase()
+
+        if (proxyType === 'dialer-proxy') {
+          // 只为 Clash 添加
+          proxy['dialer-proxy'] = dialerProxy
+        } else if (proxyType === 'detour') {
+          // 只为 Sing-box 添加
+          proxy['detour'] = dialerProxy
+        } else if (proxyType === 'chain') {
+          // 通用标记：同时添加两种格式
+          proxy['dialer-proxy'] = dialerProxy
+          proxy['detour'] = dialerProxy
+        }
       }
     } else if (SUBSCRIPTION_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
       proxy = await parseSubscription(cleanLine)
