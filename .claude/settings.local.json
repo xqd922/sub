@@ -23,7 +23,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(curl:*)",
       "Bash(git log:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []

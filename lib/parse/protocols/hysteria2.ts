@@ -84,11 +84,6 @@ export class Hysteria2Protocol {
       };
     }
 
-    // 添加链式代理支持
-    if (proxy['dialer-proxy']) {
-      config.detour = proxy['dialer-proxy'];
-    }
-
     return config;
   }
 }

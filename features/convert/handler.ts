@@ -25,7 +25,6 @@ export class CoreService {
       // 1. 验证和解析请求参数
       const { searchParams } = new URL(request.url)
       const url = searchParams.get('url')
-      const chainRules = searchParams.get('chain') || '' // 获取链式代理规则
 
       if (!url) {
         throw AppError.validation('缺少订阅链接参数', 'url', undefined)
@@ -37,13 +36,6 @@ export class CoreService {
         throw ErrorFactory.subscription.invalidUrl(url)
       }
 
-      // 记录链式代理规则
-      if (chainRules) {
-        logger.info('\n=== 链式代理规则 ===')
-        logger.info(`规则: ${chainRules}`)
-        logger.info('===================\n')
-      }
-
       // 3. 检测客户端类型
       const { isSingBox, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
       
@@ -52,8 +44,8 @@ export class CoreService {
       logger.info(`User-Agent: ${userAgent}`)
       logger.info('===================\n')
 
-      // 4. 处理订阅（传递客户端 User-Agent 和链式代理规则）
-      const { proxies, subscription, isAirportSubscription } = await SubService.processSubscription(url, userAgent, chainRules)
+      // 4. 处理订阅（传递客户端 User-Agent）
+      const { proxies, subscription, isAirportSubscription } = await SubService.processSubscription(url, userAgent)
 
       // 5. 记录订阅统计信息
       SubService.logSubscriptionStats(subscription, proxies)

@@ -233,10 +233,6 @@ export class SSProtocol {
       ...(proxy.obfs && {
         plugin: "obfs-local",
         plugin_opts: `obfs=${proxy.obfs};obfs-host=${proxy['obfs-host'] || 'www.bing.com'}`
-      }),
-      // 链式代理支持: Clash 的 dialer-proxy 对应 sing-box 的 detour
-      ...(proxy['dialer-proxy'] && {
-        detour: proxy['dialer-proxy']
       })
     }
   }

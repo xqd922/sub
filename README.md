@@ -133,51 +133,6 @@ curl -H "User-Agent: sing-box/1.0.0" \
 curl "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
 ```
 
-#### 🔗 链式代理 (新功能)
-
-使用 `chain` 参数为节点添加前置代理，实现流量中转：
-
-```bash
-# 基本用法：让 HK BGP 节点通过 HK CM IPv6 中转
-https://sub.xqd.pp.ua/sub?url=订阅链接&chain=HK BGP->HK CM IPv6
-
-# 通配符匹配：所有 IPv6 节点通过 BGP 节点中转
-https://sub.xqd.pp.ua/sub?url=订阅链接&chain=*IPv6->*BGP
-
-# 地区匹配：美国节点通过日本节点中转
-https://sub.xqd.pp.ua/sub?url=订阅链接&chain=US->JP
-
-# 多跳链式：美国 -> 日本 -> 香港 (三跳)
-https://sub.xqd.pp.ua/sub?url=订阅链接&chain=US->JP->HK
-
-# 多规则组合（用分号分隔）
-https://sub.xqd.pp.ua/sub?url=订阅链接&chain=*IPv6->*BGP;*IPLC->*直连;US->HK
-```
-
-**链式代理规则说明**：
-- `A->B`: A 节点使用 B 节点作为前置代理
-- `*关键词`: 通配符匹配，匹配包含关键词的所有节点
-- `;`: 分号分隔多条规则
-- 支持多跳链式（建议最多 2-3 跳）
-
-**生成的配置示例**：
-```yaml
-- name: 🇭🇰 HK BGP
-  type: trojan
-  server: example.com
-  port: 443
-  dialer-proxy: 🇭🇰 HK CM IPv6  # ← 自动添加前置代理
-```
-
-**流量路径**：你的设备 → HK CM IPv6 → HK BGP → 目标网站
-
-**注意事项**：
-- ⚠️ 链式代理会增加延迟（每跳约 +50-200ms）
-- ⚠️ Clash 需要 Premium/Meta/mihomo 内核支持 `dialer-proxy`
-- ⚠️ Sing-box 使用 `detour` 字段实现链式代理（自动转换）
-- ⚠️ 自动防止循环引用
-- ⚠️ 已有 `dialer-proxy` 的节点不会被覆盖
-
 #### 支持的输入格式
 ```bash
 # 标准订阅链接
