@@ -39,9 +39,11 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
     if (SINGLE_NODE_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
       proxy = SingleNodeParser.parse(cleanLine)
 
-      // 如果有 dialer-proxy，添加到节点上
+      // 如果有链式代理，同时添加两种格式的字段
+      // Clash 使用 dialer-proxy，Sing-box 使用 detour
       if (dialerProxy && proxy && !Array.isArray(proxy)) {
-        proxy['dialer-proxy'] = dialerProxy
+        proxy['dialer-proxy'] = dialerProxy  // Clash 格式
+        proxy['detour'] = dialerProxy         // Sing-box 格式
       }
     } else if (SUBSCRIPTION_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
       proxy = await parseSubscription(cleanLine)

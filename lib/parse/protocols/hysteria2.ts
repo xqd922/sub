@@ -84,6 +84,11 @@ export class Hysteria2Protocol {
       };
     }
 
+    // 添加链式代理支持（Sing-box 使用 detour 字段）
+    if (proxy.detour) {
+      config.detour = proxy.detour
+    }
+
     return config;
   }
 }

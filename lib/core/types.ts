@@ -70,8 +70,9 @@ export interface Proxy {
   // 添加 tfo 属性
   tfo?: boolean
 
-  // 添加 dialer-proxy 属性
-  'dialer-proxy'?: string
+  // 链式代理支持
+  'dialer-proxy'?: string  // Clash 格式
+  detour?: string          // Sing-box 格式
 }
 
 export interface DnsConfig {
@@ -182,5 +183,6 @@ export interface SingboxProxyConfig {
   uuid?: string;
   tls?: SingboxTLSConfig;
   transport?: SingboxTransportConfig;
+  detour?: string;  // 链式代理支持
   [key: string]: unknown;
 } 
