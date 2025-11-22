@@ -145,6 +145,13 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           outbound: "Manual"
         },
         {
+          domain_suffix: [
+            "apple-cdn.net",
+            "sharepoint.com"
+          ],
+          outbound: "direct"
+        },
+        {
           rule_set: ["geosite-cn", "ext-cn-domain"],
           outbound: "direct"
         },
