@@ -16,10 +16,16 @@ export class ConfigService {
    * 生成 Clash YAML 配置
    */
   static generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
+    // 清理 Clash 不需要的字段（移除 detour 字段）
+    const clashProxies = proxies.map(proxy => {
+      const { detour, ...clashProxy } = proxy
+      return clashProxy
+    })
+
     const clashConfig = {
       ...defaultConfig,
-      proxies: proxies,
-      'proxy-groups': generateProxyGroups(proxies, isAirportSubscription)
+      proxies: clashProxies,
+      'proxy-groups': generateProxyGroups(clashProxies, isAirportSubscription)
     }
 
     return yaml.dump(clashConfig, {

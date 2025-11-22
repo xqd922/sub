@@ -166,6 +166,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,msmp.abchina.com.cn,REJECT',
     'IP-CIDR,192.168.0.0/16,DIRECT',
     'DOMAIN-SUFFIX,msmp.abchina.com.cn,REJECT',
+    'DOMAIN-SUFFIX,sharepoint.com,DIRECT',
 
     // Emby
     'DOMAIN,ll.sdxya.top,DIRECT',
