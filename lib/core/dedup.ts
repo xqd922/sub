@@ -8,8 +8,45 @@ import { logger } from './logger'
 const INFO_NODE_KEYWORDS = [
   '官网', '剩余流量', '距离下次重置', '套餐到期',
   '订阅', '过期时间', '流量重置', '官网','建议',
-  '到期', '重置', '流量', 'expire', 'traffic'
+  '到期', '更新','重置', '流量', 'expire', 'traffic'
 ] as const
+
+/**
+ * 无效服务器地址
+ * 这些地址无法用于代理连接
+ */
+const INVALID_SERVERS = [
+  '127.0.0.1',
+  'localhost',
+  '0.0.0.0',
+  '::1',
+  '1.1.1.1',        // Cloudflare DNS，不是有效代理
+  '8.8.8.8',        // Google DNS
+  '8.8.4.4',        // Google DNS
+  '114.114.114.114', // 国内 DNS
+  '223.5.5.5',      // 阿里 DNS
+  '223.6.6.6',      // 阿里 DNS
+] as const
+
+/**
+ * 无效服务器地址正则模式
+ */
+const INVALID_SERVER_PATTERNS = [
+  /^192\.168\.\d+\.\d+$/,    // 私有地址 192.168.x.x
+  /^10\.\d+\.\d+\.\d+$/,     // 私有地址 10.x.x.x
+  /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/, // 私有地址 172.16-31.x.x
+  /^169\.254\.\d+\.\d+$/,    // 链路本地地址
+  /^fc00:/i,                  // IPv6 私有地址
+  /^fe80:/i,                  // IPv6 链路本地地址
+  /^::$/,                     // IPv6 未指定地址
+  /^example\./i,             // 示例域名
+  /^test\./i,                // 测试域名
+  /^localhost$/i,            // localhost
+  /\.local$/i,               // 本地域名
+  /\.example$/i,             // 示例顶级域名
+  /\.test$/i,                // 测试顶级域名
+  /\.invalid$/i,             // 无效顶级域名
+]
 
 /**
  * 检查是否为信息节点
@@ -19,6 +56,27 @@ function isInfoNode(proxy: Proxy): boolean {
   return INFO_NODE_KEYWORDS.some(keyword =>
     name.includes(keyword.toLowerCase())
   )
+}
+
+/**
+ * 检查是否为无效节点（无效服务器地址或端口）
+ */
+function isInvalidNode(proxy: Proxy): boolean {
+  const server = proxy.server?.trim().toLowerCase()
+
+  // 检查服务器是否为空
+  if (!server) return true
+
+  // 检查端口是否有效
+  if (!proxy.port || proxy.port <= 0 || proxy.port > 65535) return true
+
+  // 检查是否在无效服务器列表中
+  if (INVALID_SERVERS.some(s => s.toLowerCase() === server)) return true
+
+  // 检查是否匹配无效模式
+  if (INVALID_SERVER_PATTERNS.some(pattern => pattern.test(server))) return true
+
+  return false
 }
 
 /**
@@ -166,6 +224,8 @@ export interface DeduplicateStats {
   original: number
   /** 信息节点数 */
   infoNodes: number
+  /** 无效节点数 */
+  invalidNodes: number
   /** 重复节点数 */
   duplicates: number
   /** 有效节点数 */
@@ -192,6 +252,7 @@ export function deduplicateProxies(
 
   const seen = new Map<string, Proxy>()
   let infoNodesCount = 0
+  let invalidNodesCount = 0
   let duplicateCount = 0
 
   for (const proxy of proxies) {
@@ -200,6 +261,12 @@ export function deduplicateProxies(
     // 过滤信息节点
     if (filterInfoNodes && isInfoNode(proxy)) {
       infoNodesCount++
+      continue
+    }
+
+    // 过滤无效节点
+    if (isInvalidNode(proxy)) {
+      invalidNodesCount++
       continue
     }
 
@@ -232,11 +299,14 @@ export function deduplicateProxies(
   }
 
   // 输出统计日志
-  if (verbose && (infoNodesCount > 0 || duplicateCount > 0)) {
+  if (verbose && (infoNodesCount > 0 || invalidNodesCount > 0 || duplicateCount > 0)) {
     logger.log('\n节点去重统计:')
     logger.log(`  ├─ 原始节点: ${proxies.length}`)
     if (infoNodesCount > 0) {
       logger.log(`  ├─ 信息节点: ${infoNodesCount} (已过滤)`)
+    }
+    if (invalidNodesCount > 0) {
+      logger.log(`  ├─ 无效节点: ${invalidNodesCount} (已过滤)`)
     }
     if (duplicateCount > 0) {
       logger.log(`  ├─ 重复节点: ${duplicateCount} (已去重)`)
@@ -253,6 +323,7 @@ export function deduplicateProxies(
 export function getDeduplicateStats(proxies: Proxy[]): DeduplicateStats {
   const seen = new Set<string>()
   let infoNodes = 0
+  let invalidNodes = 0
   let duplicates = 0
 
   for (const proxy of proxies) {
@@ -260,6 +331,11 @@ export function getDeduplicateStats(proxies: Proxy[]): DeduplicateStats {
 
     if (isInfoNode(proxy)) {
       infoNodes++
+      continue
+    }
+
+    if (isInvalidNode(proxy)) {
+      invalidNodes++
       continue
     }
 
@@ -274,6 +350,7 @@ export function getDeduplicateStats(proxies: Proxy[]): DeduplicateStats {
   return {
     original: proxies.length,
     infoNodes,
+    invalidNodes,
     duplicates,
     valid: seen.size
   }
