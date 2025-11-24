@@ -6,6 +6,7 @@ import { REGION_MAP, RegionCode } from '@/lib/format/region'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
 import { formatBytes } from '@/lib/core/utils'
+import { deduplicateProxies } from '@/lib/core/dedup'
 
 /**
  * 订阅处理服务 - 处理各种订阅源
@@ -216,8 +217,8 @@ export class SubService {
       const config = yaml.load(text) as any
       const proxies = config.proxies || []
 
-      // 使用原来的去重逻辑
-      return this.removeDuplicateProxies(proxies)
+      // 使用统一的去重函数
+      return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
     }
 
     // Base64 解码处理
@@ -244,90 +245,6 @@ export class SubService {
     } catch (e) {
       return []
     }
-  }
-
-  /**
-   * 信息节点过滤关键词
-   */
-  private static readonly INFO_NODE_KEYWORDS = [
-    '官网',
-    '剩余流量',
-    '距离下次重置',
-    '套餐到期',
-    '订阅'
-  ] as const
-
-  /**
-   * 检查是否为信息节点
-   */
-  private static isInfoNode(proxy: Proxy): boolean {
-    return this.INFO_NODE_KEYWORDS.some(keyword => proxy.name.includes(keyword))
-  }
-
-  /**
-   * 生成节点唯一标识键
-   */
-  private static generateProxyKey(proxy: Proxy): string {
-    let key = `${proxy.type}:${proxy.server}:${proxy.port}`
-
-    switch (proxy.type) {
-      case 'hysteria2':
-        key += `:${proxy.ports || ''}:${proxy.mport || ''}:${proxy.password || ''}:${proxy.sni || ''}`
-        break
-      case 'vless':
-        key += `:${proxy.uuid || ''}:${proxy.flow || ''}`
-        if (proxy['reality-opts']) {
-          key += `:${proxy['reality-opts']['public-key'] || ''}:${proxy['reality-opts']['short-id'] || ''}`
-        }
-        break
-      case 'vmess':
-        key += `:${proxy.uuid || ''}:${proxy.network || ''}:${proxy.wsPath || ''}`
-        break
-      case 'ss':
-        key += `:${proxy.cipher || ''}:${proxy.password || ''}`
-        break
-      case 'trojan':
-        key += `:${proxy.password || ''}:${proxy.sni || ''}`
-        break
-    }
-
-    return key
-  }
-
-  /**
-   * 去除重复节点
-   */
-  private static removeDuplicateProxies(proxies: Proxy[]): Proxy[] {
-    const seen = new Map<string, Proxy>()
-    let infoNodesCount = 0
-    let duplicateCount = 0
-
-    logger.log('\n节点处理详情:')
-    logger.log('1. 开始过滤信息节点...')
-
-    proxies.forEach(proxy => {
-      if (this.isInfoNode(proxy)) {
-        logger.log(`  [信息] 排除节点: ${proxy.name}`)
-        infoNodesCount++
-        return
-      }
-
-      const key = this.generateProxyKey(proxy)
-
-      if (seen.has(key)) {
-        logger.log(`  [重复] 发现重复节点: ${proxy.name}`)
-        duplicateCount++
-      }
-      seen.set(key, proxy)
-    })
-
-    logger.log('\n节点统计信息:')
-    logger.log(`  ├─ 原始节点总数: ${proxies.length}`)
-    logger.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
-    logger.log(`  ├─ 重复节点数量: ${duplicateCount}`)
-    logger.log(`  └─ 有效节点数量: ${seen.size}`)
-
-    return Array.from(seen.values())
   }
 
   /**

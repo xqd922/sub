@@ -4,6 +4,7 @@ import { logger } from '../core/logger'
 import { NetService } from '@/features'
 import { VLessProtocol } from './protocols/vless'
 import { Hysteria2Protocol } from './protocols/hysteria2'
+import { deduplicateProxies } from '../core/dedup'
 
 export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()
@@ -55,8 +56,8 @@ function parseYamlSubscription(text: string): Proxy[] {
   const config = yaml.load(text, { schema: yaml.FAILSAFE_SCHEMA }) as ProxyConfig
   const proxies = config.proxies || []
 
-  // 节点去重
-  return removeDuplicates(proxies)
+  // 使用统一的去重函数
+  return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
 }
 
 /**
@@ -125,145 +126,6 @@ function parseVless(line: string): Proxy {
  */
 function parseHysteria2(line: string): Proxy {
   return Hysteria2Protocol.parse(line)
-}
-
-// 节点去重函数
-function removeDuplicates(proxies: Proxy[]): Proxy[] {
-  const seen = new Map<string, Proxy>()
-  let infoNodesCount = 0
-  let duplicateCount = 0
-
-  // 过滤关键词（编译时优化）
-  const excludeKeywords = [
-    '官网', '剩余流量', '距离下次重置', '套餐到期',
-    '订阅', '过期时间', '流量重置', '产品官网'
-  ]
-
-  // 高性能批量处理节点
-  for (let i = 0; i < proxies.length; i++) {
-    const proxy = proxies[i]
-    if (!proxy) continue
-
-    // 快速过滤信息节点
-    if (excludeKeywords.some(keyword => proxy.name.includes(keyword))) {
-      infoNodesCount++
-      continue
-    }
-
-    // 生成节点唯一标识符
-    const key = generateProxyKey(proxy)
-
-    if (seen.has(key)) {
-      const existing = seen.get(key)!
-      duplicateCount++
-      // 保留名称更短或更规范的节点
-      if (proxy.name.length < existing.name.length) {
-        seen.set(key, proxy)
-      }
-    } else {
-      seen.set(key, proxy)
-    }
-  }
-
-  // 详细统计输出
-  if (infoNodesCount > 0 || duplicateCount > 0 || seen.size !== proxies.length) {
-    logger.log('\n节点统计信息:')
-    logger.log(`  ├─ 原始节点总数: ${proxies.length}`)
-    if (infoNodesCount > 0) {
-      logger.log(`  ├─ 信息节点数量: ${infoNodesCount}`)
-    }
-    if (duplicateCount > 0) {
-      logger.log(`  ├─ 重复节点数量: ${duplicateCount}`)
-    }
-    logger.log(`  └─ 有效节点数量: ${seen.size}`)
-  }
-
-  return Array.from(seen.values())
-}
-
-/**
- * 生成节点唯一标识符
- * 根据节点类型和关键配置字段生成唯一 key
- */
-function generateProxyKey(proxy: Proxy): string {
-  const parts = [proxy.type, proxy.server, proxy.port.toString()]
-
-  // 根据不同协议添加额外的识别字段
-  switch (proxy.type) {
-    case 'hysteria2':
-      parts.push(
-        proxy.password || '',
-        proxy.sni || '',
-        proxy.obfs || '',
-        proxy.up || '',
-        proxy.down || ''
-      )
-      break
-
-    case 'vless':
-      parts.push(
-        proxy.uuid || '',
-        proxy.flow || '',
-        proxy.network || '',
-        proxy.servername || proxy.sni || ''
-      )
-      if (proxy['reality-opts']) {
-        parts.push(
-          proxy['reality-opts']['public-key'] || '',
-          proxy['reality-opts']['short-id'] || ''
-        )
-      }
-      if (proxy['ws-opts']) {
-        parts.push(proxy['ws-opts'].path || '')
-      }
-      break
-
-    case 'vmess':
-      parts.push(
-        proxy.uuid || '',
-        proxy.network || '',
-        proxy.wsPath || '',
-        proxy['ws-opts']?.path || ''
-      )
-      if (proxy.wsHeaders?.Host) {
-        parts.push(proxy.wsHeaders.Host)
-      }
-      if (proxy['ws-opts']?.headers?.Host) {
-        parts.push(proxy['ws-opts'].headers.Host)
-      }
-      break
-
-    case 'ss':
-      parts.push(
-        proxy.cipher || proxy['encrypt-method'] || '',
-        proxy.password || '',
-        proxy.plugin || '',
-        proxy.obfs || ''
-      )
-      break
-
-    case 'trojan':
-      parts.push(
-        proxy.password || '',
-        proxy.sni || '',
-        proxy.network || ''
-      )
-      if (proxy['ws-opts']) {
-        parts.push(proxy['ws-opts'].path || '')
-      }
-      if (proxy['grpc-opts']) {
-        parts.push(proxy['grpc-opts']['grpc-service-name'] || '')
-      }
-      break
-
-    default:
-      // 未知协议，使用基本字段
-      parts.push(proxy.password || proxy.uuid || '')
-      break
-  }
-
-  // 过滤空字符串并用 : 连接
-  return parts.filter(p => p !== '').join(':')
 }
 
 export function parseSS(line: string): Proxy {

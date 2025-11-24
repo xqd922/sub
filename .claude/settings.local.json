@@ -24,7 +24,8 @@
       "Bash(curl:*)",
       "Bash(git log:*)",
       "Bash(cat:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
