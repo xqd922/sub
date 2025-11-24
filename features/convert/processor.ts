@@ -7,6 +7,7 @@ import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
 import { formatBytes } from '@/lib/core/utils'
 import { deduplicateProxies } from '@/lib/core/dedup'
+import yaml from 'js-yaml'
 
 /**
  * 订阅处理服务 - 处理各种订阅源
@@ -55,7 +56,6 @@ export class SubService {
       subscription = this.extractSubscriptionInfo(response)
 
       // 第二次：使用原来的方法解析节点（确保兼容性）
-      const { parseSubscription } = await import('@/lib/parse/subscription')
       proxies = await this.parseSubscriptionWithOriginalMethod(url, clientUserAgent)
       isAirportSubscription = true  // 标准订阅生成 HK 组
     }
@@ -249,8 +249,6 @@ export class SubService {
    * 解析订阅文本内容为节点
    */
   private static async parseSubscriptionContent(text: string): Promise<Proxy[]> {
-    const yaml = await import('js-yaml')
-
     if (text.includes('proxies:')) {
       const config = yaml.load(text) as any
       const proxies = config.proxies || []
@@ -264,8 +262,6 @@ export class SubService {
       const decodedText = Buffer.from(text, 'base64').toString()
       const lines = decodedText.split('\n')
       const proxies: Proxy[] = []
-
-      const { SingleNodeParser } = await import('@/lib/parse/node')
 
       for (const line of lines) {
         if (!line.trim()) continue
