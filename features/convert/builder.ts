@@ -100,7 +100,7 @@ export class ConfigService {
       ...baseHeaders,
       'Content-Type': isSingBox ? 'application/json; charset=utf-8' : 'text/yaml; charset=utf-8',
       'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
-      'profile-update-interval': '24',
+      'profile-update-interval': String(subscription.updateInterval || 24),
       'profile-title': Buffer.from(subscription.name).toString('base64'),
       'expires': subscription.expire,
       'profile-web-page-url': this.encodeHeaderValue(subscription.homepage),

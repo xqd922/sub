@@ -164,31 +164,69 @@ export class SubService {
   private static extractSubscriptionInfo(response: Response): SubscriptionInfo {
     // 从 content-disposition 获取订阅名称
     const contentDisposition = response.headers.get('content-disposition') || ''
-    const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
-    const subName = fileNameMatch ? decodeURIComponent(fileNameMatch[1] || '') : '订阅'
-    
+    const subName = this.extractFileName(contentDisposition)
+
     // 获取订阅到期时间和流量信息
     const userInfo = response.headers.get('subscription-userinfo') || ''
-    
+
     // 尝试从多个可能的头部获取首页URL
-    const homepageUrl = response.headers.get('profile-web-page-url') || 
+    const homepageUrl = response.headers.get('profile-web-page-url') ||
                        response.headers.get('web-page-url') ||
-                       response.headers.get('homepage') || 
+                       response.headers.get('homepage') ||
                        response.headers.get('website') || ''
-    
+
+    // 获取更新间隔
+    const updateInterval = response.headers.get('profile-update-interval') || ''
+
     return {
       name: subName,
       upload: String(userInfo.match(/upload=(\d+)/)?.[1] || 0),
       download: String(userInfo.match(/download=(\d+)/)?.[1] || 0),
       total: String(userInfo.match(/total=(\d+)/)?.[1] || 0),
-      expire: String(userInfo.match(/expire=(\d+)/)?.[1] || 
-              response.headers.get('profile-expire') || 
-              response.headers.get('expires') || 
-              response.headers.get('expire') || 
+      expire: String(userInfo.match(/expire=(\d+)/)?.[1] ||
+              response.headers.get('profile-expire') ||
+              response.headers.get('expires') ||
+              response.headers.get('expire') ||
               response.headers.get('Subscription-Userinfo')?.match(/expire=(\d+)/)?.[1] ||
               ''),
-      homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://love.521pokemon.com'
+      homepage: homepageUrl ? this.decodeHomepageUrl(homepageUrl) : 'https://sub.xqd.pp.ua',
+      updateInterval: updateInterval ? parseInt(updateInterval) : undefined
     }
+  }
+
+  /**
+   * 从 Content-Disposition 头提取文件名
+   * 支持多种格式：
+   * - filename*=UTF-8''xxx (RFC 5987)
+   * - filename="xxx"
+   * - filename=xxx
+   */
+  private static extractFileName(contentDisposition: string): string {
+    if (!contentDisposition) return 'Sub'
+
+    // 优先匹配 RFC 5987 格式: filename*=UTF-8''xxx
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;\s]+)/i)
+    if (utf8Match?.[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1])
+      } catch {
+        return utf8Match[1]
+      }
+    }
+
+    // 匹配带引号格式: filename="xxx"
+    const quotedMatch = contentDisposition.match(/filename="([^"]+)"/i)
+    if (quotedMatch?.[1]) {
+      return quotedMatch[1]
+    }
+
+    // 匹配不带引号格式: filename=xxx
+    const plainMatch = contentDisposition.match(/filename=([^;\s]+)/i)
+    if (plainMatch?.[1]) {
+      return plainMatch[1]
+    }
+
+    return 'Sub'
   }
 
   /**
@@ -311,4 +349,5 @@ export interface SubscriptionInfo {
   total: string
   expire: string
   homepage: string
+  updateInterval?: number  // 更新间隔（小时）
 }
