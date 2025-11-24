@@ -258,15 +258,15 @@ export function deduplicateProxies(
   for (const proxy of proxies) {
     if (!proxy) continue
 
-    // 过滤信息节点
-    if (filterInfoNodes && isInfoNode(proxy)) {
-      infoNodesCount++
+    // 先过滤无效节点（服务器地址、端口无效）
+    if (isInvalidNode(proxy)) {
+      invalidNodesCount++
       continue
     }
 
-    // 过滤无效节点
-    if (isInvalidNode(proxy)) {
-      invalidNodesCount++
+    // 再过滤信息节点（名称包含关键词）
+    if (filterInfoNodes && isInfoNode(proxy)) {
+      infoNodesCount++
       continue
     }
 
@@ -302,11 +302,11 @@ export function deduplicateProxies(
   if (verbose && (infoNodesCount > 0 || invalidNodesCount > 0 || duplicateCount > 0)) {
     logger.log('\n节点去重统计:')
     logger.log(`  ├─ 原始节点: ${proxies.length}`)
-    if (infoNodesCount > 0) {
-      logger.log(`  ├─ 信息节点: ${infoNodesCount} (已过滤)`)
-    }
     if (invalidNodesCount > 0) {
       logger.log(`  ├─ 无效节点: ${invalidNodesCount} (已过滤)`)
+    }
+    if (infoNodesCount > 0) {
+      logger.log(`  ├─ 信息节点: ${infoNodesCount} (已过滤)`)
     }
     if (duplicateCount > 0) {
       logger.log(`  ├─ 重复节点: ${duplicateCount} (已去重)`)
@@ -329,13 +329,15 @@ export function getDeduplicateStats(proxies: Proxy[]): DeduplicateStats {
   for (const proxy of proxies) {
     if (!proxy) continue
 
-    if (isInfoNode(proxy)) {
-      infoNodes++
+    // 先过滤无效节点
+    if (isInvalidNode(proxy)) {
+      invalidNodes++
       continue
     }
 
-    if (isInvalidNode(proxy)) {
-      invalidNodes++
+    // 再过滤信息节点
+    if (isInfoNode(proxy)) {
+      infoNodes++
       continue
     }
 
