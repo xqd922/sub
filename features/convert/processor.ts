@@ -77,9 +77,11 @@ export class SubService {
     
     const { flag, name } = REGION_MAP[regionMatch as RegionCode]
     
-    // 提取倍率信息
-    const multiplierMatch = proxy.name.match(/(\d+\.?\d*)[xX倍]/)
-    const multiplier = multiplierMatch ? ` [${multiplierMatch[1]}x]` : ''
+    // 提取倍率信息（支持多种格式：x0.01、0.8x、0.8倍、[0.5x]）
+    const match1 = proxy.name.match(/[xX×](\d+\.?\d*)/)  // x0.01 格式
+    const match2 = proxy.name.match(/(\d+\.?\d*)[xX×倍]/)  // 0.8x 或 0.8倍 格式
+    const multiplierValue = match1?.[1] || match2?.[1]
+    const multiplier = multiplierValue ? ` [${multiplierValue}x]` : ''
     
     // 初始化计数器
     this.counters[name] = this.counters[name] || 0
