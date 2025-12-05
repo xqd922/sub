@@ -47,7 +47,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           action: "predefined"
         },
         {
-          domain_suffix: ["gegeselect.hk"],
+          domain_suffix: ["gegeselect.hk", "cdn.ist"],
           server: "remote",
           disable_cache: true
         },
@@ -152,6 +152,7 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
         {
           domain_suffix: [
             "gegeselect.hk",
+            "cdn.ist",
             "apple-cdn.net",
             "sharepoint.com"
           ],

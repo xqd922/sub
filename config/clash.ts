@@ -134,7 +134,8 @@ export const defaultConfig: ClashConfig = {
   proxies: [],
   'proxy-groups': [],
   rules: [
-    'DOMAIN,speedtest-visa.gegeselect.hk,DIRECT',
+    'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
+    'DOMAIN-SUFFIX,cdn.ist,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN-SUFFIX,sudugu.com,DIRECT',
     'DOMAIN,chat.qwen.ai,DIRECT',
