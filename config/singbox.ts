@@ -47,6 +47,11 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           action: "predefined"
         },
         {
+          domain_suffix: ["gegeselect.hk"],
+          server: "remote",
+          disable_cache: true
+        },
+        {
           query_type: ["A", "AAAA"],
           rewrite_ttl: 1,
           server: "fakeip"
