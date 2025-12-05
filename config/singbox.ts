@@ -145,10 +145,8 @@ export function generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boole
           outbound: "Manual"
         },
         {
-          domain_suffix: [
-            "apple-cdn.net",
-            "sharepoint.com"
-          ],
+          domain: ["speedtest-visa.gegeselect.hk"],
+          domain_suffix: ["apple-cdn.net", "sharepoint.com"],
           outbound: "direct"
         },
         {
