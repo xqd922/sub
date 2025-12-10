@@ -70,6 +70,9 @@ export interface Proxy {
   // 添加 tfo 属性
   tfo?: boolean
 
+  // SOCKS 代理相关属性
+  username?: string
+
   // 链式代理支持
   'dialer-proxy'?: string  // Clash 格式
   detour?: string          // Sing-box 格式

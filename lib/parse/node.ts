@@ -5,7 +5,8 @@ import {
   VMessProtocol,
   TrojanProtocol,
   VLessProtocol,
-  Hysteria2Protocol
+  Hysteria2Protocol,
+  SocksProtocol
 } from './protocols'
 
 /**
@@ -57,6 +58,8 @@ export class SingleNodeParser {
         return VLessProtocol.parse(uri)
       } else if (uri.startsWith('hysteria2://') || uri.startsWith('hy2://')) {
         return Hysteria2Protocol.parse(uri)
+      } else if (uri.startsWith('socks://')) {
+        return SocksProtocol.parse(uri)
       }
       throw new Error('不支持的代理协议类型，请检查链接格式')
     } catch (error) {
@@ -124,6 +127,8 @@ export class SingleNodeParser {
         return VLessProtocol.toSingboxOutbound(proxy)
       case 'hysteria2':
         return Hysteria2Protocol.toSingboxOutbound(proxy)
+      case 'socks5':
+        return SocksProtocol.toSingboxOutbound(proxy)
       default:
         return null
     }

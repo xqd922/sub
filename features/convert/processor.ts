@@ -108,12 +108,13 @@ export class SubService {
    */
   static shouldFormatNames(url: string): boolean {
     return !(
-      url.startsWith('ss://') || 
-      url.startsWith('vmess://') || 
-      url.startsWith('trojan://') || 
-      url.startsWith('vless://') || 
-      url.startsWith('hysteria2://') || 
-      url.startsWith('hy2://') || 
+      url.startsWith('ss://') ||
+      url.startsWith('vmess://') ||
+      url.startsWith('trojan://') ||
+      url.startsWith('vless://') ||
+      url.startsWith('hysteria2://') ||
+      url.startsWith('hy2://') ||
+      url.startsWith('socks://') ||
       url.includes('gist.githubusercontent.com')
     )
   }
@@ -138,12 +139,13 @@ export class SubService {
    * 检查是否为单节点URL
    */
   private static isSingleNodeUrl(url: string): boolean {
-    return url.startsWith('ss://') || 
-           url.startsWith('vmess://') || 
-           url.startsWith('trojan://') || 
+    return url.startsWith('ss://') ||
+           url.startsWith('vmess://') ||
+           url.startsWith('trojan://') ||
            url.startsWith('vless://') ||
-           url.startsWith('hysteria2://') || 
-           url.startsWith('hy2://')
+           url.startsWith('hysteria2://') ||
+           url.startsWith('hy2://') ||
+           url.startsWith('socks://')
   }
 
   /**
