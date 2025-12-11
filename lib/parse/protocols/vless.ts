@@ -25,6 +25,11 @@ export class VLessProtocol {
     const pbk = url.searchParams.get('pbk')
     const sid = url.searchParams.get('sid')
     const sni = url.searchParams.get('sni') || ''
+    const alpn = url.searchParams.get('alpn')
+
+    // 支持多种跳过证书验证的参数名
+    const allowInsecure = url.searchParams.get('allowInsecure') || url.searchParams.get('skip-cert-verify')
+    const skipCertVerify = allowInsecure === '1' || allowInsecure === 'true'
 
     // 简化输出格式
     return {
@@ -36,10 +41,11 @@ export class VLessProtocol {
       tls: security === 'tls' || security === 'reality',
       flow: flow || '',
       servername: sni,
-      'skip-cert-verify': false,
+      'skip-cert-verify': skipCertVerify,
       'client-fingerprint': fp,
       network: type,
       tfo: false,
+      ...(alpn && { alpn: alpn.split(',') }),
 
       // 如果是 Reality 节点
       ...(pbk && {
@@ -98,6 +104,9 @@ export class VLessProtocol {
         enabled: true,
         server_name: proxy.servername || proxy.sni || proxy.server,
         insecure: proxy['skip-cert-verify'] ?? false,
+        ...(proxy.alpn && {
+          alpn: Array.isArray(proxy.alpn) ? proxy.alpn : [proxy.alpn]
+        }),
         ...(realityOpts ? {
           reality: {
             enabled: true,
