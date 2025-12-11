@@ -6,8 +6,8 @@ import { NetService } from '@/features';
 
 // 定义支持的协议前缀
 const SINGLE_NODE_PREFIXES = [
-  'ss://', 'vmess://', 'trojan://', 
-  'vless://', 'hysteria2://', 'hy2://'
+  'ss://', 'vmess://', 'trojan://',
+  'vless://', 'hysteria2://', 'hy2://', 'socks://'
 ];
 
 // 定义支持的订阅链接前缀
