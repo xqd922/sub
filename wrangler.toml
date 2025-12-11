@@ -1,9 +1,0 @@
-name = "sub"
-compatibility_date = "2025-10-28"
-compatibility_flags = ["nodejs_compat"]
-
-[build]
-command = "bun install && bun run pages:deploy"
-
-[build.upload]
-format = "service-worker"

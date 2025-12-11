@@ -11,6 +11,8 @@
 
 [Live Demo](https://sub.xqd.pp.ua/) • [Documentation](./CLAUDE.md) • [Report Bug](https://github.com/xqd922/sub/issues) • [Request Feature](https://github.com/xqd922/sub/issues)
 
+English | [简体中文](./README.zh-CN.md)
+
 </div>
 
 ---
