@@ -32,7 +32,7 @@
   "dependencies": {
     "caniuse-lite": "^1.0.30001743",
     "js-yaml": "^4.1.0",
-    "next": "15.1.6",
+    "next": "15.1.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -69,13 +69,25 @@
       "@typescript-eslint/no-inferrable-types": "error",
       "prefer-const": "error",
       "no-var": "error",
-      "no-console": ["warn", {
-        "allow": ["warn", "error"]
-      }],
+      "no-console": [
+        "warn",
+        {
+          "allow": [
+            "warn",
+            "error"
+          ]
+        }
+      ],
       "no-debugger": "error",
       "no-alert": "warn",
-      "eqeqeq": ["error", "always"],
-      "curly": ["error", "all"],
+      "eqeqeq": [
+        "error",
+        "always"
+      ],
+      "curly": [
+        "error",
+        "all"
+      ],
       "no-duplicate-imports": "error",
       "no-unused-expressions": "error"
     }
