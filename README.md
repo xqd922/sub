@@ -1,280 +1,533 @@
-# 🚀 通用订阅转换 Universal Subscription Converter
+# Subscription Converter
 
 <div align="center">
 
-![Next.js](https://img.shields.io/badge/Next.js-15.1.6-black?style=for-the-badge&logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
-![Bun](https://img.shields.io/badge/Bun-1.0-ff1e1e?style=for-the-badge&logo=bun)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06b6d4?style=for-the-badge&logo=tailwindcss)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0.8-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-1.2-000000?style=flat-square&logo=bun&logoColor=white)](https://bun.sh/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-**一个现代化的全栈订阅转换服务，支持智能客户端检测和多格式输出**
+**A modern, full-stack subscription conversion service with intelligent client detection and multi-format output support.**
 
-[🌟 在线体验](https://sub.xqd.pp.ua/) • [📖 文档](./docs/API.md) • [🛠️ 部署](#部署) • [🤝 贡献](#贡献)
+[Live Demo](https://sub.xqd.pp.ua/) • [Documentation](./CLAUDE.md) • [Report Bug](https://github.com/xqd922/sub/issues) • [Request Feature](https://github.com/xqd922/sub/issues)
 
 </div>
 
-## ✨ 特性
+---
 
-### 🎯 核心功能
-- **🔄 智能转换**: 自动将订阅链接转换为 Clash、Sing-box 等客户端配置
-- **🤖 智能检测**: 根据 User-Agent 自动识别客户端类型并返回对应格式
-- **🌐 多源支持**: 支持标准订阅、单节点链接、GitHub Gist 等多种输入格式
-- **🔗 短链接**: 内置短链接生成服务，方便分享
-- **📱 响应式**: 完美适配桌面端和移动端
+## Table of Contents
 
-### 🚀 技术亮点
-- **⚡ Turbopack**: 启用 Next.js 最新打包器，极速开发体验
-- **🎨 现代UI**: 基于 Tailwind CSS 的精美界面，支持深色模式
-- **🛡️ 类型安全**: 完整的 TypeScript 类型定义
-- **📊 性能监控**: 内置请求统计和性能分析
-- **🔧 模块化**: 清晰的功能模块划分，易于维护和扩展
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
-### 🌍 支持的协议
-- **Shadowsocks** (`ss://`)
-- **VMess** (`vmess://`)
-- **Trojan** (`trojan://`)
-- **VLESS** (`vless://`)
-- **Hysteria2** (`hysteria2://`, `hy2://`)
+---
 
-## 🏗️ 架构设计
+## Overview
 
-### 📁 项目结构
+Subscription Converter is a high-performance proxy subscription conversion service built with Next.js 16, designed to seamlessly convert subscription links between different proxy client formats (Clash, Sing-box, etc.) with automatic client detection and intelligent formatting.
+
+### Key Highlights
+
+- **Next.js 16 with Turbopack** - Lightning-fast development and build performance
+- **Intelligent Client Detection** - Automatically detects client type via User-Agent and returns appropriate format
+- **Protocol Support** - Supports SS, VMess, Trojan, VLESS, Hysteria2, and SOCKS protocols
+- **Edge Runtime** - Deployed on Cloudflare Pages for global edge distribution
+- **Responsive Design** - Modern UI built with Tailwind CSS
+- **Short URL Service** - Built-in URL shortener for easy sharing
+- **Type Safety** - Full TypeScript implementation with comprehensive type definitions
+
+---
+
+## Features
+
+### Core Functionality
+
+#### Subscription Conversion
+- Convert standard subscription URLs to Clash/Sing-box formats
+- Parse single proxy node URIs (`ss://`, `vmess://`, `trojan://`, `vless://`, `hysteria2://`, `hy2://`, `socks://`)
+- Fetch and aggregate nodes from GitHub Gist URLs
+- Support for base64-encoded and YAML-formatted subscriptions
+
+#### Client Detection
+- **Automatic Format Detection** - Identifies Clash, Sing-box, or browser clients
+- **User-Agent Based** - Detects client via standard User-Agent headers
+- **Format-Specific Output** - Returns YAML for Clash, JSON for Sing-box, HTML preview for browsers
+
+#### Node Processing
+- **Name Formatting** - Automatic region-based node renaming with country/region flags
+- **Multiplier Extraction** - Detects and preserves traffic multiplier information (e.g., `[0.5x]`)
+- **Deduplication** - Removes duplicate nodes while preserving configuration
+- **Chain Proxy Support** - Supports `chain:`, `dialer-proxy:`, and `detour:` for proxy chaining
+
+### Technical Features
+
+- **Edge Runtime** - All API routes use Edge Runtime for Cloudflare Pages compatibility
+- **Smart User-Agent Strategy** - Rotates between real client User-Agents for better compatibility
+- **Error Handling** - Comprehensive error tracking with structured logging
+- **Performance Monitoring** - Built-in request statistics and processing time tracking
+
+---
+
+## Architecture
+
+### Project Structure
+
 ```
-project/
-├── app/            # Next.js App Router (路由和页面)
-│   ├── api/        # API 路由
-│   ├── components/ # React 组件
-│   └── hooks/      # 自定义 Hooks
-├── lib/            # 工具库
-│   ├── core/       # 核心工具 (types, cache, logger)
-│   ├── parse/      # 解析器 (订阅、节点、协议)
-│   ├── format/     # 格式化器 (节点名称、地区)
-│   └── error/      # 错误处理
-├── features/       # 功能模块 (业务逻辑)
-│   ├── convert/    # 订阅转换
-│   ├── shorten/    # 短链接
-│   └── metrics/    # 指标收集
-├── config/         # 配置生成器
-└── public/         # 静态资源
+subscription-converter/
+├── app/                      # Next.js App Router
+│   ├── api/                  # API Routes (Edge Runtime)
+│   │   ├── shorten/          # Short URL service
+│   │   └── sub/              # Subscription conversion endpoint
+│   ├── components/           # React components
+│   ├── page.tsx              # Homepage
+│   └── layout.tsx            # Root layout
+├── features/                 # Business logic modules
+│   ├── convert/              # Subscription conversion
+│   │   ├── handler.ts        # Request handler (CoreService)
+│   │   ├── processor.ts      # Subscription processor (SubService)
+│   │   └── builder.ts        # Config builder (ConfigService)
+│   ├── shorten/              # URL shortening
+│   │   └── shortener.ts      # Short URL service
+│   └── metrics/              # Network & monitoring
+│       └── network.ts        # Network request service
+├── lib/                      # Utility libraries
+│   ├── core/                 # Core infrastructure
+│   │   ├── types.ts          # Type definitions
+│   │   ├── utils.ts          # Utility functions
+│   │   └── logger.ts         # Logging system
+│   ├── parse/                # Parsers
+│   │   ├── node.ts           # Node parser
+│   │   ├── subscription.ts   # Subscription parser
+│   │   ├── remote.ts         # Remote node fetcher
+│   │   └── protocols/        # Protocol parsers
+│   │       ├── shadowsocks.ts
+│   │       ├── vmess.ts
+│   │       ├── trojan.ts
+│   │       ├── vless.ts
+│   │       ├── hysteria2.ts
+│   │       └── socks.ts
+│   ├── format/               # Formatters
+│   │   ├── node.ts           # Node formatting
+│   │   └── region.ts         # Region mapping
+│   └── error/                # Error handling
+│       ├── errors.ts         # Error definitions
+│       └── reporter.ts       # Error reporting
+├── config/                   # Configuration generators
+│   ├── clash.ts              # Clash config generator
+│   └── singbox.ts            # Sing-box config generator
+└── styles/                   # Styling
+    └── preview.css           # Preview page styles
 ```
 
-### 🔄 请求处理流程
+### Request Flow
+
 ```mermaid
-graph LR
-    A[客户端请求] --> B[智能检测]
-    B --> C[订阅解析]
-    C --> D[节点处理]
-    D --> E[配置生成]
-    E --> F[格式化输出]
-    F --> G[返回结果]
+sequenceDiagram
+    participant Client
+    participant API as /api/sub
+    participant Core as CoreService
+    participant Sub as SubService
+    participant Config as ConfigService
+
+    Client->>API: GET /sub?url=...
+    API->>Core: handleRequest()
+    Core->>Core: detectClientType()
+    Core->>Sub: processSubscription()
+    Sub->>Sub: parseSubscription()
+    Sub->>Sub: formatProxies()
+    Sub-->>Core: {proxies, subscription}
+    Core->>Config: generateConfig()
+    Config-->>Core: YAML/JSON/HTML
+    Core-->>API: Response
+    API-->>Client: Formatted Config
 ```
 
-## 🚀 快速开始
+### Supported Protocols
 
-### 📋 环境要求
+| Protocol | URI Scheme | Parser | Status |
+|----------|-----------|--------|--------|
+| Shadowsocks | `ss://` | `shadowsocks.ts` | ✅ Supported |
+| VMess | `vmess://` | `vmess.ts` | ✅ Supported |
+| Trojan | `trojan://` | `trojan.ts` | ✅ Supported |
+| VLESS | `vless://` | `vless.ts` | ✅ Supported |
+| Hysteria2 | `hysteria2://`, `hy2://` | `hysteria2.ts` | ✅ Supported |
+| SOCKS | `socks://` | `socks.ts` | ✅ Supported |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
 - **Node.js** >= 18.0.0
-- **Bun** >= 1.0.0 (推荐) 或 npm/yarn
+- **Bun** >= 1.0.0 (recommended) or npm/pnpm/yarn
 
-### ⚡ 本地开发
+### Installation
 
 ```bash
-# 克隆项目
+# Clone the repository
 git clone https://github.com/xqd922/sub.git
 cd sub
 
-# 安装依赖
+# Install dependencies
 bun install
 
-# 启动开发服务器
+# Start development server
 bun dev
-# 或使用极速模式 (跳过类型检查)
+
+# Or use fast mode (skip linting and type checking)
 bun dev:fast
-
-# 访问 http://localhost:3000
 ```
 
-### 🛠️ 可用命令
+The application will be available at `http://localhost:3000`.
+
+### Available Scripts
 
 ```bash
-# 开发
-bun dev                 # 标准开发模式 (启用 Turbopack)
-bun dev:fast           # 极速模式 (跳过 lint 和类型检查)
+# Development
+bun dev                 # Start development server with Turbopack
+bun dev:fast           # Fast mode (skip lint & type check)
 
-# 构建
-bun run build          # 构建生产版本
-bun start              # 启动生产服务器
+# Production
+bun run build          # Build for production
+bun start              # Start production server
 
-# 代码质量
-bun run lint           # ESLint 检查
+# Code Quality
+bun run lint           # Run ESLint
+
+# Deployment
+bun run pages:build    # Build for Cloudflare Pages
+bun run pages:deploy   # Build & deploy to Cloudflare Pages
 ```
 
-## 💻 使用方法
+---
 
-### 🌐 Web 界面
-1. 访问应用主页
-2. 输入订阅链接或节点链接
-3. 点击「转换」按钮
-4. 自动复制转换后的链接
-5. 可选择生成短链接便于分享
+## Usage
 
-### 🔗 API 调用
+### Web Interface
 
-#### 基本转换
+1. Navigate to the homepage
+2. Enter your subscription URL or proxy node URI
+3. Click "Convert" button
+4. The converted subscription URL is automatically copied to clipboard
+5. Optionally generate a short URL for easier sharing
+
+### API Integration
+
+#### Basic Conversion
+
 ```bash
-# Clash 客户端
+# For Clash clients (returns YAML)
 curl -H "User-Agent: clash.meta/v1.19.13" \
-  "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
+  "https://sub.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
 
-# Sing-box 客户端
+# For Sing-box clients (returns JSON)
 curl -H "User-Agent: sing-box/1.0.0" \
-  "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
+  "https://sub.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
 
-# 浏览器访问 (返回 HTML 预览)
-curl "https://sub.xqd.pp.ua/sub?url=https://your-subscription-url"
+# For browser access (returns HTML preview)
+curl "https://sub.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
 ```
 
-#### 支持的输入格式
-```bash
-# 标准订阅链接
-?url=https://example.com/subscription
+#### Input Formats
 
-# 单节点链接
-?url=ss://base64encodedstring
+```bash
+# Standard subscription URL
+https://sub.xqd.pp.ua/sub?url=https://example.com/subscription
+
+# Single proxy node
+https://sub.xqd.pp.ua/sub?url=ss://base64encodedstring#node-name
 
 # GitHub Gist
-?url=https://gist.githubusercontent.com/user/id/raw/file
+https://sub.xqd.pp.ua/sub?url=https://gist.githubusercontent.com/user/id/raw/file
+
+# Multiple nodes (space or newline separated in Gist)
+ss://node1
+vmess://node2
+trojan://node3
 ```
 
-### 📱 客户端配置
+#### Chain Proxy Configuration
 
-#### Clash
+Supports proxy chaining via special syntax:
+
+```bash
+# Using chain: marker (works for both Clash and Sing-box)
+socks://auth@server:port#node-name|chain:parent-node-name
+
+# Using dialer-proxy: marker (Clash specific)
+ss://config#node-name|dialer-proxy:parent-node-name
+
+# Using detour: marker (Sing-box specific)
+vmess://config#node-name|detour:parent-node-name
+```
+
+---
+
+## API Reference
+
+### `GET /api/sub`
+
+Convert subscription or proxy node URI to client-specific format.
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | Yes | Subscription URL or proxy node URI |
+
+#### Request Headers
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `User-Agent` | Client identifier for format detection | `clash.meta/v1.19.13` |
+
+#### Response Headers
+
+| Header | Description |
+|--------|-------------|
+| `Content-Type` | YAML, JSON, or HTML based on client |
+| `Content-Disposition` | Filename for download |
+| `subscription-userinfo` | Traffic usage information |
+| `profile-update-interval` | Update interval in hours |
+| `profile-web-page-url` | Provider homepage URL |
+
+#### Response Formats
+
+**Clash (YAML)**
 ```yaml
-# 使用转换后的链接更新 Clash 订阅
-proxies: []
-proxy-groups: []
-rules: []
+proxies:
+  - name: "🇭🇰 HK 01"
+    type: ss
+    server: example.com
+    port: 8388
+    cipher: aes-256-gcm
+    password: password
+
+proxy-groups:
+  - name: Manual
+    type: select
+    proxies:
+      - Auto
+      - DIRECT
+      - 🇭🇰 HK 01
+
+rules:
+  - DOMAIN-SUFFIX,google.com,Manual
+  - GEOIP,CN,DIRECT
+  - MATCH,Manual
 ```
 
-#### Sing-box
+**Sing-box (JSON)**
 ```json
 {
-  "outbounds": [],
+  "outbounds": [
+    {
+      "type": "shadowsocks",
+      "tag": "🇭🇰 HK 01",
+      "server": "example.com",
+      "server_port": 8388,
+      "method": "aes-256-gcm",
+      "password": "password"
+    }
+  ],
   "route": {
-    "rules": []
+    "rules": [
+      {
+        "domain_suffix": ["google.com"],
+        "outbound": "Manual"
+      }
+    ]
   }
 }
 ```
 
-## 🔧 配置说明
+### `POST /api/shorten`
 
-### 🌍 环境变量
+Generate a shortened URL for a subscription link.
+
+#### Request Body
+
+```json
+{
+  "url": "https://sub.xqd.pp.ua/sub?url=..."
+}
+```
+
+#### Response
+
+```json
+{
+  "shortUrl": "https://sub.xqd.pp.ua/s/abc123",
+  "originalUrl": "https://sub.xqd.pp.ua/sub?url=..."
+}
+```
+
+---
+
+## Deployment
+
+### Cloudflare Pages (Recommended)
+
+This project is optimized for Cloudflare Pages deployment with Edge Runtime.
+
+#### Automatic Deployment
+
+1. Fork this repository
+2. Connect your GitHub account to Cloudflare Pages
+3. Select the repository and configure:
+   - **Framework preset**: Next.js
+   - **Build command**: `bun run build && bun run pages:build`
+   - **Build output directory**: `.vercel/output/static`
+   - **Environment variables**:
+     - `NODE_VERSION=18`
+     - `BUN_VERSION=latest`
+
+#### Manual Deployment
+
 ```bash
-# 短链接服务 (可选)
+# Build for Cloudflare Pages
+bun run build
+bun run pages:build
+
+# Deploy using Wrangler (optional)
+bunx wrangler pages deploy .vercel/output/static
+```
+
+### Vercel
+
+```bash
+# Deploy to Vercel
+vercel --prod
+
+# Or use Vercel CLI with configuration
+bun run build
+vercel deploy --prod
+```
+
+### Docker
+
+```dockerfile
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Install dependencies
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# Copy source
+COPY . .
+
+# Build
+RUN bun run build
+
+# Expose port
+EXPOSE 3000
+
+# Start server
+CMD ["bun", "start"]
+```
+
+```bash
+# Build and run
+docker build -t subscription-converter .
+docker run -p 3000:3000 subscription-converter
+```
+
+### Environment Variables
+
+```bash
+# Optional: Short URL service integration
 BITLY_TOKEN=your_bitly_api_token
 SINK_URL=https://your-sink-instance.com
 SINK_TOKEN=your_sink_auth_token
 
-# 环境配置
+# Environment
 NODE_ENV=production
 ```
 
-### ⚙️ 高级配置
+---
 
-#### Next.js 配置 (`next.config.ts`)
-```typescript
-const nextConfig = {
-  experimental: {
-    turbo: {},  // 启用 Turbopack
-  },
-  reactStrictMode: false,  // 优化开发体验
-  // ...其他配置
-}
-```
+## Contributing
 
-#### TypeScript 配置 (`tsconfig.json`)
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "paths": {
-      "@/*": ["./*"]  // 路径别名
-    }
-  }
-}
-```
+Contributions are welcome! Please follow these guidelines:
 
-## 🚀 部署
+### Development Workflow
 
-### 🌐 Vercel (推荐)
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m 'feat: add amazing feature'`
+4. **Push** to the branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
+
+### Commit Convention
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation updates
+- `style:` - Code style changes (formatting, etc.)
+- `refactor:` - Code refactoring
+- `perf:` - Performance improvements
+- `test:` - Adding or updating tests
+- `chore:` - Build process or tooling changes
+
+### Code Style
+
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Run `bun run lint` before committing
+- **Formatting**: Follow existing code style
+
+### Testing
+
 ```bash
-# 一键部署到 Vercel
-vercel --prod
+# Run type checking
+bun run build
 
-# 或使用 Vercel CLI
-npx vercel
+# Run linter
+bun run lint
 ```
 
-### 🐳 Docker
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
-```
+---
 
-### 📋 部署检查清单
-- ✅ 设置正确的环境变量
-- ✅ 确保使用 Node.js 运行时 (API 路由)
-- ✅ 配置域名和 SSL 证书
-- ✅ 设置缓存策略
+## License
 
-## 🤝 贡献
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-### 🔧 开发指南
-1. Fork 本仓库
-2. 创建功能分支: `git checkout -b feature/amazing-feature`
-3. 提交更改: `git commit -m 'feat: add amazing feature'`
-4. 推送分支: `git push origin feature/amazing-feature`
-5. 提交 Pull Request
+---
 
-### 📝 提交规范
-使用 [Conventional Commits](https://conventionalcommits.org/) 规范:
-- `feat:` 新功能
-- `fix:` 修复问题
-- `docs:` 文档更新
-- `style:` 代码格式调整
-- `refactor:` 代码重构
-- `test:` 添加测试
-- `chore:` 工具配置等
+## Acknowledgments
 
-### 🐛 问题报告
-发现问题？请 [提交 Issue](https://github.com/xqd922/sub/issues) 并提供:
-- 详细的问题描述
-- 复现步骤
-- 期望行为
-- 环境信息
+- [Next.js](https://nextjs.org/) - The React Framework for Production
+- [Cloudflare Pages](https://pages.cloudflare.com/) - Global edge network
+- [Bun](https://bun.sh/) - Fast JavaScript runtime and toolkit
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [js-yaml](https://github.com/nodeca/js-yaml) - YAML parser for JavaScript
 
-## 📄 许可证
+---
 
-本项目采用 [MIT 许可证](LICENSE)。
+## Support
 
-## 🙏 致谢
-
-- [Next.js](https://nextjs.org/) - React 全栈框架
-- [Tailwind CSS](https://tailwindcss.com/) - CSS 框架
-- [Bun](https://bun.sh/) - 快速的 JavaScript 运行时
-- [js-yaml](https://github.com/nodeca/js-yaml) - YAML 解析库
+- **Documentation**: [CLAUDE.md](./CLAUDE.md)
+- **Issues**: [GitHub Issues](https://github.com/xqd922/sub/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/xqd922/sub/discussions)
 
 ---
 
 <div align="center">
 
-**如果这个项目对你有帮助，请给个 ⭐ Star 支持一下！**
+**If you find this project helpful, please consider giving it a Star!**
 
-Made with ❤️ by [xqd922](https://github.com/xqd922)
+Made by [xqd922](https://github.com/xqd922)
+
+[⬆ Back to Top](#subscription-converter)
 
 </div>
