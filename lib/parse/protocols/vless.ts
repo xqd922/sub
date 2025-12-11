@@ -39,7 +39,7 @@ export class VLessProtocol {
       port: parseInt(url.port),
       uuid: url.username,
       tls: security === 'tls' || security === 'reality',
-      flow: flow || '',
+      ...(flow && { flow }),
       servername: sni,
       'skip-cert-verify': skipCertVerify,
       'client-fingerprint': fp,
@@ -94,7 +94,7 @@ export class VLessProtocol {
       server: proxy.server,
       server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
       uuid: proxy.uuid || '',
-      flow: proxy.flow || '',
+      ...(proxy.flow && { flow: proxy.flow }),
       packet_encoding: 'xudp'
     }
 

@@ -25,7 +25,8 @@
       "Bash(git log:*)",
       "Bash(cat:*)",
       "Bash(del:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(//d/Me/**)"
     ],
     "deny": [],
     "ask": []
