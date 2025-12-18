@@ -28,7 +28,7 @@ export class ConfigService {
       'proxy-groups': generateProxyGroups(clashProxies, isAirportSubscription)
     }
 
-    return yaml.dump(clashConfig, {
+    let output = yaml.dump(clashConfig, {
       flowLevel: 2,
       lineWidth: -1,
       indent: 2,
@@ -39,6 +39,16 @@ export class ConfigService {
         '!!null': 'lowercase'
       }
     })
+
+    // 给包含特殊字符的 path 值加引号
+    output = output.replace(/path: ([^,}"'\n]+)/g, (match, value) => {
+      if (/[?:&]/.test(value) && !value.startsWith('"')) {
+        return `path: "${value}"`
+      }
+      return match
+    })
+
+    return output
   }
 
   /**
