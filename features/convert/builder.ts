@@ -2,6 +2,7 @@ import yaml from 'js-yaml'
 import { Proxy } from '@/lib/core/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { generateSingboxConfig } from '@/config/singbox'
+import { generateBase64Subscription } from '@/lib/parse/protocols'
 import { previewStyles } from '@/styles/preview'
 import { SubscriptionInfo } from './processor'
 import { logger } from '@/lib/core/logger'
@@ -57,6 +58,13 @@ export class ConfigService {
   static generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean): string {
     const config = generateSingboxConfig(proxies, shouldFormatNames)
     return JSON.stringify(config, null, 2)
+  }
+
+  /**
+   * 生成 v2rayNG/通用 base64 订阅
+   */
+  static generateV2rayNGConfig(proxies: Proxy[]): string {
+    return generateBase64Subscription(proxies)
   }
 
   /**
@@ -157,24 +165,32 @@ export class ConfigService {
    */
   static detectClientType(userAgent: string): {
     isSingBox: boolean
+    isV2rayNG: boolean
     isBrowser: boolean
-    clientType: 'clash' | 'singbox' | 'browser'
+    clientType: 'clash' | 'singbox' | 'v2rayng' | 'browser'
   } {
     // 检测 sing-box 客户端标识（支持所有平台）
     // SFA: Sing-box For Android, SFI: Sing-box For iOS, SFM: Sing-box For MAC, SFT: Sing-box For tvOS
     const isSingBox = /sing-box|SFA|SFI|SFM|SFT/i.test(userAgent)
-    const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) && !/sing-box|SFA|SFI|SFM|SFT|clash/i.test(userAgent)
-    
-    let clientType: 'clash' | 'singbox' | 'browser'
+
+    // 检测 v2rayNG/v2rayN 等通用客户端
+    const isV2rayNG = /v2rayn|v2rayng|quantumult|shadowrocket|surge|loon/i.test(userAgent)
+
+    const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) &&
+      !/sing-box|SFA|SFI|SFM|SFT|clash|v2rayn|v2rayng|quantumult|shadowrocket|surge|loon/i.test(userAgent)
+
+    let clientType: 'clash' | 'singbox' | 'v2rayng' | 'browser'
     if (isSingBox) {
       clientType = 'singbox'
+    } else if (isV2rayNG) {
+      clientType = 'v2rayng'
     } else if (isBrowser) {
       clientType = 'browser'
     } else {
       clientType = 'clash' // 默认为 Clash（包括 clash.meta、mihomo 等）
     }
 
-    return { isSingBox, isBrowser, clientType }
+    return { isSingBox, isV2rayNG, isBrowser, clientType }
   }
 
   /**

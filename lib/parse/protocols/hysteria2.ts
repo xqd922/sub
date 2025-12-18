@@ -91,6 +91,22 @@ export class Hysteria2Protocol {
 
     return config;
   }
+  /**
+   * 将 Proxy 对象转换为 Hysteria2 URI
+   */
+  static toUri(proxy: Proxy): string | null {
+    if (proxy.type !== 'hysteria2') return null
+
+    const params = new URLSearchParams()
+    if (proxy.sni) params.set('sni', proxy.sni)
+    if (proxy['skip-cert-verify']) params.set('insecure', '1')
+    if (proxy.obfs) params.set('obfs', proxy.obfs)
+    if (proxy['obfs-password']) params.set('obfs-password', proxy['obfs-password'])
+
+    const query = params.toString() ? `?${params.toString()}` : ''
+    const name = encodeURIComponent(proxy.name)
+    return `hy2://${proxy.password}@${proxy.server}:${proxy.port}${query}#${name}`
+  }
 }
 
 // 兼容性导出

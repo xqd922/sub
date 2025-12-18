@@ -107,6 +107,30 @@ export class TrojanProtocol {
 
     return trojanConfig
   }
+  /**
+   * 将 Proxy 对象转换为 Trojan URI
+   */
+  static toUri(proxy: Proxy): string | null {
+    if (proxy.type !== 'trojan') return null
+
+    const params = new URLSearchParams()
+    if (proxy.sni) params.set('sni', proxy.sni)
+    if (proxy['skip-cert-verify']) params.set('allowInsecure', '1')
+
+    if (proxy.network === 'ws') {
+      params.set('type', 'ws')
+      if (proxy['ws-opts']?.path) params.set('path', proxy['ws-opts'].path)
+      if (proxy['ws-opts']?.headers?.Host) params.set('host', proxy['ws-opts'].headers.Host)
+    } else if (proxy.network === 'grpc') {
+      params.set('type', 'grpc')
+      if (proxy['grpc-opts']?.['grpc-service-name']) params.set('serviceName', proxy['grpc-opts']['grpc-service-name'])
+      if (proxy['grpc-opts']?.['grpc-mode']) params.set('mode', proxy['grpc-opts']['grpc-mode'])
+    }
+
+    const query = params.toString() ? `?${params.toString()}` : ''
+    const name = encodeURIComponent(proxy.name)
+    return `trojan://${proxy.password}@${proxy.server}:${proxy.port}${query}#${name}`
+  }
 }
 
 // 兼容性导出

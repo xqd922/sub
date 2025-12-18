@@ -109,6 +109,29 @@ export class VMessProtocol {
 
     return config
   }
+  /**
+   * 将 Proxy 对象转换为 VMess URI
+   */
+  static toUri(proxy: Proxy): string | null {
+    if (proxy.type !== 'vmess') return null
+
+    const config = {
+      v: '2',
+      ps: proxy.name,
+      add: proxy.server,
+      port: String(proxy.port),
+      id: proxy.uuid,
+      aid: String(proxy.alterId || 0),
+      scy: proxy.cipher || 'auto',
+      net: proxy.network || 'tcp',
+      tls: proxy.tls ? 'tls' : '',
+      sni: proxy.servername || '',
+      host: proxy['ws-opts']?.headers?.Host || proxy.wsHeaders?.Host || '',
+      path: proxy['ws-opts']?.path || proxy.wsPath || ''
+    }
+
+    return `vmess://${Buffer.from(JSON.stringify(config)).toString('base64')}`
+  }
 }
 
 // 兼容性导出

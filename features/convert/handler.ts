@@ -37,7 +37,7 @@ export class CoreService {
       }
 
       // 2. 并行执行客户端检测和日志记录
-      const { isSingBox, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
+      const { isSingBox, isV2rayNG, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
 
       // 异步记录客户端信息（不阻塞主流程）
       Promise.resolve().then(() => {
@@ -67,6 +67,7 @@ export class CoreService {
         formattedProxies,
         subscription,
         isSingBox,
+        isV2rayNG,
         isBrowser,
         shouldFormat,
         isAirportSubscription
@@ -94,9 +95,10 @@ export class CoreService {
     formattedProxies: Proxy[],
     subscription: SubscriptionInfo,
     isSingBox: boolean,
+    isV2rayNG: boolean,
     isBrowser: boolean,
     shouldFormatNames: boolean,
-    isAirportSubscription: boolean  // 新增参数
+    isAirportSubscription: boolean
   ): Promise<NextResponse> {
 
     if (isSingBox) {
@@ -107,6 +109,20 @@ export class CoreService {
       ])
 
       return new NextResponse(jsonConfig, { headers })
+    }
+
+    if (isV2rayNG) {
+      // v2rayNG base64 订阅
+      const base64Config = ConfigService.generateV2rayNGConfig(proxies)
+      const headers = {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
+        'profile-update-interval': String(subscription.updateInterval || 24),
+        'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
+      }
+      return new NextResponse(base64Config, { headers })
     }
 
     // 对于浏览器预览，需要同时生成两种配置 - 并行处理

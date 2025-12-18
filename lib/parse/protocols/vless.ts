@@ -143,6 +143,37 @@ export class VLessProtocol {
 
     return config
   }
+  /**
+   * 将 Proxy 对象转换为 VLess URI
+   */
+  static toUri(proxy: Proxy): string | null {
+    if (proxy.type !== 'vless') return null
+
+    const params = new URLSearchParams()
+    params.set('type', proxy.network || 'tcp')
+    params.set('security', proxy.tls ? (proxy['reality-opts'] ? 'reality' : 'tls') : 'none')
+
+    if (proxy.servername || proxy.sni) params.set('sni', proxy.servername || proxy.sni || '')
+    if (proxy.flow) params.set('flow', proxy.flow)
+    if (proxy['client-fingerprint']) params.set('fp', proxy['client-fingerprint'])
+    if (proxy['skip-cert-verify']) params.set('allowInsecure', '1')
+    if (proxy.alpn) params.set('alpn', Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn)
+
+    // Reality 参数
+    if (proxy['reality-opts']) {
+      params.set('pbk', proxy['reality-opts']['public-key'] || '')
+      if (proxy['reality-opts']['short-id']) params.set('sid', proxy['reality-opts']['short-id'])
+    }
+
+    // WS 参数
+    if (proxy.network === 'ws' && proxy['ws-opts']) {
+      if (proxy['ws-opts'].path) params.set('path', proxy['ws-opts'].path)
+      if (proxy['ws-opts'].headers?.Host) params.set('host', proxy['ws-opts'].headers.Host)
+    }
+
+    const name = encodeURIComponent(proxy.name)
+    return `vless://${proxy.uuid}@${proxy.server}:${proxy.port}?${params.toString()}#${name}`
+  }
 }
 
 // 兼容性导出
