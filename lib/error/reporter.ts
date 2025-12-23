@@ -1,22 +1,23 @@
+/**
+ * 错误报告模块
+ * 负责错误的记录、上报和日志输出
+ */
+
 import { AppError, ErrorSeverity } from './errors'
 import { logger } from '../core/logger'
 
-/**
- * 错误上下文信息
- */
+/** 错误上下文信息 */
 interface ErrorContext {
-  url?: string | undefined
-  userAgent?: string | undefined
-  clientIp?: string | undefined
-  userId?: string | undefined
-  sessionId?: string | undefined
-  requestBody?: unknown | undefined
-  additionalData?: Record<string, unknown> | undefined
+  url?: string
+  userAgent?: string
+  clientIp?: string
+  userId?: string
+  sessionId?: string
+  requestBody?: unknown
+  additionalData?: Record<string, unknown>
 }
 
-/**
- * 错误报告接口
- */
+/** 错误报告 */
 interface ErrorReport {
   error: AppError
   context: ErrorContext
@@ -24,45 +25,37 @@ interface ErrorReport {
 }
 
 /**
- * 错误报告器（简化版）
+ * 错误报告器（单例模式）
  * 负责错误的记录和日志输出
  */
 export class ErrorReporter {
   private static instance: ErrorReporter
 
-  private constructor() {
-    // 私有构造函数实现单例模式
-  }
+  private constructor() {}
 
-  public static getInstance(): ErrorReporter {
+  static getInstance(): ErrorReporter {
     if (!ErrorReporter.instance) {
       ErrorReporter.instance = new ErrorReporter()
     }
     return ErrorReporter.instance
   }
 
-  /**
-   * 报告错误
-   */
+  /** 报告错误 */
   async report(error: AppError, context: ErrorContext = {}): Promise<void> {
     const report: ErrorReport = {
       error,
       context: {
         ...context,
-        // 避免记录敏感信息
         userAgent: context.userAgent?.substring(0, 200),
         clientIp: this.maskIp(context.clientIp),
       },
-      environment: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test'
+      environment: (process.env.NODE_ENV || 'development') as ErrorReport['environment']
     }
 
-    // 记录到日志
     this.logError(report)
   }
 
-  /**
-   * 记录错误到日志
-   */
+  /** 记录错误到日志 */
   private logError(report: ErrorReport): void {
     const { error, context } = report
 
@@ -97,13 +90,11 @@ export class ErrorReporter {
     }
   }
 
-  /**
-   * 脱敏IP地址
-   */
+  /** 脱敏 IP 地址 */
   private maskIp(ip?: string): string | undefined {
     if (!ip) return undefined
 
-    // 对IPv4地址进行脱敏：192.168.1.100 -> 192.168.*.***
+    // IPv4: 192.168.1.100 -> 192.168.*.**
     if (ip.includes('.')) {
       const parts = ip.split('.')
       if (parts.length === 4) {
@@ -111,7 +102,7 @@ export class ErrorReporter {
       }
     }
 
-    // 对IPv6地址进行脱敏
+    // IPv6
     if (ip.includes(':')) {
       const parts = ip.split(':')
       if (parts.length >= 4) {
@@ -125,29 +116,24 @@ export class ErrorReporter {
 
 /**
  * 全局错误处理函数
+ * @param error 错误对象
+ * @param context 错误上下文
+ * @returns 转换后的 AppError
  */
 export async function handleError(
   error: Error | AppError,
   context: ErrorContext = {}
 ): Promise<AppError> {
-  let appError: AppError
-
-  if (error instanceof AppError) {
-    appError = error
-  } else {
-    // 将普通错误转换为AppError
-    appError = AppError.fromError(error)
-  }
-
-  // 报告错误
+  const appError = error instanceof AppError ? error : AppError.fromError(error)
   const reporter = ErrorReporter.getInstance()
   await reporter.report(appError, context)
-
   return appError
 }
 
 /**
- * Express/Next.js错误处理中间件辅助函数
+ * 创建错误响应
+ * @param error 应用错误
+ * @returns 包含状态码和响应体的对象
  */
 export function createErrorResponse(error: AppError) {
   return {

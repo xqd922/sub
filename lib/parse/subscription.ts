@@ -1,3 +1,8 @@
+/**
+ * 订阅解析模块
+ * 支持 YAML 和 Base64 格式的订阅解析
+ */
+
 import { Proxy, ProxyConfig } from '../core/types'
 import yaml from 'js-yaml'
 import { logger } from '../core/logger'
@@ -6,17 +11,22 @@ import { VLessProtocol } from './protocols/vless'
 import { Hysteria2Protocol } from './protocols/hysteria2'
 import { deduplicateProxies } from '../core/dedup'
 
+/**
+ * 解析订阅链接
+ * @param url 订阅链接
+ * @param clientUserAgent 客户端 User-Agent
+ * @returns 解析后的节点列表
+ */
 export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()
   logger.debug(`\n开始解析订阅: ${url}`)
 
   try {
-    // 使用专用的订阅网络请求方法，传递客户端 User-Agent
     const response = await NetService.fetchSubscription(url, clientUserAgent)
 
-    // 检查响应大小，避免内存溢出
+    // 检查响应大小
     const contentLength = response.headers.get('content-length')
-    const MAX_SIZE = 10 * 1024 * 1024 // 10MB 限制
+    const MAX_SIZE = 10 * 1024 * 1024
 
     if (contentLength && parseInt(contentLength) > MAX_SIZE) {
       throw new Error(`订阅文件过大 (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)}MB)，超过10MB限制`)
@@ -27,17 +37,16 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
       throw new Error('订阅内容为空，请检查订阅链接是否正确')
     }
 
-    // 再次检查实际大小
     if (text.length > MAX_SIZE) {
       logger.warn(`订阅文件较大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，处理时间可能较长`)
     }
 
-    // 检测订阅格式
+    // 根据格式选择解析方法
     if (text.includes('proxies:')) {
       return parseYamlSubscription(text)
     }
-
     return parseBase64Subscription(text)
+
   } catch (error) {
     const duration = Date.now() - startTime
     logger.error('\n=== 订阅解析失败 ===')
@@ -48,22 +57,14 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
   }
 }
 
-/**
- * 解析 YAML 格式订阅
- * 优化：使用 safeLoad 提高安全性
- */
+/** 解析 YAML 格式订阅 */
 function parseYamlSubscription(text: string): Proxy[] {
   const config = yaml.load(text, { schema: yaml.FAILSAFE_SCHEMA }) as ProxyConfig
   const proxies = config.proxies || []
-
-  // 使用统一的去重函数
   return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
 }
 
-/**
- * 解析 Base64 格式订阅
- * 优化：批量处理、减少错误日志、使用 Set 跟踪失败
- */
+/** 解析 Base64 格式订阅 */
 function parseBase64Subscription(text: string): Proxy[] {
   const decodedText = Buffer.from(text, 'base64').toString()
   const lines = decodedText.split('\n')
@@ -71,42 +72,37 @@ function parseBase64Subscription(text: string): Proxy[] {
   let failedCount = 0
   const failedTypes = new Set<string>()
 
-  // 批量解析节点
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]?.trim()
-    if (!line) continue
+  for (const line of lines) {
+    const trimmed = line?.trim()
+    if (!trimmed) continue
 
     try {
       let proxy: Proxy | null = null
 
-      if (line.startsWith('ss://')) {
-        proxy = parseSS(line)
-      } else if (line.startsWith('vmess://')) {
-        proxy = parseVmess(line)
-      } else if (line.startsWith('trojan://')) {
-        proxy = parseTrojan(line)
-      } else if (line.startsWith('vless://')) {
-        proxy = parseVless(line)
-      } else if (line.startsWith('hysteria2://') || line.startsWith('hy2://')) {
-        proxy = parseHysteria2(line)
+      if (trimmed.startsWith('ss://')) {
+        proxy = parseSS(trimmed)
+      } else if (trimmed.startsWith('vmess://')) {
+        proxy = parseVmess(trimmed)
+      } else if (trimmed.startsWith('trojan://')) {
+        proxy = parseTrojan(trimmed)
+      } else if (trimmed.startsWith('vless://')) {
+        proxy = VLessProtocol.parse(trimmed)
+      } else if (trimmed.startsWith('hysteria2://') || trimmed.startsWith('hy2://')) {
+        proxy = Hysteria2Protocol.parse(trimmed)
       }
 
-      if (proxy) {
-        proxies.push(proxy)
-      }
+      if (proxy) proxies.push(proxy)
     } catch (e) {
       failedCount++
-      const protocol = line.split('://')[0] || 'unknown'
+      const protocol = trimmed.split('://')[0] || 'unknown'
       failedTypes.add(protocol)
 
-      // 只在调试模式下打印详细错误
       if (process.env.NODE_ENV === 'development') {
         logger.debug(`节点解析失败 [${protocol}]: ${e instanceof Error ? e.message : String(e)}`)
       }
     }
   }
 
-  // 汇总失败统计
   if (failedCount > 0) {
     logger.warn(`节点解析完成: 成功 ${proxies.length} 个, 失败 ${failedCount} 个 (协议: ${Array.from(failedTypes).join(', ')})`)
   }
@@ -114,25 +110,10 @@ function parseBase64Subscription(text: string): Proxy[] {
   return proxies
 }
 
-/**
- * 解析 VLESS 节点
- */
-function parseVless(line: string): Proxy {
-  return VLessProtocol.parse(line)
-}
-
-/**
- * 解析 Hysteria2 节点
- */
-function parseHysteria2(line: string): Proxy {
-  return Hysteria2Protocol.parse(line)
-}
-
+/** 解析 Shadowsocks 节点 */
 export function parseSS(line: string): Proxy {
   const url = new URL(line)
-  const [method, password] = Buffer.from(url.username, 'base64')
-    .toString()
-    .split(':')
+  const [method, password] = Buffer.from(url.username, 'base64').toString().split(':')
 
   return {
     name: url.hash ? decodeURIComponent(url.hash.slice(1)) : `${url.hostname}:${url.port}`,
@@ -144,9 +125,10 @@ export function parseSS(line: string): Proxy {
   }
 }
 
+/** 解析 VMess 节点 */
 export function parseVmess(line: string): Proxy {
   const config = JSON.parse(Buffer.from(line.slice(8), 'base64').toString())
-  
+
   const proxy: Proxy = {
     name: config.ps || `${config.add}:${config.port}`,
     type: 'vmess',
@@ -167,10 +149,11 @@ export function parseVmess(line: string): Proxy {
   return proxy
 }
 
+/** 解析 Trojan 节点 */
 export function parseTrojan(line: string): Proxy {
   const url = new URL(line)
   const params = url.searchParams
-  
+
   const proxy: Proxy = {
     name: url.hash ? decodeURIComponent(url.hash.slice(1)) : `${url.hostname}:${url.port}`,
     type: 'trojan',
@@ -181,13 +164,10 @@ export function parseTrojan(line: string): Proxy {
     'skip-cert-verify': params.get('allowInsecure') === '1'
   }
 
-  // 处理传输协议
   const transportType = params.get('type')
   if (transportType === 'grpc') {
     proxy.network = 'grpc'
-    proxy['grpc-opts'] = {
-      'grpc-service-name': params.get('serviceName') || ''
-    }
+    proxy['grpc-opts'] = { 'grpc-service-name': params.get('serviceName') || '' }
     if (params.get('mode') === 'gun') {
       proxy['grpc-opts']['grpc-mode'] = 'gun'
     }
@@ -200,4 +180,4 @@ export function parseTrojan(line: string): Proxy {
   }
 
   return proxy
-} 
+}

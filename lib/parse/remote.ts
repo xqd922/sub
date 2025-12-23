@@ -1,57 +1,55 @@
-import { parseSubscription } from './subscription';
-import { SingleNodeParser } from './node';
-import { Proxy } from '../core/types';
-import { logger } from '../core/logger';
-import { NetService } from '@/features';
+/**
+ * 远程节点获取模块
+ * 从远程 URL 获取节点列表，支持单节点和订阅链接
+ */
 
-// 定义支持的协议前缀
+import { parseSubscription } from './subscription'
+import { SingleNodeParser } from './node'
+import { Proxy } from '../core/types'
+import { logger } from '../core/logger'
+import { NetService } from '@/features'
+
+/** 支持的单节点协议前缀 */
 const SINGLE_NODE_PREFIXES = [
   'ss://', 'vmess://', 'trojan://',
   'vless://', 'hysteria2://', 'hy2://', 'socks://'
-];
+]
 
-// 定义支持的订阅链接前缀
-const SUBSCRIPTION_PREFIXES = ['http://', 'https://'];
+/** 支持的订阅链接前缀 */
+const SUBSCRIPTION_PREFIXES = ['http://', 'https://']
 
 /**
  * 解析单个节点或订阅链接
- * @param line 节点或订阅链接
+ * @param line 节点链接或订阅链接
  * @returns 解析后的节点或节点数组
  */
 async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | null> {
   try {
-    // 检查是否包含链式代理标记 (用 | 分隔)
-    // 支持: |dialer-proxy: (Clash) 或 |detour: (Sing-box) 或 |chain: (通用)
+    // 检查链式代理标记 (|dialer-proxy: / |detour: / |chain:)
     const proxyMatch = line.match(/\|(dialer-proxy|detour|chain):\s*(.+?)$/i)
     let dialerProxy = ''
     let cleanLine = line
 
     if (proxyMatch) {
-      const proxyType = proxyMatch[1].toLowerCase()  // dialer-proxy, detour, 或 chain
+      const proxyType = proxyMatch[1].toLowerCase()
       dialerProxy = proxyMatch[2].trim()
-      // 移除链式代理部分，保留原始节点链接
       cleanLine = line.replace(/\|(dialer-proxy|detour|chain):.+$/i, '')
       logger.info(`节点指定前置代理 (${proxyType}): ${dialerProxy}`)
     }
 
-    // 判断是单节点还是订阅链接
     let proxy: Proxy | Proxy[] | null = null
 
     if (SINGLE_NODE_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
       proxy = SingleNodeParser.parse(cleanLine)
 
-      // 根据用户指定的标记类型添加对应字段
+      // 添加链式代理字段
       if (proxyMatch && dialerProxy && proxy && !Array.isArray(proxy)) {
         const proxyType = proxyMatch[1].toLowerCase()
-
         if (proxyType === 'dialer-proxy') {
-          // 只为 Clash 添加
           proxy['dialer-proxy'] = dialerProxy
         } else if (proxyType === 'detour') {
-          // 只为 Sing-box 添加
           proxy['detour'] = dialerProxy
         } else if (proxyType === 'chain') {
-          // 通用标记：同时添加两种格式
           proxy['dialer-proxy'] = dialerProxy
           proxy['detour'] = dialerProxy
         }
@@ -69,13 +67,14 @@ async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | 
 
 /**
  * 从远程 URL 获取节点列表
+ * @param url 远程 URL
+ * @returns 节点列表和是否包含订阅链接的标识
  */
 export async function fetchNodesFromRemote(url: string): Promise<{
   proxies: Proxy[]
   hasSubscriptionUrls: boolean
 }> {
   try {
-    // 使用专用的远程节点网络请求方法
     const response = await NetService.fetchRemoteNodes(url)
 
     if (!response.ok) {
@@ -83,9 +82,7 @@ export async function fetchNodesFromRemote(url: string): Promise<{
     }
 
     const content = await response.text()
-
-    // 处理其他域名的节点解析
-    const lines = content.split('\n').map(line => line.trim()).filter(line => line)
+    const lines = content.split('\n').map(line => line.trim()).filter(Boolean)
 
     // 检测是否包含订阅链接
     const hasSubscriptionUrls = lines.some(line =>
@@ -98,11 +95,7 @@ export async function fetchNodesFromRemote(url: string): Promise<{
       .filter((item): item is Proxy | Proxy[] => item !== null)
       .flatMap(item => Array.isArray(item) ? item : [item])
 
-    // 返回节点和是否包含订阅链接的标识
-    return {
-      proxies: filteredProxies,
-      hasSubscriptionUrls
-    }
+    return { proxies: filteredProxies, hasSubscriptionUrls }
   } catch (error) {
     logger.error('获取远程节点失败:', error)
     throw error
