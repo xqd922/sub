@@ -12,7 +12,7 @@ import { handleError, createErrorResponse } from '@/lib/error/reporter'
 export class CoreService {
   
   /**
-   * 处理订阅转换请求的主入口 - 优化并行处理版本
+   * 处理订阅转换请求的主入口
    */
   static async handleRequest(request: Request): Promise<NextResponse> {
     const startTime = Date.now()
@@ -36,33 +36,27 @@ export class CoreService {
         throw ErrorFactory.subscription.invalidUrl(url)
       }
 
-      // 2. 并行执行客户端检测和日志记录
+      // 2. 检测客户端类型
       const { isSingBox, isV2rayNG, isBrowser, clientType } = ConfigService.detectClientType(userAgent)
 
-      // 异步记录客户端信息（不阻塞主流程）
-      Promise.resolve().then(() => {
-        logger.info('\n=== 客户端信息 ===')
-        logger.info(`类型: ${clientType}`)
-        logger.info(`User-Agent: ${userAgent}`)
-        logger.info('===================\n')
-      })
+      // 记录客户端信息
+      logger.info('\n=== 客户端信息 ===')
+      logger.info(`类型: ${clientType}`)
+      logger.info(`User-Agent: ${userAgent}`)
+      logger.info('===================\n')
 
-      // 3. 处理订阅（核心操作，不能并行）
+      // 3. 处理订阅（核心异步操作）
       const { proxies, subscription, isAirportSubscription } = await SubService.processSubscription(url, userAgent)
 
-      // 4. 批量并行处理所有独立操作
+      // 4. 格式化节点名称（同步操作）
       const shouldFormat = SubService.shouldFormatNames(url)
+      const formattedProxies = SubService.formatProxies(proxies, shouldFormat)
 
-      // 并行处理多个独立任务
-      const [formattedProxies] = await Promise.all([
-        // 格式化节点名称
-        Promise.resolve(SubService.formatProxies(proxies, shouldFormat)),
-        // 异步记录订阅统计（不阻塞返回）
-        Promise.resolve().then(() => SubService.logSubscriptionStats(subscription, proxies))
-      ])
+      // 记录订阅统计
+      SubService.logSubscriptionStats(subscription, proxies)
 
-      // 5. 生成配置（已优化并行处理）
-      const response = await this.generateResponse(
+      // 5. 生成配置并返回响应
+      const response = this.generateResponse(
         proxies,
         formattedProxies,
         subscription,
@@ -73,13 +67,10 @@ export class CoreService {
         isAirportSubscription
       )
 
-      // 6. 异步记录处理统计（不阻塞响应返回）
+      // 6. 记录处理统计
       const duration = Date.now() - startTime
-      Promise.resolve().then(() => {
-        ConfigService.logConfigStats(proxies, formattedProxies, '', clientType, duration)
-      })
+      ConfigService.logConfigStats(proxies, formattedProxies, '', clientType, duration)
 
-      // 7. 立即返回结果
       return response
 
     } catch (error: unknown) {
@@ -88,9 +79,9 @@ export class CoreService {
   }
 
   /**
-   * 生成响应内容 - 优化并行处理
+   * 生成响应内容
    */
-  private static async generateResponse(
+  private static generateResponse(
     proxies: Proxy[],
     formattedProxies: Proxy[],
     subscription: SubscriptionInfo,
@@ -99,15 +90,12 @@ export class CoreService {
     isBrowser: boolean,
     shouldFormatNames: boolean,
     isAirportSubscription: boolean
-  ): Promise<NextResponse> {
+  ): NextResponse {
 
     if (isSingBox) {
-      // Sing-box JSON 配置 - 并行生成配置和头部
-      const [jsonConfig, headers] = await Promise.all([
-        Promise.resolve(ConfigService.generateSingboxConfig(proxies, shouldFormatNames)),
-        Promise.resolve(ConfigService.generateResponseHeaders(subscription, true, false))
-      ])
-
+      // Sing-box JSON 配置
+      const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
+      const headers = ConfigService.generateResponseHeaders(subscription, true, false)
       return new NextResponse(jsonConfig, { headers })
     }
 
@@ -125,24 +113,18 @@ export class CoreService {
       return new NextResponse(base64Config, { headers })
     }
 
-    // 对于浏览器预览，需要同时生成两种配置 - 并行处理
     if (isBrowser) {
-      const [yamlConfig, jsonConfig, headers] = await Promise.all([
-        Promise.resolve(ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)),
-        Promise.resolve(ConfigService.generateSingboxConfig(proxies, shouldFormatNames)),
-        Promise.resolve(ConfigService.generateResponseHeaders(subscription, false, true))
-      ])
-
+      // 浏览器预览，生成两种配置
+      const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)
+      const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
+      const headers = ConfigService.generateResponseHeaders(subscription, false, true)
       const html = ConfigService.generatePreviewHtml(yamlConfig, jsonConfig)
       return new NextResponse(html, { headers })
     }
 
-    // Clash YAML 配置 - 并行生成配置和头部
-    const [yamlConfig, headers] = await Promise.all([
-      Promise.resolve(ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)),
-      Promise.resolve(ConfigService.generateResponseHeaders(subscription, false, false))
-    ])
-
+    // Clash YAML 配置
+    const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)
+    const headers = ConfigService.generateResponseHeaders(subscription, false, false)
     return new NextResponse(yamlConfig, { headers })
   }
 
