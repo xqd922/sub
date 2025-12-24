@@ -12,7 +12,7 @@ import { NetService } from '@/features'
 /** 支持的单节点协议前缀 */
 const SINGLE_NODE_PREFIXES = [
   'ss://', 'vmess://', 'trojan://',
-  'vless://', 'hysteria2://', 'hy2://', 'socks://'
+  'vless://', 'hysteria2://', 'hy2://', 'socks://', 'anytls://'
 ]
 
 /** 支持的订阅链接前缀 */
