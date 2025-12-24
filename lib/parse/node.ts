@@ -6,7 +6,8 @@ import {
   TrojanProtocol,
   VLessProtocol,
   Hysteria2Protocol,
-  SocksProtocol
+  SocksProtocol,
+  AnyTLSProtocol
 } from './protocols'
 
 /**
@@ -60,6 +61,8 @@ export class SingleNodeParser {
         return Hysteria2Protocol.parse(uri)
       } else if (uri.startsWith('socks://')) {
         return SocksProtocol.parse(uri)
+      } else if (uri.startsWith('anytls://')) {
+        return AnyTLSProtocol.parse(uri)
       }
       throw new Error('不支持的代理协议类型，请检查链接格式')
     } catch (error) {
@@ -104,6 +107,8 @@ export class SingleNodeParser {
         return !!(proxy.uuid)
       case 'hysteria2':
         return !!(proxy.password)
+      case 'anytls':
+        return !!(proxy.password)
       default:
         return false
     }
@@ -129,6 +134,8 @@ export class SingleNodeParser {
         return Hysteria2Protocol.toSingboxOutbound(proxy)
       case 'socks5':
         return SocksProtocol.toSingboxOutbound(proxy)
+      case 'anytls':
+        return AnyTLSProtocol.toSingboxOutbound(proxy)
       default:
         return null
     }

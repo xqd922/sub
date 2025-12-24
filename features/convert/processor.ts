@@ -115,6 +115,7 @@ export class SubService {
       url.startsWith('hysteria2://') ||
       url.startsWith('hy2://') ||
       url.startsWith('socks://') ||
+      url.startsWith('anytls://') ||
       url.includes('gist.githubusercontent.com')
     )
   }
@@ -145,7 +146,8 @@ export class SubService {
            url.startsWith('vless://') ||
            url.startsWith('hysteria2://') ||
            url.startsWith('hy2://') ||
-           url.startsWith('socks://')
+           url.startsWith('socks://') ||
+           url.startsWith('anytls://')
   }
 
   /**

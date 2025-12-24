@@ -73,6 +73,10 @@ export interface Proxy {
   // SOCKS 代理相关属性
   username?: string
 
+  // AnyTLS 相关属性
+  'idle-session-check-interval'?: string
+  'idle-session-timeout'?: string
+
   // 链式代理支持
   'dialer-proxy'?: string  // Clash 格式
   detour?: string          // Sing-box 格式

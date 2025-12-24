@@ -5,6 +5,7 @@ export { TrojanProtocol, parseTrojan } from './trojan'
 export { VLessProtocol, parseVless } from './vless'
 export { Hysteria2Protocol, parseHysteria2 } from './hysteria2'
 export { SocksProtocol, parseSocks } from './socks'
+export { AnyTLSProtocol, parseAnyTLS } from './anytls'
 
 import { Proxy } from '../../core/types'
 import { SSProtocol } from './shadowsocks'
@@ -12,6 +13,7 @@ import { VMessProtocol } from './vmess'
 import { TrojanProtocol } from './trojan'
 import { VLessProtocol } from './vless'
 import { Hysteria2Protocol } from './hysteria2'
+import { AnyTLSProtocol } from './anytls'
 
 /**
  * 统一的 Proxy 转 URI 接口
@@ -29,6 +31,8 @@ export function proxyToUri(proxy: Proxy): string | null {
       return VLessProtocol.toUri(proxy)
     case 'hysteria2':
       return Hysteria2Protocol.toUri(proxy)
+    case 'anytls':
+      return AnyTLSProtocol.toUri(proxy)
     default:
       return null
   }
