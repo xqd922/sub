@@ -177,7 +177,7 @@ export class ShortService {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { link: { slug: string; id: string } }
         return {
           shortUrl: `${SINK_URL}/${data.link.slug}`,
           provider: 'Sink',
@@ -230,7 +230,7 @@ export class ShortService {
       )
 
       if (checkResponse.ok) {
-        const existingData = await checkResponse.json()
+        const existingData = await checkResponse.json() as { id: string }
         const bitlink = existingData.id
 
         // 更新现有短链接
@@ -250,7 +250,7 @@ export class ShortService {
         )
 
         if (updateResponse.ok) {
-          const updatedData = await updateResponse.json()
+          const updatedData = await updateResponse.json() as { link: string }
           return {
             shortUrl: updatedData.link,
             provider: 'Bitly',
@@ -281,7 +281,7 @@ export class ShortService {
       throw new Error(`Bitly API 错误: ${response.status} ${errorText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as { link: string }
     return {
       shortUrl: data.link,
       provider: 'Bitly',
@@ -306,7 +306,7 @@ export class ShortService {
       throw new Error('Cuttly短链接服务暂时无法访问，请稍后重试')
     }
 
-    const data = await response.json()
+    const data = await response.json() as { url?: { status: number; shortLink: string } }
     if (data.url?.status === 7) {
       return {
         shortUrl: data.url.shortLink,

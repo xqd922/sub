@@ -25,7 +25,7 @@ export function useShortUrl() {
         throw new Error('短链接生成服务暂时不可用，请稍后重试')
       }
       
-      const data = await response.json()
+      const data = await response.json() as { shortUrl?: string }
       if (data.shortUrl) {
         setShortUrl(data.shortUrl)
         const copied = await copyToClipboard(data.shortUrl)

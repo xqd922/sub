@@ -5,6 +5,7 @@ import { ConfigService } from './builder'
 import { logger } from '@/lib/core/logger'
 import { AppError, ErrorCode, ErrorFactory } from '@/lib/error/errors'
 import { handleError, createErrorResponse } from '@/lib/error/reporter'
+import { RecordService } from '@/lib/kv'
 
 /**
  * 核心请求处理器 - 统一处理所有订阅转换请求
@@ -34,6 +35,12 @@ export class CoreService {
         new URL(url)
       } catch {
         throw ErrorFactory.subscription.invalidUrl(url)
+      }
+
+      // 检查 URL 是否被禁用
+      const isEnabled = await RecordService.isUrlEnabled(url)
+      if (!isEnabled) {
+        throw AppError.validation('该订阅链接已被禁用', 'url', undefined)
       }
 
       // 2. 检测客户端类型
@@ -67,7 +74,17 @@ export class CoreService {
         isAirportSubscription
       )
 
-      // 6. 记录处理统计
+      // 6. 记录转换到 KV（异步，不阻塞响应）
+      RecordService.logConversion({
+        originalUrl: url,
+        clientType,
+        nodeCount: proxies.length,
+        clientIp
+      }).catch(err => {
+        logger.warn('记录转换失败:', err)
+      })
+
+      // 7. 记录处理统计
       const duration = Date.now() - startTime
       ConfigService.logConfigStats(proxies, formattedProxies, '', clientType, duration)
 

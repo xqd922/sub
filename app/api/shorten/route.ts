@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const startTime = Date.now()
   
   try {
-    const { url } = await request.json()
+    const { url } = await request.json() as { url?: string }
     
     if (!url) {
       return NextResponse.json({ error: '无效的 URL' }, { status: 400 })
