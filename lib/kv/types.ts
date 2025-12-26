@@ -20,6 +20,18 @@ export interface ConvertRecord {
 }
 
 /**
+ * 短链接记录
+ */
+export interface ShortLink {
+  id: string              // 短链接 ID (6位字符)
+  targetUrl: string       // 目标 URL
+  name: string            // 链接名称
+  createdAt: number       // 创建时间
+  hits: number            // 访问次数
+  lastAccess: number      // 最后访问时间
+}
+
+/**
  * 记录索引
  */
 export interface RecordIndex {
@@ -44,4 +56,5 @@ export const KV_PREFIX = {
   RECORD: 'record:',      // 单条记录
   INDEX: 'index:records', // 记录索引
   STATS: 'stats:global',  // 全局统计
+  SHORT: 'short:',        // 短链接
 } as const

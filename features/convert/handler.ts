@@ -93,7 +93,8 @@ export class CoreService {
         originalUrl: url,
         clientType,
         nodeCount: proxies.length,
-        clientIp
+        clientIp,
+        subscriptionName: subscription.name
       }).catch(err => {
         logger.warn('记录转换失败:', err)
       })

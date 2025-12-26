@@ -47,8 +47,9 @@ export class RecordService {
     clientType: string
     nodeCount: number
     clientIp: string
+    subscriptionName?: string
   }): Promise<ConvertRecord | null> {
-    const { originalUrl, clientType, nodeCount, clientIp } = params
+    const { originalUrl, clientType, nodeCount, clientIp, subscriptionName } = params
 
     // 检查 KV 是否可用
     if (!(await KVClient.isAvailable())) {
@@ -63,9 +64,10 @@ export class RecordService {
       const existing = await KVClient.getRecord(id)
 
       if (existing) {
-        // 更新已有记录
+        // 更新已有记录（如果有新的订阅名称，也更新名称）
         const updated: ConvertRecord = {
           ...existing,
+          name: subscriptionName || existing.name,
           clientType,
           updatedAt: now,
           lastAccess: now,
@@ -81,7 +83,7 @@ export class RecordService {
       const record: ConvertRecord = {
         id,
         originalUrl,
-        name: extractNameFromUrl(originalUrl),
+        name: subscriptionName || extractNameFromUrl(originalUrl),
         clientType,
         createdAt: now,
         updatedAt: now,

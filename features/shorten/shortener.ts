@@ -1,5 +1,6 @@
 import { logger } from '@/lib/core/logger'
 import { NetService } from '../metrics/network'
+import { ShortLinkService } from '@/lib/kv'
 
 /**
  * 短链接提供商配置
@@ -24,8 +25,14 @@ interface ShortResult {
  * 短链接服务 - 统一管理多个短链接提供商
  */
 export class ShortService {
-  
+
   private static readonly PROVIDERS: Record<string, ShortProvider> = {
+    kv: {
+      name: 'KV',
+      timeout: 3000,
+      retries: 1,
+      handler: this.handleKV
+    },
     tinyurl: {
       name: 'TinyURL',
       timeout: 3000,
@@ -52,7 +59,8 @@ export class ShortService {
     }
   }
 
-  private static readonly SERVICE_ORDER = ['tinyurl', 'sink', 'bitly'] as const
+  // KV 优先
+  private static readonly SERVICE_ORDER = ['kv', 'tinyurl', 'sink', 'bitly'] as const
 
   /**
    * 生成短链接 - 按优先级尝试多个服务
@@ -107,6 +115,33 @@ export class ShortService {
       return `/sub?url=${encodeURIComponent(url)}`
     } catch {
       return url
+    }
+  }
+
+  /**
+   * KV 处理器 - 使用 Cloudflare KV 存储
+   */
+  private static async handleKV(url: string): Promise<ShortResult> {
+    // 检查 KV 是否可用
+    if (!(await ShortLinkService.isAvailable())) {
+      throw new Error('KV 服务不可用')
+    }
+
+    const shortLink = await ShortLinkService.create(url)
+    if (!shortLink) {
+      throw new Error('KV 创建短链接失败')
+    }
+
+    // 构建短链接 URL
+    const baseUrl = typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.SITE_URL || 'https://sub.xqd.pp.ua'
+
+    return {
+      shortUrl: `${baseUrl}/s/${shortLink.id}`,
+      provider: 'KV',
+      id: shortLink.id,
+      created: true
     }
   }
 
