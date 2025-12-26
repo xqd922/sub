@@ -11,7 +11,6 @@ interface ConvertRecord {
   updatedAt: number
   lastAccess: number
   hits: number
-  enabled: boolean
   nodeCount: number
   lastIp: string
 }
@@ -140,22 +139,8 @@ export default function AdminPage() {
     setStats(null)
   }
 
-  const toggleRecord = async (id: string) => {
-    try {
-      const res = await fetch(`/api/admin/records/${id}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        fetchData()
-      }
-    } catch (err) {
-      console.error('切换状态失败:', err)
-    }
-  }
-
   const deleteRecord = async (id: string) => {
-    if (!confirm('确定要删除这条记录吗？')) return
+    if (!confirm('确定要删除这条记录吗？删除后该订阅链接将无法使用。')) return
 
     try {
       const res = await fetch(`/api/admin/records/${id}`, {
@@ -350,7 +335,6 @@ export default function AdminPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">节点数</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">访问</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">最后访问</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">状态</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">操作</th>
                     </tr>
                   </thead>
@@ -369,19 +353,7 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.nodeCount}</td>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.hits}</td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(record.lastAccess)}</td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            record.enabled
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          }`}>
-                            {record.enabled ? '启用' : '禁用'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm space-x-2">
-                          <button onClick={() => toggleRecord(record.id)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400">
-                            {record.enabled ? '禁用' : '启用'}
-                          </button>
+                        <td className="px-4 py-3 text-sm">
                           <button onClick={() => deleteRecord(record.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
                             删除
                           </button>

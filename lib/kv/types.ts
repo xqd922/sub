@@ -14,9 +14,9 @@ export interface ConvertRecord {
   updatedAt: number       // 最后更新时间
   lastAccess: number      // 最后访问时间
   hits: number            // 访问次数
-  enabled: boolean        // 是否允许转换
   nodeCount: number       // 节点数量
   lastIp: string          // 最后访问 IP
+  deleted?: boolean       // 是否已删除（软删除）
 }
 
 /**

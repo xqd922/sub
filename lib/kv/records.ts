@@ -89,7 +89,6 @@ export class RecordService {
         updatedAt: now,
         lastAccess: now,
         hits: 1,
-        enabled: true,
         nodeCount,
         lastIp: clientIp
       }
@@ -105,7 +104,7 @@ export class RecordService {
   }
 
   /**
-   * 检查 URL 是否被禁用
+   * 检查 URL 是否可用（未被删除）
    */
   static async isUrlEnabled(url: string): Promise<boolean> {
     if (!(await KVClient.isAvailable())) {
@@ -115,17 +114,22 @@ export class RecordService {
     try {
       const id = await generateRecordId(url)
       const record = await KVClient.getRecord(id)
-      return record?.enabled ?? true
+      // 如果记录不存在，允许访问（新链接）
+      // 如果记录存在且 deleted=true，拒绝访问
+      if (!record) return true
+      return !record.deleted
     } catch {
       return true
     }
   }
 
   /**
-   * 获取所有记录
+   * 获取所有记录（排除已删除的）
    */
   static async getAllRecords(): Promise<ConvertRecord[]> {
-    return KVClient.getAllRecords()
+    const allRecords = await KVClient.getAllRecords()
+    // 过滤掉已删除的记录
+    return allRecords.filter(record => !record.deleted)
   }
 
   /**
@@ -153,24 +157,23 @@ export class RecordService {
   }
 
   /**
-   * 删除记录
+   * 删除记录（软删除，标记为已删除，链接将失效）
    */
   static async deleteRecord(id: string): Promise<boolean> {
-    const success = await KVClient.deleteRecord(id)
-    if (success) {
-      await KVClient.removeFromIndex(id)
-    }
-    return success
-  }
-
-  /**
-   * 切换记录启用状态
-   */
-  static async toggleRecord(id: string): Promise<ConvertRecord | null> {
     const record = await KVClient.getRecord(id)
-    if (!record) return null
+    if (!record) return false
 
-    return this.updateRecord(id, { enabled: !record.enabled })
+    // 软删除：标记为已删除
+    const updated: ConvertRecord = {
+      ...record,
+      deleted: true,
+      updatedAt: Date.now()
+    }
+
+    await KVClient.saveRecord(updated)
+    // 从索引中移除（不再显示在列表中）
+    await KVClient.removeFromIndex(id)
+    return true
   }
 
   /**

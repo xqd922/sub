@@ -41,11 +41,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
   const { id } = await params
 
   try {
-    const body = await request.json() as { enabled?: boolean; name?: string }
-    const { enabled, name } = body
+    const body = await request.json() as { name?: string }
+    const { name } = body
 
     const updates: Record<string, unknown> = {}
-    if (typeof enabled === 'boolean') updates.enabled = enabled
     if (typeof name === 'string') updates.name = name
 
     const record = await RecordService.updateRecord(id, updates)
@@ -61,7 +60,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 }
 
 /**
- * DELETE /api/admin/records/[id] - 删除记录
+ * DELETE /api/admin/records/[id] - 删除记录（软删除，链接将失效）
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   if (!(await validateAdminAuth(request))) {
@@ -79,27 +78,5 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error('删除记录失败:', error)
     return NextResponse.json({ error: '删除记录失败' }, { status: 500 })
-  }
-}
-
-/**
- * PATCH /api/admin/records/[id] - 切换启用状态
- */
-export async function PATCH(request: Request, { params }: RouteParams) {
-  if (!(await validateAdminAuth(request))) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 })
-  }
-
-  const { id } = await params
-
-  try {
-    const record = await RecordService.toggleRecord(id)
-    if (!record) {
-      return NextResponse.json({ error: '记录不存在' }, { status: 404 })
-    }
-    return NextResponse.json(record)
-  } catch (error) {
-    console.error('切换状态失败:', error)
-    return NextResponse.json({ error: '切换状态失败' }, { status: 500 })
   }
 }
