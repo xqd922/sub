@@ -8,6 +8,19 @@ import { handleError, createErrorResponse } from '@/lib/error/reporter'
 import { RecordService } from '@/lib/kv'
 
 /**
+ * 获取 Cloudflare 执行上下文
+ */
+async function getExecutionContext(): Promise<ExecutionContext | null> {
+  try {
+    const { getRequestContext } = await import('@cloudflare/next-on-pages')
+    const ctx = getRequestContext()
+    return ctx.ctx
+  } catch {
+    return null
+  }
+}
+
+/**
  * 核心请求处理器 - 统一处理所有订阅转换请求
  */
 export class CoreService {
@@ -74,8 +87,9 @@ export class CoreService {
         isAirportSubscription
       )
 
-      // 6. 记录转换到 KV（异步，不阻塞响应）
-      RecordService.logConversion({
+      // 6. 记录转换到 KV（使用 waitUntil 确保后台任务完成）
+      const ctx = await getExecutionContext()
+      const recordPromise = RecordService.logConversion({
         originalUrl: url,
         clientType,
         nodeCount: proxies.length,
@@ -83,6 +97,11 @@ export class CoreService {
       }).catch(err => {
         logger.warn('记录转换失败:', err)
       })
+
+      // 使用 waitUntil 确保记录在响应后继续执行
+      if (ctx?.waitUntil) {
+        ctx.waitUntil(recordPromise)
+      }
 
       // 7. 记录处理统计
       const duration = Date.now() - startTime
