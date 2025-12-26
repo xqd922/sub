@@ -1,29 +1,14 @@
 import { NextResponse } from 'next/server'
 import { RecordService } from '@/lib/kv'
+import { validateAdminAuth } from '@/lib/auth'
 
 export const runtime = 'edge'
-
-/**
- * 验证管理员 Token
- */
-function validateAuth(request: Request): boolean {
-  const authHeader = request.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-  const adminToken = process.env.ADMIN_TOKEN
-
-  // 如果没有配置 ADMIN_TOKEN，禁止访问
-  if (!adminToken) {
-    return false
-  }
-
-  return token === adminToken
-}
 
 /**
  * GET /api/admin/records - 获取所有记录
  */
 export async function GET(request: Request) {
-  if (!validateAuth(request)) {
+  if (!(await validateAdminAuth(request))) {
     return NextResponse.json({ error: '未授权' }, { status: 401 })
   }
 

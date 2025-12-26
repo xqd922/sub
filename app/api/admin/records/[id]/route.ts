@@ -1,22 +1,8 @@
 import { NextResponse } from 'next/server'
 import { RecordService } from '@/lib/kv'
+import { validateAdminAuth } from '@/lib/auth'
 
 export const runtime = 'edge'
-
-/**
- * 验证管理员 Token
- */
-function validateAuth(request: Request): boolean {
-  const authHeader = request.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-  const adminToken = process.env.ADMIN_TOKEN
-
-  if (!adminToken) {
-    return false
-  }
-
-  return token === adminToken
-}
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -26,7 +12,7 @@ interface RouteParams {
  * GET /api/admin/records/[id] - 获取单条记录
  */
 export async function GET(request: Request, { params }: RouteParams) {
-  if (!validateAuth(request)) {
+  if (!(await validateAdminAuth(request))) {
     return NextResponse.json({ error: '未授权' }, { status: 401 })
   }
 
@@ -48,7 +34,7 @@ export async function GET(request: Request, { params }: RouteParams) {
  * PUT /api/admin/records/[id] - 更新记录
  */
 export async function PUT(request: Request, { params }: RouteParams) {
-  if (!validateAuth(request)) {
+  if (!(await validateAdminAuth(request))) {
     return NextResponse.json({ error: '未授权' }, { status: 401 })
   }
 
@@ -78,7 +64,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
  * DELETE /api/admin/records/[id] - 删除记录
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
-  if (!validateAuth(request)) {
+  if (!(await validateAdminAuth(request))) {
     return NextResponse.json({ error: '未授权' }, { status: 401 })
   }
 
@@ -100,7 +86,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
  * PATCH /api/admin/records/[id] - 切换启用状态
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
-  if (!validateAuth(request)) {
+  if (!(await validateAdminAuth(request))) {
     return NextResponse.json({ error: '未授权' }, { status: 401 })
   }
 
