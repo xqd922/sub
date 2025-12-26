@@ -59,7 +59,7 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
 
 /** 解析 YAML 格式订阅 */
 function parseYamlSubscription(text: string): Proxy[] {
-  const config = yaml.load(text, { schema: yaml.FAILSAFE_SCHEMA }) as ProxyConfig
+  const config = yaml.load(text) as ProxyConfig
   const proxies = config.proxies || []
   return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
 }
