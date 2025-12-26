@@ -16,6 +16,15 @@ interface ConvertRecord {
   lastIp: string
 }
 
+interface ShortLink {
+  id: string
+  targetUrl: string
+  name: string
+  createdAt: number
+  hits: number
+  lastAccess: number
+}
+
 interface Stats {
   totalRecords: number
   totalHits: number
@@ -23,15 +32,19 @@ interface Stats {
   activeRecords: number
 }
 
+type TabType = 'records' | 'shortlinks'
+
 export default function AdminPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [token, setToken] = useState('')
   const [isAuthed, setIsAuthed] = useState(false)
   const [records, setRecords] = useState<ConvertRecord[]>([])
+  const [shortLinks, setShortLinks] = useState<ShortLink[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState<TabType>('records')
 
   const fetchData = useCallback(async () => {
     if (!token) return
@@ -42,9 +55,10 @@ export default function AdminPage() {
     try {
       const headers = { Authorization: `Bearer ${token}` }
 
-      const [recordsRes, statsRes] = await Promise.all([
+      const [recordsRes, statsRes, shortLinksRes] = await Promise.all([
         fetch('/api/admin/records', { headers }),
-        fetch('/api/admin/stats', { headers })
+        fetch('/api/admin/stats', { headers }),
+        fetch('/api/admin/shortlinks', { headers })
       ])
 
       if (recordsRes.status === 401 || statsRes.status === 401) {
@@ -55,9 +69,11 @@ export default function AdminPage() {
 
       const recordsData = await recordsRes.json() as { records?: ConvertRecord[] }
       const statsData = await statsRes.json() as Stats
+      const shortLinksData = await shortLinksRes.json() as { shortLinks?: ShortLink[] }
 
       setRecords(recordsData.records || [])
       setStats(statsData)
+      setShortLinks(shortLinksData.shortLinks || [])
       setIsAuthed(true)
     } catch (err) {
       setError('获取数据失败')
@@ -120,6 +136,7 @@ export default function AdminPage() {
     setPassword('')
     setIsAuthed(false)
     setRecords([])
+    setShortLinks([])
     setStats(null)
   }
 
@@ -150,6 +167,31 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error('删除失败:', err)
+    }
+  }
+
+  const deleteShortLink = async (id: string) => {
+    if (!confirm('确定要删除这个短链接吗？')) return
+
+    try {
+      const res = await fetch(`/api/admin/shortlinks/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        fetchData()
+      }
+    } catch (err) {
+      console.error('删除短链接失败:', err)
+    }
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('已复制到剪贴板')
+    } catch {
+      alert('复制失败')
     }
   }
 
@@ -246,8 +288,8 @@ export default function AdminPage() {
               <div className="text-gray-500 dark:text-gray-400 text-sm">总访问次数</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-              <div className="text-3xl font-bold text-purple-600">{stats.todayHits}</div>
-              <div className="text-gray-500 dark:text-gray-400 text-sm">今日访问</div>
+              <div className="text-3xl font-bold text-purple-600">{shortLinks.length}</div>
+              <div className="text-gray-500 dark:text-gray-400 text-sm">短链接数</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
               <div className="text-3xl font-bold text-orange-600">{stats.activeRecords}</div>
@@ -256,8 +298,29 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 刷新按钮 */}
-        <div className="flex justify-end mb-4">
+        {/* 标签页 */}
+        <div className="flex space-x-4 mb-4">
+          <button
+            onClick={() => setActiveTab('records')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'records'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            转换记录
+          </button>
+          <button
+            onClick={() => setActiveTab('shortlinks')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'shortlinks'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            短链接
+          </button>
+          <div className="flex-1" />
           <button
             onClick={fetchData}
             disabled={loading}
@@ -269,105 +332,124 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* 记录列表 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          {records.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              暂无记录
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      名称
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      原始链接
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      客户端
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      节点数
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      访问次数
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      最后访问
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      状态
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      操作
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {records.map((record) => (
-                    <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                        {record.name}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                        <span title={record.originalUrl}>
-                          {formatUrl(record.originalUrl)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600
-                                         text-gray-700 dark:text-gray-300">
-                          {record.clientType}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                        {record.nodeCount}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                        {record.hits}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(record.lastAccess)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          record.enabled
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                          {record.enabled ? '启用' : '禁用'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm space-x-2">
-                        <button
-                          onClick={() => toggleRecord(record.id)}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400
-                                     dark:hover:text-blue-300"
-                        >
-                          {record.enabled ? '禁用' : '启用'}
-                        </button>
-                        <button
-                          onClick={() => deleteRecord(record.id)}
-                          className="text-red-600 hover:text-red-800 dark:text-red-400
-                                     dark:hover:text-red-300"
-                        >
-                          删除
-                        </button>
-                      </td>
+        {/* 转换记录列表 */}
+        {activeTab === 'records' && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            {records.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                暂无记录
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">名称</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">原始链接</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">客户端</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">节点数</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">访问</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">最后访问</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">状态</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">操作</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {records.map((record) => (
+                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                          <span title={record.originalUrl}>{formatUrl(record.originalUrl)}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                            {record.clientType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.nodeCount}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.hits}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(record.lastAccess)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            record.enabled
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {record.enabled ? '启用' : '禁用'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm space-x-2">
+                          <button onClick={() => toggleRecord(record.id)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                            {record.enabled ? '禁用' : '启用'}
+                          </button>
+                          <button onClick={() => deleteRecord(record.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
+                            删除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 短链接列表 */}
+        {activeTab === 'shortlinks' && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            {shortLinks.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                暂无短链接
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">短链接</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">名称</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">访问次数</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">创建时间</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">最后访问</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {shortLinks.map((link) => (
+                      <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="px-4 py-3 text-sm">
+                          <code className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-blue-600 dark:text-blue-400">
+                            /s/{link.id}
+                          </code>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{link.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{link.hits}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(link.createdAt)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(link.lastAccess)}</td>
+                        <td className="px-4 py-3 text-sm space-x-2">
+                          <button
+                            onClick={() => copyToClipboard(`${window.location.origin}/s/${link.id}`)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                          >
+                            复制
+                          </button>
+                          <button onClick={() => deleteShortLink(link.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
+                            删除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 底部信息 */}
         <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          共 {records.length} 条记录
+          {activeTab === 'records' ? `共 ${records.length} 条记录` : `共 ${shortLinks.length} 个短链接`}
         </div>
       </div>
     </div>

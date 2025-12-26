@@ -61,6 +61,9 @@ function extractNameFromUrl(url: string): string {
   }
 }
 
+// 短链接索引 key
+const SHORT_INDEX_KEY = 'index:shortlinks'
+
 /**
  * 短链接服务
  */
@@ -118,6 +121,9 @@ export class ShortLinkService {
         { expirationTtl: 86400 * 365 }
       )
 
+      // 添加到索引
+      await this.addToIndex(id)
+
       return shortLink
     } catch (error) {
       console.error('[ShortLink] 创建失败:', error)
@@ -138,6 +144,59 @@ export class ShortLinkService {
     } catch (error) {
       console.error('[ShortLink] 获取失败:', error)
       return null
+    }
+  }
+
+  /**
+   * 获取所有短链接
+   */
+  static async getAll(): Promise<ShortLink[]> {
+    const kv = await getKV()
+    if (!kv) return []
+
+    try {
+      const indexData = await kv.get(SHORT_INDEX_KEY, 'json') as { ids: string[] } | null
+      const ids = indexData?.ids || []
+
+      const shortLinks: ShortLink[] = []
+      for (const id of ids) {
+        const link = await this.get(id)
+        if (link) shortLinks.push(link)
+      }
+
+      // 按创建时间倒序
+      return shortLinks.sort((a, b) => b.createdAt - a.createdAt)
+    } catch (error) {
+      console.error('[ShortLink] 获取全部失败:', error)
+      return []
+    }
+  }
+
+  /**
+   * 删除短链接
+   */
+  static async delete(id: string): Promise<boolean> {
+    const kv = await getKV()
+    if (!kv) return false
+
+    try {
+      // 获取短链接信息以删除 URL 映射
+      const shortLink = await this.get(id)
+      if (shortLink) {
+        const urlHash = await this.getUrlHash(shortLink.targetUrl)
+        await kv.delete(`${KV_PREFIX.SHORT}url:${urlHash}`)
+      }
+
+      // 删除短链接
+      await kv.delete(`${KV_PREFIX.SHORT}${id}`)
+
+      // 从索引移除
+      await this.removeFromIndex(id)
+
+      return true
+    } catch (error) {
+      console.error('[ShortLink] 删除失败:', error)
+      return false
     }
   }
 
@@ -169,6 +228,47 @@ export class ShortLinkService {
     } catch (error) {
       console.error('[ShortLink] 解析失败:', error)
       return null
+    }
+  }
+
+  /**
+   * 添加到索引
+   */
+  private static async addToIndex(id: string): Promise<void> {
+    const kv = await getKV()
+    if (!kv) return
+
+    try {
+      const indexData = await kv.get(SHORT_INDEX_KEY, 'json') as { ids: string[] } | null
+      const ids = indexData?.ids || []
+
+      if (!ids.includes(id)) {
+        ids.push(id)
+        await kv.put(SHORT_INDEX_KEY, JSON.stringify({ ids }))
+      }
+    } catch (error) {
+      console.error('[ShortLink] 添加索引失败:', error)
+    }
+  }
+
+  /**
+   * 从索引移除
+   */
+  private static async removeFromIndex(id: string): Promise<void> {
+    const kv = await getKV()
+    if (!kv) return
+
+    try {
+      const indexData = await kv.get(SHORT_INDEX_KEY, 'json') as { ids: string[] } | null
+      const ids = indexData?.ids || []
+
+      const idx = ids.indexOf(id)
+      if (idx > -1) {
+        ids.splice(idx, 1)
+        await kv.put(SHORT_INDEX_KEY, JSON.stringify({ ids }))
+      }
+    } catch (error) {
+      console.error('[ShortLink] 移除索引失败:', error)
     }
   }
 
