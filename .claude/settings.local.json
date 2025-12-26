@@ -26,7 +26,10 @@
       "Bash(cat:*)",
       "Bash(del:*)",
       "Bash(node:*)",
-      "Read(//d/Me/**)"
+      "Read(//d/Me/**)",
+      "Bash(ls:*)",
+      "Bash(bunx wrangler pages dev:*)",
+      "Bash(bunx wrangler:*)"
     ],
     "deny": [],
     "ask": []
