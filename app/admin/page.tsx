@@ -1,6 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { LoginForm } from './components/LoginForm'
+import { StatsCards } from './components/StatsCards'
+import { SearchBar } from './components/SearchBar'
+import { Pagination } from './components/Pagination'
+import { BatchActions } from './components/BatchActions'
+import { RecordsTable } from './components/RecordsTable'
+import { ShortLinksTable } from './components/ShortLinksTable'
+import { ConfirmModal } from './components/ConfirmModal'
+import { ToastProvider, useToast } from './components/Toast'
 
 interface ConvertRecord {
   id: string
@@ -33,27 +42,54 @@ interface Stats {
 
 type TabType = 'records' | 'shortlinks'
 
-export default function AdminPage() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+const PAGE_SIZE = 20
+
+function AdminContent() {
+  const { toast } = useToast()
+
+  // 认证状态
   const [token, setToken] = useState('')
   const [isAuthed, setIsAuthed] = useState(false)
+
+  // 数据状态
   const [records, setRecords] = useState<ConvertRecord[]>([])
   const [shortLinks, setShortLinks] = useState<ShortLink[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<TabType>('records')
 
+  // UI 状态
+  const [activeTab, setActiveTab] = useState<TabType>('records')
+  const [search, setSearch] = useState('')
+  const [clientFilter, setClientFilter] = useState('')
+  const [sortBy, setSortBy] = useState('lastAccess')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [highlightShortLink, setHighlightShortLink] = useState<string>()
+
+  // 弹窗状态
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({ open: false, title: '', message: '', onConfirm: () => {} })
+
+  // 初始化 token
+  useEffect(() => {
+    const savedToken = localStorage.getItem('admin_token')
+    if (savedToken) {
+      setToken(savedToken)
+      setIsAuthed(true)
+    }
+  }, [])
+
+  // 获取数据
   const fetchData = useCallback(async () => {
     if (!token) return
-
     setLoading(true)
-    setError('')
 
     try {
       const headers = { Authorization: `Bearer ${token}` }
-
       const [recordsRes, statsRes, shortLinksRes] = await Promise.all([
         fetch('/api/admin/records', { headers }),
         fetch('/api/admin/stats', { headers }),
@@ -61,8 +97,8 @@ export default function AdminPage() {
       ])
 
       if (recordsRes.status === 401 || statsRes.status === 401) {
-        setError('Token 无效')
-        setIsAuthed(false)
+        toast('Token 已失效，请重新登录', 'error')
+        handleLogout()
         return
       }
 
@@ -73,177 +109,231 @@ export default function AdminPage() {
       setRecords(recordsData.records || [])
       setStats(statsData)
       setShortLinks(shortLinksData.shortLinks || [])
-      setIsAuthed(true)
-    } catch (err) {
-      setError('获取数据失败')
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }, [token])
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem('admin_token')
-    if (savedToken) {
-      setToken(savedToken)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (token) {
-      fetchData()
-    }
-  }, [token, fetchData])
-
-  const handleLogin = async () => {
-    if (!username || !password) {
-      setError('请输入用户名和密码')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      })
-
-      const data = await res.json() as { success?: boolean; token?: string; error?: string }
-
-      if (!res.ok || !data.success) {
-        setError(data.error || '登录失败')
-        return
-      }
-
-      setToken(data.token || '')
-      localStorage.setItem('admin_token', data.token || '')
-      setIsAuthed(true)
     } catch {
-      setError('登录请求失败')
+      toast('获取数据失败', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, toast])
 
+  useEffect(() => {
+    if (token && isAuthed) fetchData()
+  }, [token, isAuthed, fetchData])
+
+  // 登出
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
     setToken('')
-    setUsername('')
-    setPassword('')
     setIsAuthed(false)
     setRecords([])
     setShortLinks([])
     setStats(null)
   }
 
+  // 过滤和排序记录
+  const filteredRecords = useMemo(() => {
+    let result = [...records]
+
+    // 搜索
+    if (search) {
+      const lower = search.toLowerCase()
+      result = result.filter(r =>
+        r.name.toLowerCase().includes(lower) ||
+        r.originalUrl.toLowerCase().includes(lower)
+      )
+    }
+
+    // 客户端筛选
+    if (clientFilter) {
+      result = result.filter(r => r.clientType === clientFilter)
+    }
+
+    // 排序
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'hits': return b.hits - a.hits
+        case 'nodeCount': return b.nodeCount - a.nodeCount
+        case 'createdAt': return b.createdAt - a.createdAt
+        default: return b.lastAccess - a.lastAccess
+      }
+    })
+
+    return result
+  }, [records, search, clientFilter, sortBy])
+
+  // 分页
+  const totalPages = Math.ceil(filteredRecords.length / PAGE_SIZE)
+  const paginatedRecords = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return filteredRecords.slice(start, start + PAGE_SIZE)
+  }, [filteredRecords, currentPage])
+
+  // 重置分页
+  useEffect(() => setCurrentPage(1), [search, clientFilter, sortBy])
+
+  // 选择操作
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (paginatedRecords.every(r => selectedIds.has(r.id))) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginatedRecords.map(r => r.id)))
+    }
+  }
+
+  // 删除记录
   const deleteRecord = async (id: string) => {
-    if (!confirm('确定要删除这条记录吗？删除后该订阅链接将无法使用。')) return
-
-    try {
-      const res = await fetch(`/api/admin/records/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        fetchData()
+    setConfirmModal({
+      open: true,
+      title: '删除记录',
+      message: '确定要删除这条记录吗？删除后该订阅链接将无法使用。',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/records/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (res.ok) {
+            toast('删除成功', 'success')
+            fetchData()
+          }
+        } catch {
+          toast('删除失败', 'error')
+        }
+        setConfirmModal(prev => ({ ...prev, open: false }))
       }
-    } catch (err) {
-      console.error('删除失败:', err)
+    })
+  }
+
+  // 批量删除
+  const batchDelete = () => {
+    if (selectedIds.size === 0) return
+    setConfirmModal({
+      open: true,
+      title: '批量删除',
+      message: `确定要删除选中的 ${selectedIds.size} 条记录吗？`,
+      onConfirm: async () => {
+        try {
+          await Promise.all(
+            Array.from(selectedIds).map(id =>
+              fetch(`/api/admin/records/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+              })
+            )
+          )
+          toast(`成功删除 ${selectedIds.size} 条记录`, 'success')
+          setSelectedIds(new Set())
+          fetchData()
+        } catch {
+          toast('批量删除失败', 'error')
+        }
+        setConfirmModal(prev => ({ ...prev, open: false }))
+      }
+    })
+  }
+
+  // 导出 CSV
+  const exportCSV = () => {
+    const selected = records.filter(r => selectedIds.has(r.id))
+    const headers = ['名称', '原始URL', '客户端', '节点数', '访问次数', '最后访问']
+    const rows = selected.map(r => [
+      r.name,
+      r.originalUrl,
+      r.clientType,
+      r.nodeCount,
+      r.hits,
+      new Date(r.lastAccess).toLocaleString('zh-CN')
+    ])
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `records_${Date.now()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast('导出成功', 'success')
+  }
+
+  // 复制订阅链接
+  const copySubUrl = async (id: string, originalUrl: string) => {
+    const subUrl = `${window.location.origin}/sub?url=${encodeURIComponent(originalUrl)}`
+    try {
+      await navigator.clipboard.writeText(subUrl)
+      toast('订阅链接已复制', 'success')
+    } catch {
+      toast('复制失败', 'error')
     }
   }
 
+  // 创建短链接
+  const createShortLink = async (record: ConvertRecord) => {
+    const subUrl = `${window.location.origin}/sub?url=${encodeURIComponent(record.originalUrl)}`
+    try {
+      const res = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: subUrl })
+      })
+      if (res.ok) {
+        toast('短链接创建成功', 'success')
+        fetchData()
+      }
+    } catch {
+      toast('创建短链接失败', 'error')
+    }
+  }
+
+  // 复制短链接
+  const copyShortLink = async (id: string) => {
+    const url = `${window.location.origin}/s/${id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast('短链接已复制', 'success')
+    } catch {
+      toast('复制失败', 'error')
+    }
+  }
+
+  // 删除短链接
   const deleteShortLink = async (id: string) => {
-    if (!confirm('确定要删除这个短链接吗？')) return
-
-    try {
-      const res = await fetch(`/api/admin/shortlinks/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        fetchData()
+    setConfirmModal({
+      open: true,
+      title: '删除短链接',
+      message: '确定要删除这个短链接吗？',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/shortlinks/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (res.ok) {
+            toast('删除成功', 'success')
+            fetchData()
+          }
+        } catch {
+          toast('删除失败', 'error')
+        }
+        setConfirmModal(prev => ({ ...prev, open: false }))
       }
-    } catch (err) {
-      console.error('删除短链接失败:', err)
-    }
+    })
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      alert('已复制到剪贴板')
-    } catch {
-      alert('复制失败')
-    }
-  }
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString('zh-CN')
-  }
-
-  const formatUrl = (url: string) => {
-    try {
-      const u = new URL(url)
-      return `${u.hostname}${u.pathname.slice(0, 20)}...`
-    } catch {
-      return url.slice(0, 30) + '...'
-    }
-  }
-
-  // 登录界面
+  // 未登录显示登录表单
   if (!isAuthed) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
-          <h1 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
-            管理面板
-          </h1>
-
-          {error && (
-            <div className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
-          <input
-            type="text"
-            placeholder="用户名"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg mb-3
-                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                       focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-
-          <input
-            type="password"
-            placeholder="密码"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg mb-4
-                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                       focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-
-          <button
-            onClick={handleLogin}
-            disabled={!username || !password || loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium
-                       hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors"
-          >
-            {loading ? '登录中...' : '登录'}
-          </button>
-        </div>
-      </div>
-    )
+    return <LoginForm onLogin={(t) => { setToken(t); setIsAuthed(true) }} />
   }
 
-  // 管理界面
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
@@ -252,48 +342,40 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             订阅转换管理
           </h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-red-600
-                       dark:hover:text-red-400 transition-colors"
-          >
-            退出
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300
+                         rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors
+                         disabled:opacity-50 text-sm"
+            >
+              {loading ? '刷新中...' : '刷新'}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-red-600
+                         dark:hover:text-red-400 transition-colors text-sm"
+            >
+              退出
+            </button>
+          </div>
         </div>
 
         {/* 统计卡片 */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-              <div className="text-3xl font-bold text-blue-600">{stats.totalRecords}</div>
-              <div className="text-gray-500 dark:text-gray-400 text-sm">总记录数</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-              <div className="text-3xl font-bold text-green-600">{stats.totalHits}</div>
-              <div className="text-gray-500 dark:text-gray-400 text-sm">总访问次数</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-              <div className="text-3xl font-bold text-purple-600">{shortLinks.length}</div>
-              <div className="text-gray-500 dark:text-gray-400 text-sm">短链接数</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-              <div className="text-3xl font-bold text-orange-600">{stats.activeRecords}</div>
-              <div className="text-gray-500 dark:text-gray-400 text-sm">活跃记录</div>
-            </div>
-          </div>
-        )}
+        <StatsCards stats={stats} shortLinksCount={shortLinks.length} />
 
         {/* 标签页 */}
         <div className="flex space-x-4 mb-4">
           <button
-            onClick={() => setActiveTab('records')}
+            onClick={() => { setActiveTab('records'); setHighlightShortLink(undefined) }}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'records'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            转换记录
+            转换记录 ({filteredRecords.length})
           </button>
           <button
             onClick={() => setActiveTab('shortlinks')}
@@ -303,127 +385,82 @@ export default function AdminPage() {
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            短链接
-          </button>
-          <div className="flex-1" />
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300
-                       rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors
-                       disabled:opacity-50"
-          >
-            {loading ? '刷新中...' : '刷新'}
+            短链接 ({shortLinks.length})
           </button>
         </div>
 
-        {/* 转换记录列表 */}
+        {/* 转换记录 Tab */}
         {activeTab === 'records' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            {records.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                暂无记录
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">名称</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">原始链接</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">客户端</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">节点数</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">访问</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">最后访问</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {records.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          <span title={record.originalUrl}>{formatUrl(record.originalUrl)}</span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
-                            {record.clientType}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.nodeCount}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.hits}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(record.lastAccess)}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <button onClick={() => deleteRecord(record.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
-                            删除
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <>
+            <SearchBar
+              search={search}
+              onSearchChange={setSearch}
+              clientFilter={clientFilter}
+              onClientFilterChange={setClientFilter}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+            />
+
+            <BatchActions
+              selectedCount={selectedIds.size}
+              onDelete={batchDelete}
+              onExport={exportCSV}
+              onClearSelection={() => setSelectedIds(new Set())}
+            />
+
+            <RecordsTable
+              records={paginatedRecords}
+              shortLinks={shortLinks}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={deleteRecord}
+              onCopySubUrl={copySubUrl}
+              onCreateShortLink={createShortLink}
+              onCopyShortLink={(id) => {
+                copyShortLink(id)
+                setHighlightShortLink(id)
+                setActiveTab('shortlinks')
+              }}
+            />
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredRecords.length}
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
 
-        {/* 短链接列表 */}
+        {/* 短链接 Tab */}
         {activeTab === 'shortlinks' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            {shortLinks.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                暂无短链接
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">短链接</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">名称</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">访问次数</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">创建时间</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">最后访问</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {shortLinks.map((link) => (
-                      <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td className="px-4 py-3 text-sm">
-                          <code className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-blue-600 dark:text-blue-400">
-                            /s/{link.id}
-                          </code>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{link.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{link.hits}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(link.createdAt)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(link.lastAccess)}</td>
-                        <td className="px-4 py-3 text-sm space-x-2">
-                          <button
-                            onClick={() => copyToClipboard(`${window.location.origin}/s/${link.id}`)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
-                          >
-                            复制
-                          </button>
-                          <button onClick={() => deleteShortLink(link.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
-                            删除
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ShortLinksTable
+            shortLinks={shortLinks}
+            highlightId={highlightShortLink}
+            onCopy={copyShortLink}
+            onDelete={deleteShortLink}
+          />
         )}
-
-        {/* 底部信息 */}
-        <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          {activeTab === 'records' ? `共 ${records.length} 条记录` : `共 ${shortLinks.length} 个短链接`}
-        </div>
       </div>
+
+      {/* 确认弹窗 */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        danger
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+      />
     </div>
+  )
+}
+
+export default function AdminPage() {
+  return (
+    <ToastProvider>
+      <AdminContent />
+    </ToastProvider>
   )
 }
