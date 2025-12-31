@@ -30,6 +30,7 @@ interface RecordsTableProps {
   onCopySubUrl: (id: string, url: string) => void
   onCreateShortLink: (record: ConvertRecord) => void
   onCopyShortLink: (shortId: string) => void
+  onDeleteShortLink: (shortId: string) => void
 }
 
 export function RecordsTable({
@@ -41,7 +42,8 @@ export function RecordsTable({
   onDelete,
   onCopySubUrl,
   onCreateShortLink,
-  onCopyShortLink
+  onCopyShortLink,
+  onDeleteShortLink
 }: RecordsTableProps) {
   // 找到记录对应的短链接
   const findShortLink = (record: ConvertRecord): ShortLink | undefined => {
@@ -100,7 +102,7 @@ export function RecordsTable({
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                     <span title={record.originalUrl} className="cursor-help">
-                      {formatUrl(record.originalUrl, 30)}
+                      {formatUrl(record.originalUrl, 25)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
@@ -115,12 +117,22 @@ export function RecordsTable({
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {shortLink ? (
-                      <button
-                        onClick={() => onCopyShortLink(shortLink.id)}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs"
-                      >
-                        /s/{shortLink.id}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onCopyShortLink(shortLink.id)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs"
+                          title="点击复制"
+                        >
+                          /s/{shortLink.id}
+                        </button>
+                        <button
+                          onClick={() => onDeleteShortLink(shortLink.id)}
+                          className="text-gray-400 hover:text-red-500 text-xs ml-1"
+                          title="删除短链接"
+                        >
+                          ×
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => onCreateShortLink(record)}

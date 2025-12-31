@@ -7,7 +7,6 @@ import { SearchBar } from './components/SearchBar'
 import { Pagination } from './components/Pagination'
 import { BatchActions } from './components/BatchActions'
 import { RecordsTable } from './components/RecordsTable'
-import { ShortLinksTable } from './components/ShortLinksTable'
 import { ConfirmModal } from './components/ConfirmModal'
 import { ToastProvider, useToast } from './components/Toast'
 
@@ -40,8 +39,6 @@ interface Stats {
   activeRecords: number
 }
 
-type TabType = 'records' | 'shortlinks'
-
 const PAGE_SIZE = 20
 
 function AdminContent() {
@@ -58,13 +55,11 @@ function AdminContent() {
   const [loading, setLoading] = useState(false)
 
   // UI 状态
-  const [activeTab, setActiveTab] = useState<TabType>('records')
   const [search, setSearch] = useState('')
   const [clientFilter, setClientFilter] = useState('')
   const [sortBy, setSortBy] = useState('lastAccess')
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [highlightShortLink, setHighlightShortLink] = useState<string>()
 
   // 弹窗状态
   const [confirmModal, setConfirmModal] = useState<{
@@ -134,7 +129,6 @@ function AdminContent() {
   const filteredRecords = useMemo(() => {
     let result = [...records]
 
-    // 搜索
     if (search) {
       const lower = search.toLowerCase()
       result = result.filter(r =>
@@ -143,12 +137,10 @@ function AdminContent() {
       )
     }
 
-    // 客户端筛选
     if (clientFilter) {
       result = result.filter(r => r.clientType === clientFilter)
     }
 
-    // 排序
     result.sort((a, b) => {
       switch (sortBy) {
         case 'hits': return b.hits - a.hits
@@ -168,7 +160,6 @@ function AdminContent() {
     return filteredRecords.slice(start, start + PAGE_SIZE)
   }, [filteredRecords, currentPage])
 
-  // 重置分页
   useEffect(() => setCurrentPage(1), [search, clientFilter, sortBy])
 
   // 选择操作
@@ -266,7 +257,7 @@ function AdminContent() {
   }
 
   // 复制订阅链接
-  const copySubUrl = async (id: string, originalUrl: string) => {
+  const copySubUrl = async (_id: string, originalUrl: string) => {
     const subUrl = `${window.location.origin}/sub?url=${encodeURIComponent(originalUrl)}`
     try {
       await navigator.clipboard.writeText(subUrl)
@@ -318,7 +309,7 @@ function AdminContent() {
             headers: { Authorization: `Bearer ${token}` }
           })
           if (res.ok) {
-            toast('删除成功', 'success')
+            toast('短链接已删除', 'success')
             fetchData()
           }
         } catch {
@@ -329,7 +320,6 @@ function AdminContent() {
     })
   }
 
-  // 未登录显示登录表单
   if (!isAuthed) {
     return <LoginForm onLogin={(t) => { setToken(t); setIsAuthed(true) }} />
   }
@@ -340,7 +330,7 @@ function AdminContent() {
         {/* 头部 */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            订阅转换管理
+            订阅管理
           </h1>
           <div className="flex items-center gap-3">
             <button
@@ -365,83 +355,45 @@ function AdminContent() {
         {/* 统计卡片 */}
         <StatsCards stats={stats} shortLinksCount={shortLinks.length} />
 
-        {/* 标签页 */}
-        <div className="flex space-x-4 mb-4">
-          <button
-            onClick={() => { setActiveTab('records'); setHighlightShortLink(undefined) }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'records'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            转换记录 ({filteredRecords.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('shortlinks')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'shortlinks'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            短链接 ({shortLinks.length})
-          </button>
-        </div>
+        {/* 搜索过滤 */}
+        <SearchBar
+          search={search}
+          onSearchChange={setSearch}
+          clientFilter={clientFilter}
+          onClientFilterChange={setClientFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
 
-        {/* 转换记录 Tab */}
-        {activeTab === 'records' && (
-          <>
-            <SearchBar
-              search={search}
-              onSearchChange={setSearch}
-              clientFilter={clientFilter}
-              onClientFilterChange={setClientFilter}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-            />
+        {/* 批量操作 */}
+        <BatchActions
+          selectedCount={selectedIds.size}
+          onDelete={batchDelete}
+          onExport={exportCSV}
+          onClearSelection={() => setSelectedIds(new Set())}
+        />
 
-            <BatchActions
-              selectedCount={selectedIds.size}
-              onDelete={batchDelete}
-              onExport={exportCSV}
-              onClearSelection={() => setSelectedIds(new Set())}
-            />
+        {/* 记录表格 */}
+        <RecordsTable
+          records={paginatedRecords}
+          shortLinks={shortLinks}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+          onDelete={deleteRecord}
+          onCopySubUrl={copySubUrl}
+          onCreateShortLink={createShortLink}
+          onCopyShortLink={copyShortLink}
+          onDeleteShortLink={deleteShortLink}
+        />
 
-            <RecordsTable
-              records={paginatedRecords}
-              shortLinks={shortLinks}
-              selectedIds={selectedIds}
-              onToggleSelect={toggleSelect}
-              onToggleSelectAll={toggleSelectAll}
-              onDelete={deleteRecord}
-              onCopySubUrl={copySubUrl}
-              onCreateShortLink={createShortLink}
-              onCopyShortLink={(id) => {
-                copyShortLink(id)
-                setHighlightShortLink(id)
-                setActiveTab('shortlinks')
-              }}
-            />
-
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredRecords.length}
-              onPageChange={setCurrentPage}
-            />
-          </>
-        )}
-
-        {/* 短链接 Tab */}
-        {activeTab === 'shortlinks' && (
-          <ShortLinksTable
-            shortLinks={shortLinks}
-            highlightId={highlightShortLink}
-            onCopy={copyShortLink}
-            onDelete={deleteShortLink}
-          />
-        )}
+        {/* 分页 */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredRecords.length}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* 确认弹窗 */}

@@ -29,7 +29,8 @@
       "Read(//d/Me/**)",
       "Bash(ls:*)",
       "Bash(bunx wrangler pages dev:*)",
-      "Bash(bunx wrangler:*)"
+      "Bash(bunx wrangler:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []
