@@ -110,8 +110,7 @@ export class NetService {
             ...headers
           },
           redirect: 'follow',
-          signal: controller.signal,
-          cache: 'no-store'
+          signal: controller.signal
         })
         
         if (timeoutId) {
@@ -183,17 +182,11 @@ export class NetService {
         headers: {
           'User-Agent': userAgent,
           'Accept': 'application/json, text/plain, */*',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Accept-Encoding': 'gzip, deflate',
+          'Cache-Control': 'no-cache'
         },
         redirect: 'follow',
-        signal: controller.signal,
-        cache: 'no-store',
-        credentials: 'omit',
-        mode: 'cors',
-        referrerPolicy: 'no-referrer'
+        signal: controller.signal
       })
 
       clearTimeout(timeout)
