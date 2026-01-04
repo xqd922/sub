@@ -205,8 +205,8 @@ export class NetService {
    * 订阅专用网络请求 - 使用客户端原始 User-Agent
    */
   static async fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
-    // 优先使用客户端原始 User-Agent，否则使用默认值
-    const userAgent = clientUserAgent || 'clash-verge/v1.7.5'
+    // 优先使用客户端原始 User-Agent，否则使用 clash.meta（兼容性最好）
+    const userAgent = clientUserAgent || 'clash.meta/v1.19.13'
     logger.info(`订阅请求 User-Agent: ${userAgent}`)
 
     const controller = new AbortController()
