@@ -33,7 +33,8 @@
       "Bash(cd:*)",
       "Bash(timeout 15 bun dev:*)",
       "Skill(document-skills:pdf)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebFetch(domain:monitor.buycoffee.top)"
     ],
     "deny": [],
     "ask": []

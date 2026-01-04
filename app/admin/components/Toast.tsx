@@ -22,77 +22,31 @@ export function useToast() {
   return context
 }
 
-const toastStyles: Record<ToastType, { bg: string; icon: ReactNode }> = {
-  success: {
-    bg: 'bg-green-500',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-    )
-  },
-  error: {
-    bg: 'bg-red-500',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    )
-  },
-  info: {
-    bg: 'bg-gray-700',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )
-  }
-}
-
-function ToastItemComponent({ toast, onRemove }: { toast: ToastItem; onRemove: (id: number) => void }) {
-  const [isLeaving, setIsLeaving] = useState(false)
-  const style = toastStyles[toast.type]
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLeaving(true)
-      setTimeout(() => onRemove(toast.id), 200)
-    }, 2800)
-    return () => clearTimeout(timer)
-  }, [toast.id, onRemove])
-
-  return (
-    <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-white
-                  shadow-lg transition-all duration-200
-                  ${style.bg}
-                  ${isLeaving ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}
-    >
-      {style.icon}
-      <span className="text-sm font-medium">{toast.message}</span>
-    </div>
-  )
-}
-
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   const toast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Date.now()
     setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
   }, [])
 
-  const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
+  const bgColor = (type: ToastType) => {
+    switch (type) {
+      case 'success': return 'bg-green-600'
+      case 'error': return 'bg-red-600'
+      default: return 'bg-neutral-800'
+    }
+  }
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map(t => (
-          <ToastItemComponent key={t.id} toast={t} onRemove={removeToast} />
+          <div key={t.id} className={`px-4 py-2 rounded text-white text-sm ${bgColor(t.type)}`}>
+            {t.message}
+          </div>
         ))}
       </div>
     </ToastContext.Provider>
