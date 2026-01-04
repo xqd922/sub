@@ -10,8 +10,8 @@ interface PaginationProps {
 export function Pagination({ currentPage, totalPages, totalItems, onPageChange }: PaginationProps) {
   if (totalPages <= 1) {
     return (
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">
-        共 {totalItems} 条
+      <div className="text-center text-sm text-gray-500 py-4">
+        共 {totalItems} 条记录
       </div>
     )
   }
@@ -26,48 +26,61 @@ export function Pagination({ currentPage, totalPages, totalItems, onPageChange }
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 py-4">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="px-3 py-1 rounded text-sm bg-gray-100 dark:bg-gray-700
-                   disabled:opacity-50 disabled:cursor-not-allowed
-                   hover:bg-gray-200 dark:hover:bg-gray-600"
-      >
-        上一页
-      </button>
+    <div className="flex items-center justify-between py-4">
+      {/* 左侧：总数统计 */}
+      <div className="text-sm text-gray-500">
+        共 <span className="text-white font-medium">{totalItems}</span> 条记录
+      </div>
 
-      {pages.map((page, i) => (
-        typeof page === 'number' ? (
-          <button
-            key={i}
-            onClick={() => onPageChange(page)}
-            className={`px-3 py-1 rounded text-sm
-              ${page === currentPage
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-          >
-            {page}
-          </button>
-        ) : (
-          <span key={i} className="px-2 text-gray-400">...</span>
-        )
-      ))}
+      {/* 中间：页码 */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#27272a]
+                     disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent
+                     transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
 
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="px-3 py-1 rounded text-sm bg-gray-100 dark:bg-gray-700
-                   disabled:opacity-50 disabled:cursor-not-allowed
-                   hover:bg-gray-200 dark:hover:bg-gray-600"
-      >
-        下一页
-      </button>
+        {pages.map((page, i) => (
+          typeof page === 'number' ? (
+            <button
+              key={i}
+              onClick={() => onPageChange(page)}
+              className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors
+                ${page === currentPage
+                  ? 'bg-white text-black'
+                  : 'text-gray-400 hover:text-white hover:bg-[#27272a]'
+                }`}
+            >
+              {page}
+            </button>
+          ) : (
+            <span key={i} className="px-1 text-gray-600">...</span>
+          )
+        ))}
 
-      <span className="ml-4 text-sm text-gray-500 dark:text-gray-400">
-        共 {totalItems} 条
-      </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#27272a]
+                     disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent
+                     transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* 右侧：页码跳转（可选，留空保持对称） */}
+      <div className="text-sm text-gray-500">
+        第 <span className="text-white font-medium">{currentPage}</span> / {totalPages} 页
+      </div>
     </div>
   )
 }
