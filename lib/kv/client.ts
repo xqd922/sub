@@ -149,20 +149,18 @@ export class KVClient {
   }
 
   /**
-   * 获取所有记录
+   * 获取所有记录（并行获取优化）
    */
   static async getAllRecords(): Promise<ConvertRecord[]> {
     const index = await this.getIndex()
-    const records: ConvertRecord[] = []
 
-    for (const id of index.ids) {
-      const record = await this.getRecord(id)
-      if (record) {
-        records.push(record)
-      }
-    }
+    // 并行获取所有记录
+    const recordPromises = index.ids.map(id => this.getRecord(id))
+    const results = await Promise.all(recordPromises)
 
-    // 按最后访问时间倒序排列
-    return records.sort((a, b) => b.lastAccess - a.lastAccess)
+    // 过滤掉 null 值并按最后访问时间倒序排列
+    return results
+      .filter((record): record is ConvertRecord => record !== null)
+      .sort((a, b) => b.lastAccess - a.lastAccess)
   }
 }

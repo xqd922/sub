@@ -234,18 +234,28 @@ function AdminContent() {
 
   // 导出 CSV
   const exportCSV = () => {
+    // CSV 字段转义函数
+    const escapeCsvField = (field: string | number): string => {
+      const str = String(field)
+      // 如果包含逗号、换行符或双引号，需要用双引号包裹并转义内部的双引号
+      if (str.includes(',') || str.includes('\n') || str.includes('"') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
     const selected = records.filter(r => selectedIds.has(r.id))
     const headers = ['名称', '原始URL', '客户端', '节点数', '访问次数', '最后访问']
     const rows = selected.map(r => [
-      r.name,
-      r.originalUrl,
-      r.clientType,
-      r.nodeCount,
-      r.hits,
-      new Date(r.lastAccess).toLocaleString('zh-CN')
+      escapeCsvField(r.name),
+      escapeCsvField(r.originalUrl),
+      escapeCsvField(r.clientType),
+      escapeCsvField(r.nodeCount),
+      escapeCsvField(r.hits),
+      escapeCsvField(new Date(r.lastAccess).toLocaleString('zh-CN'))
     ])
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const csv = [headers.map(escapeCsvField), ...rows].map(row => row.join(',')).join('\n')
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

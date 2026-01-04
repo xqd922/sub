@@ -133,6 +133,65 @@ export class RecordService {
   }
 
   /**
+   * 分页获取记录
+   */
+  static async getRecordsPaginated(params: {
+    page?: number
+    pageSize?: number
+    search?: string
+    sortBy?: 'lastAccess' | 'hits' | 'nodeCount' | 'createdAt'
+    sortOrder?: 'asc' | 'desc'
+  }): Promise<{
+    records: ConvertRecord[]
+    total: number
+    page: number
+    pageSize: number
+    totalPages: number
+  }> {
+    const {
+      page = 1,
+      pageSize = 20,
+      search = '',
+      sortBy = 'lastAccess',
+      sortOrder = 'desc'
+    } = params
+
+    // 获取所有记录
+    let records = await this.getAllRecords()
+
+    // 搜索过滤
+    if (search) {
+      const searchLower = search.toLowerCase()
+      records = records.filter(record =>
+        record.name.toLowerCase().includes(searchLower) ||
+        record.originalUrl.toLowerCase().includes(searchLower) ||
+        record.clientType.toLowerCase().includes(searchLower)
+      )
+    }
+
+    // 排序
+    records.sort((a, b) => {
+      const aVal = a[sortBy] ?? 0
+      const bVal = b[sortBy] ?? 0
+      return sortOrder === 'desc' ? bVal - aVal : aVal - bVal
+    })
+
+    // 计算分页
+    const total = records.length
+    const totalPages = Math.ceil(total / pageSize)
+    const offset = (page - 1) * pageSize
+    const paginatedRecords = records.slice(offset, offset + pageSize)
+
+    return {
+      records: paginatedRecords,
+      total,
+      page,
+      pageSize,
+      totalPages
+    }
+  }
+
+  /**
    * 获取单条记录
    */
   static async getRecord(id: string): Promise<ConvertRecord | null> {
