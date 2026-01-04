@@ -12,6 +12,27 @@ import { Hysteria2Protocol } from './protocols/hysteria2'
 import { deduplicateProxies } from '../core/dedup'
 
 /**
+ * Edge Runtime 兼容的 Base64 解码
+ * 使用 atob + TextDecoder 替代 Buffer.from
+ */
+function decodeBase64(str: string): string {
+  try {
+    // 处理 URL-safe base64
+    const normalized = str.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, '=')
+    const binary = atob(padded)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i)
+    }
+    return new TextDecoder('utf-8').decode(bytes)
+  } catch {
+    // 降级：直接使用 atob
+    return atob(str)
+  }
+}
+
+/**
  * 解析订阅链接
  * @param url 订阅链接
  * @param clientUserAgent 客户端 User-Agent
@@ -66,7 +87,7 @@ export function parseYamlSubscription(text: string): Proxy[] {
 
 /** 解析 Base64 格式订阅 */
 export function parseBase64Subscription(text: string): Proxy[] {
-  const decodedText = Buffer.from(text, 'base64').toString()
+  const decodedText = decodeBase64(text)
   const lines = decodedText.split('\n')
   const proxies: Proxy[] = []
   let failedCount = 0
@@ -113,7 +134,7 @@ export function parseBase64Subscription(text: string): Proxy[] {
 /** 解析 Shadowsocks 节点 */
 export function parseSS(line: string): Proxy {
   const url = new URL(line)
-  const [method, password] = Buffer.from(url.username, 'base64').toString().split(':')
+  const [method, password] = decodeBase64(url.username).split(':')
 
   return {
     name: url.hash ? decodeURIComponent(url.hash.slice(1)) : `${url.hostname}:${url.port}`,
@@ -127,7 +148,7 @@ export function parseSS(line: string): Proxy {
 
 /** 解析 VMess 节点 */
 export function parseVmess(line: string): Proxy {
-  const config = JSON.parse(Buffer.from(line.slice(8), 'base64').toString())
+  const config = JSON.parse(decodeBase64(line.slice(8)))
 
   const proxy: Proxy = {
     name: config.ps || `${config.add}:${config.port}`,
