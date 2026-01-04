@@ -30,7 +30,9 @@
       "Bash(ls:*)",
       "Bash(bunx wrangler pages dev:*)",
       "Bash(bunx wrangler:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(timeout 15 bun dev:*)",
+      "Skill(document-skills:pdf)"
     ],
     "deny": [],
     "ask": []

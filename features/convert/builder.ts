@@ -6,7 +6,7 @@ import { generateBase64Subscription } from '@/lib/parse/protocols'
 import { previewStyles } from '@/styles/preview'
 import { SubscriptionInfo } from './processor'
 import { logger } from '@/lib/core/logger'
-import { formatBytes } from '@/lib/core/utils'
+import { formatBytes, encodeBase64 } from '@/lib/core/utils'
 
 /**
  * 配置生成服务 - 生成各种格式的配置文件
@@ -119,7 +119,7 @@ export class ConfigService {
       'Content-Type': isSingBox ? 'application/json; charset=utf-8' : 'text/yaml; charset=utf-8',
       'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
       'profile-update-interval': String(subscription.updateInterval || 24),
-      'profile-title': Buffer.from(subscription.name).toString('base64'),
+      'profile-title': encodeBase64(subscription.name),
       'expires': subscription.expire,
       'profile-web-page-url': this.encodeHeaderValue(subscription.homepage),
       'profile-expire': subscription.expire,

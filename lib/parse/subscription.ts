@@ -6,31 +6,11 @@
 import { Proxy, ProxyConfig } from '../core/types'
 import yaml from 'js-yaml'
 import { logger } from '../core/logger'
+import { decodeBase64 } from '../core/utils'
 import { NetService } from '@/features'
 import { VLessProtocol } from './protocols/vless'
 import { Hysteria2Protocol } from './protocols/hysteria2'
 import { deduplicateProxies } from '../core/dedup'
-
-/**
- * Edge Runtime 兼容的 Base64 解码
- * 使用 atob + TextDecoder 替代 Buffer.from
- */
-function decodeBase64(str: string): string {
-  try {
-    // 处理 URL-safe base64
-    const normalized = str.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, '=')
-    const binary = atob(padded)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i)
-    }
-    return new TextDecoder('utf-8').decode(bytes)
-  } catch {
-    // 降级：直接使用 atob
-    return atob(str)
-  }
-}
 
 /**
  * 解析订阅链接

@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { decodeBase64, encodeBase64 } from '../../core/utils'
 
 /**
  * VMess 协议解析器
@@ -10,7 +11,7 @@ export class VMessProtocol {
    */
   static parse(uri: string): Proxy {
     const content = uri.substring(8)
-    const config = JSON.parse(Buffer.from(content, 'base64').toString())
+    const config = JSON.parse(decodeBase64(content))
 
     // 处理 IPv6 地址，移除可能的方括号
     let server = config.add
@@ -130,7 +131,7 @@ export class VMessProtocol {
       path: proxy['ws-opts']?.path || proxy.wsPath || ''
     }
 
-    return `vmess://${Buffer.from(JSON.stringify(config)).toString('base64')}`
+    return `vmess://${encodeBase64(JSON.stringify(config))}`
   }
 }
 

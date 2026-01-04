@@ -1,5 +1,6 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
 import { logger } from '../../core/logger'
+import { decodeBase64, encodeBase64 } from '../../core/utils'
 
 /**
  * Shadowsocks 协议解析器
@@ -66,11 +67,11 @@ export class SSProtocol {
         if (!userInfo) {
           throw new Error('SS链接格式错误：缺少用户信息')
         }
-        const decodedUserInfo = Buffer.from(userInfo, 'base64').toString('utf-8')
+        const decodedUserInfo = decodeBase64(userInfo)
         decoded = `${decodedUserInfo}@${serverPart}`
       } else {
         // 旧格式: 整个字符串都是 base64
-        decoded = Buffer.from(paddedBase64, 'base64').toString('utf-8')
+        decoded = decodeBase64(paddedBase64)
       }
     } catch (error) {
       logger.error('SS链接解析错误:', {
@@ -103,7 +104,7 @@ export class SSProtocol {
         password = parts.slice(1).join(':')
       } else {
         // 尝试 Base64 解码
-        const decodedParts = Buffer.from(methodAndPassword, 'base64').toString('utf-8').split(':')
+        const decodedParts = decodeBase64(methodAndPassword).split(':')
 
         if (decodedParts.length >= 2) {
           method = 'chacha20-ietf-poly1305'
@@ -194,7 +195,7 @@ export class SSProtocol {
     const baseInfo = `${proxy.server}:${proxy.port}`;
 
     // Base64 编码
-    const base64UserInfo = Buffer.from(userInfo).toString('base64');
+    const base64UserInfo = encodeBase64(userInfo);
 
     // 构建基本 URL
     let url = `ss://${base64UserInfo}@${baseInfo}`;

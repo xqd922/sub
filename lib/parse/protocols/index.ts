@@ -8,6 +8,7 @@ export { SocksProtocol, parseSocks } from './socks'
 export { AnyTLSProtocol, parseAnyTLS } from './anytls'
 
 import { Proxy } from '../../core/types'
+import { encodeBase64 } from '../../core/utils'
 import { SSProtocol } from './shadowsocks'
 import { VMessProtocol } from './vmess'
 import { TrojanProtocol } from './trojan'
@@ -50,5 +51,5 @@ export function proxiesToUris(proxies: Proxy[]): string[] {
  */
 export function generateBase64Subscription(proxies: Proxy[]): string {
   const uris = proxiesToUris(proxies)
-  return Buffer.from(uris.join('\n')).toString('base64')
+  return encodeBase64(uris.join('\n'))
 }

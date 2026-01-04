@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { decodeBase64 } from '../../core/utils'
 
 /**
  * SOCKS 协议解析器
@@ -39,7 +40,7 @@ export class SocksProtocol {
 
     try {
       // 尝试 base64 解码
-      const decoded = Buffer.from(userInfo, 'base64').toString('utf-8')
+      const decoded = decodeBase64(userInfo)
       if (decoded.includes(':')) {
         const [user = '', pass = ''] = decoded.split(':')
         username = user
