@@ -54,11 +54,9 @@ export class SubService {
       subscription = this.extractSubscriptionInfo(response)
 
       const text = await response.text()
-      if (text) {
-        proxies = text.includes('proxies:')
-          ? parseYamlSubscription(text)
-          : parseBase64Subscription(text)
-      }
+      proxies = text?.includes('proxies:')
+        ? parseYamlSubscription(text)
+        : text ? parseBase64Subscription(text) : []
 
       // 如果没有获取到首页 URL，用 ClashX UA 再请求一次获取元数据
       if (subscription.homepage === 'https://sub.xqd.pp.ua') {
