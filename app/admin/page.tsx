@@ -335,36 +335,36 @@ function AdminContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] p-4 md:p-6">
+    <div className="min-h-screen bg-[#f5f5f7] p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* 头部 */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600
-                            flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500
+                            flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-white">
+              <h1 className="text-xl font-semibold text-gray-800">
                 订阅管理
               </h1>
-              <p className="text-xs text-gray-500">Sub Converter Dashboard</p>
+              <p className="text-xs text-gray-400">Sub Converter Dashboard</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={fetchData}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#18181b] border border-[#27272a]
-                         text-gray-300 rounded-lg hover:bg-[#27272a] hover:border-[#3f3f46]
-                         transition-colors disabled:opacity-50 text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white
+                         text-gray-600 rounded-xl shadow-sm hover:shadow-md
+                         transition-all disabled:opacity-50 text-sm"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-4 w-4 text-cyan-500" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -382,8 +382,8 @@ function AdminContent() {
             </button>
             <button
               onClick={handleLogout}
-              className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10
-                         rounded-lg transition-colors"
+              className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50
+                         rounded-xl transition-colors"
               title="退出登录"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

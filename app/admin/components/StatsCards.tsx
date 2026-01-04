@@ -19,7 +19,8 @@ interface StatCardConfig {
   value: number
   icon: React.ReactNode
   gradient: string
-  trend?: { value: number; label: string }
+  shadowColor: string
+  subValue?: { value: number; label: string }
 }
 
 export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
@@ -27,13 +28,12 @@ export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-[#18181b] border border-[#27272a] rounded-xl p-5 animate-pulse">
+          <div key={i} className="bg-white rounded-2xl p-5 shadow-sm animate-pulse">
             <div className="flex items-start justify-between">
-              <div className="w-10 h-10 bg-[#27272a] rounded-lg" />
-              <div className="w-16 h-4 bg-[#27272a] rounded" />
+              <div className="w-11 h-11 bg-gray-100 rounded-xl" />
             </div>
-            <div className="mt-4 w-20 h-8 bg-[#27272a] rounded" />
-            <div className="mt-2 w-24 h-4 bg-[#27272a] rounded" />
+            <div className="mt-4 w-16 h-8 bg-gray-100 rounded-lg" />
+            <div className="mt-2 w-20 h-4 bg-gray-100 rounded" />
           </div>
         ))}
       </div>
@@ -44,7 +44,8 @@ export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
     {
       label: '总记录数',
       value: stats.totalRecords,
-      gradient: 'from-blue-500 to-cyan-500',
+      gradient: 'from-cyan-400 to-blue-500',
+      shadowColor: 'shadow-cyan-500/20',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -55,8 +56,9 @@ export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
     {
       label: '总访问次数',
       value: stats.totalHits,
-      gradient: 'from-green-500 to-emerald-500',
-      trend: stats.todayHits > 0 ? { value: stats.todayHits, label: '今日' } : undefined,
+      gradient: 'from-green-400 to-emerald-500',
+      shadowColor: 'shadow-green-500/20',
+      subValue: stats.todayHits > 0 ? { value: stats.todayHits, label: '今日' } : undefined,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -69,7 +71,8 @@ export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
     {
       label: '短链接数',
       value: shortLinksCount,
-      gradient: 'from-purple-500 to-pink-500',
+      gradient: 'from-purple-400 to-pink-500',
+      shadowColor: 'shadow-purple-500/20',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -80,8 +83,9 @@ export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
     {
       label: '活跃记录',
       value: stats.activeRecords,
-      gradient: 'from-orange-500 to-amber-500',
-      trend: { value: 7, label: '天内' },
+      gradient: 'from-orange-400 to-amber-500',
+      shadowColor: 'shadow-orange-500/20',
+      subValue: { value: 7, label: '天内' },
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -96,34 +100,33 @@ export function StatsCards({ stats, shortLinksCount }: StatsCardsProps) {
       {cards.map((card) => (
         <div
           key={card.label}
-          className="group bg-[#18181b] border border-[#27272a] rounded-xl p-5
-                     hover:border-[#3f3f46] transition-all duration-200"
+          className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200"
         >
-          {/* 头部：图标和趋势 */}
+          {/* 头部：图标 */}
           <div className="flex items-start justify-between">
-            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.gradient}
+            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient}
                             flex items-center justify-center text-white
-                            shadow-lg shadow-${card.gradient.split('-')[1]}-500/20`}>
+                            shadow-lg ${card.shadowColor}`}>
               {card.icon}
             </div>
-            {card.trend && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md
-                              bg-[#27272a] text-xs text-gray-400">
-                <span className="text-green-400">+{card.trend.value}</span>
-                <span>{card.trend.label}</span>
+            {card.subValue && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg
+                              bg-gray-50 text-xs text-gray-500">
+                <span className="text-green-500 font-medium">+{card.subValue.value}</span>
+                <span>{card.subValue.label}</span>
               </span>
             )}
           </div>
 
           {/* 数值 */}
           <div className="mt-4">
-            <div className="text-3xl font-bold text-white tracking-tight">
+            <div className="text-3xl font-bold text-gray-800 tracking-tight">
               {formatNumber(card.value)}
             </div>
           </div>
 
           {/* 标签 */}
-          <div className="mt-1 text-sm text-gray-500">
+          <div className="mt-1 text-sm text-gray-400">
             {card.label}
           </div>
         </div>
