@@ -1,13 +1,11 @@
 import { Proxy } from '@/lib/core/types'
-import { parseSubscription } from '@/lib/parse/subscription'
+import { parseYamlSubscription, parseBase64Subscription } from '@/lib/parse/subscription'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
 import { REGION_MAP, RegionCode } from '@/lib/format/region'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
 import { formatBytes } from '@/lib/core/utils'
-import { deduplicateProxies } from '@/lib/core/dedup'
-import yaml from 'js-yaml'
 
 /**
  * 订阅处理服务 - 处理各种订阅源
@@ -50,13 +48,31 @@ export class SubService {
       subscription = this.createDefaultSubscription()
       isAirportSubscription = false  // 单节点不生成 HK 组
     } else {
-      // 标准订阅链接处理 - 分别优化两次请求
-      // 第一次：使用修复的方法获取响应头信息
+      // 标准订阅链接处理
+      // 先用客户端 UA 获取节点（确保节点正确）
       const response = await NetService.fetchSubscription(url, clientUserAgent)
       subscription = this.extractSubscriptionInfo(response)
 
-      // 第二次：使用原来的方法解析节点（确保兼容性）
-      proxies = await this.parseSubscriptionWithOriginalMethod(url, clientUserAgent)
+      const text = await response.text()
+      if (text) {
+        proxies = text.includes('proxies:')
+          ? parseYamlSubscription(text)
+          : parseBase64Subscription(text)
+      }
+
+      // 如果没有获取到首页 URL，用 ClashX UA 再请求一次获取元数据
+      if (subscription.homepage === 'https://sub.xqd.pp.ua') {
+        try {
+          const metaResponse = await NetService.fetchSubscriptionMeta(url)
+          const metaInfo = this.extractSubscriptionInfo(metaResponse)
+          if (metaInfo.homepage !== 'https://sub.xqd.pp.ua') {
+            subscription.homepage = metaInfo.homepage
+          }
+        } catch {
+          // 忽略元数据请求失败
+        }
+      }
+
       isAirportSubscription = true  // 标准订阅生成 HK 组
     }
 
@@ -233,58 +249,6 @@ export class SubService {
     }
 
     return 'Sub'
-  }
-
-  /**
-   * 使用原来的方法解析订阅节点（确保兼容性）
-   */
-  private static async parseSubscriptionWithOriginalMethod(url: string, clientUserAgent?: string): Promise<Proxy[]> {
-    // 使用原来的网络请求方法
-    const response = await NetService.fetchWithRetry(url)
-    const text = await response.text()
-
-    if (!text || text.length === 0) {
-      return []
-    }
-
-    // 直接处理文本内容
-    return this.parseSubscriptionContent(text)
-  }
-
-  /**
-   * 解析订阅文本内容为节点
-   */
-  private static async parseSubscriptionContent(text: string): Promise<Proxy[]> {
-    if (text.includes('proxies:')) {
-      const config = yaml.load(text) as any
-      const proxies = config.proxies || []
-
-      // 使用统一的去重函数
-      return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
-    }
-
-    // Base64 解码处理
-    try {
-      const decodedText = Buffer.from(text, 'base64').toString()
-      const lines = decodedText.split('\n')
-      const proxies: Proxy[] = []
-
-      for (const line of lines) {
-        if (!line.trim()) continue
-        try {
-          const proxy = SingleNodeParser.parse(line)
-          if (proxy) {
-            proxies.push(proxy)
-          }
-        } catch (e) {
-          logger.warn('节点解析失败:', e)
-        }
-      }
-
-      return proxies
-    } catch (e) {
-      return []
-    }
   }
 
   /**

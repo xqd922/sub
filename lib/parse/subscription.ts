@@ -58,14 +58,14 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
 }
 
 /** 解析 YAML 格式订阅 */
-function parseYamlSubscription(text: string): Proxy[] {
+export function parseYamlSubscription(text: string): Proxy[] {
   const config = yaml.load(text) as ProxyConfig
   const proxies = config.proxies || []
   return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
 }
 
 /** 解析 Base64 格式订阅 */
-function parseBase64Subscription(text: string): Proxy[] {
+export function parseBase64Subscription(text: string): Proxy[] {
   const decodedText = Buffer.from(text, 'base64').toString()
   const lines = decodedText.split('\n')
   const proxies: Proxy[] = []

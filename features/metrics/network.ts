@@ -167,12 +167,47 @@ export class NetService {
   }
 
   /**
-   * 订阅专用网络请求 - 使用固定的 ClashX User-Agent 确保订阅获取成功
+   * 订阅元数据请求 - 使用 ClashX UA 获取更完整的响应头信息
+   */
+  static async fetchSubscriptionMeta(url: string): Promise<Response> {
+    const userAgent = 'ClashX/1.95.1'
+    logger.info(`订阅元数据请求 User-Agent: ${userAgent}`)
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': userAgent,
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Encoding': 'gzip, deflate',
+          'Cache-Control': 'no-cache'
+        },
+        redirect: 'follow',
+        signal: controller.signal
+      })
+
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return response
+    } catch (error) {
+      clearTimeout(timeout)
+      throw error
+    }
+  }
+
+  /**
+   * 订阅专用网络请求 - 使用客户端原始 User-Agent
    */
   static async fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
-    // 使用固定的 ClashX/1.95.1 User-Agent 确保订阅获取成功
-    const userAgent = 'ClashX/1.95.1'
-    logger.info(`订阅请求 User-Agent: ${userAgent} (客户端原始: ${clientUserAgent || 'undefined'})`)
+    // 优先使用客户端原始 User-Agent，否则使用默认值
+    const userAgent = clientUserAgent || 'clash-verge/v1.7.5'
+    logger.info(`订阅请求 User-Agent: ${userAgent}`)
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 30000)
