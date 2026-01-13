@@ -1,4 +1,4 @@
-import { ConvertRecord, RecordIndex, KV_PREFIX } from './types'
+import { ConvertRecord, RecordIndex, DailyStats, KV_PREFIX } from './types'
 
 /**
  * Cloudflare 环境接口
@@ -164,5 +164,64 @@ export class KVClient {
 
     // 按最后访问时间倒序排列
     return records.sort((a, b) => b.lastAccess - a.lastAccess)
+  }
+
+  /**
+   * 获取每日统计
+   */
+  static async getDailyStats(date: string): Promise<DailyStats | null> {
+    const kv = await getKV()
+    if (!kv) return null
+
+    try {
+      const data = await kv.get(`${KV_PREFIX.DAILY}${date}`, 'json')
+      return data as DailyStats | null
+    } catch (error) {
+      console.error('[KV] 获取每日统计失败:', error)
+      return null
+    }
+  }
+
+  /**
+   * 更新每日统计（增加访问次数）
+   */
+  static async incrementDailyHits(recordId: string): Promise<boolean> {
+    const kv = await getKV()
+    if (!kv) return false
+
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const key = `${KV_PREFIX.DAILY}${today}`
+
+      // 获取当前统计
+      const current = await this.getDailyStats(today)
+      const todayUrlsKey = `${KV_PREFIX.DAILY}${today}:urls`
+      const urlsData = await kv.get(todayUrlsKey, 'json') as { ids: string[] } | null
+      const visitedUrls = new Set(urlsData?.ids || [])
+
+      // 更新统计
+      const stats: DailyStats = {
+        date: today,
+        totalHits: (current?.totalHits || 0) + 1,
+        uniqueUrls: visitedUrls.has(recordId) ? (current?.uniqueUrls || 0) : (current?.uniqueUrls || 0) + 1
+      }
+
+      // 记录访问过的 URL
+      if (!visitedUrls.has(recordId)) {
+        visitedUrls.add(recordId)
+        await kv.put(todayUrlsKey, JSON.stringify({ ids: Array.from(visitedUrls) }), {
+          expirationTtl: 86400 * 2 // 2天过期
+        })
+      }
+
+      await kv.put(key, JSON.stringify(stats), {
+        expirationTtl: 86400 * 30 // 30天过期
+      })
+
+      return true
+    } catch (error) {
+      console.error('[KV] 更新每日统计失败:', error)
+      return false
+    }
   }
 }

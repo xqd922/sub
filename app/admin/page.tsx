@@ -31,6 +31,11 @@ interface Stats {
   activeRecords: number
 }
 
+interface Toast {
+  type: 'success' | 'error'
+  message: string
+}
+
 type TabType = 'records' | 'shortlinks'
 
 export default function AdminPage() {
@@ -44,6 +49,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<TabType>('records')
+  const [toast, setToast] = useState<Toast | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  // Toast 显示函数
+  const showToast = useCallback((type: Toast['type'], message: string) => {
+    setToast({ type, message })
+    setTimeout(() => setToast(null), 3000)
+  }, [])
 
   const fetchData = useCallback(async () => {
     if (!token) return
@@ -142,43 +156,68 @@ export default function AdminPage() {
   const deleteRecord = async (id: string) => {
     if (!confirm('确定要删除这条记录吗？删除后该订阅链接将无法使用。')) return
 
+    setDeletingId(id)
     try {
       const res = await fetch(`/api/admin/records/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
+        showToast('success', '删除成功')
         fetchData()
+      } else {
+        showToast('error', '删除失败')
       }
     } catch (err) {
       console.error('删除失败:', err)
+      showToast('error', '删除失败')
+    } finally {
+      setDeletingId(null)
     }
   }
 
   const deleteShortLink = async (id: string) => {
     if (!confirm('确定要删除这个短链接吗？')) return
 
+    setDeletingId(id)
     try {
       const res = await fetch(`/api/admin/shortlinks/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
+        showToast('success', '删除成功')
         fetchData()
+      } else {
+        showToast('error', '删除失败')
       }
     } catch (err) {
       console.error('删除短链接失败:', err)
+      showToast('error', '删除失败')
+    } finally {
+      setDeletingId(null)
     }
   }
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      alert('已复制到剪贴板')
+      showToast('success', '已复制到剪贴板')
     } catch {
-      alert('复制失败')
+      showToast('error', '复制失败')
     }
   }
+
+  // 搜索过滤
+  const filteredRecords = records.filter(r =>
+    r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.originalUrl.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredShortLinks = shortLinks.filter(l =>
+    l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.id.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString('zh-CN')
@@ -246,6 +285,17 @@ export default function AdminPage() {
   // 管理界面
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
+      {/* Toast 提示 */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all ${
+          toast.type === 'success'
+            ? 'bg-green-500 text-white'
+            : 'bg-red-500 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         {/* 头部 */}
         <div className="flex justify-between items-center mb-6">
@@ -284,7 +334,7 @@ export default function AdminPage() {
         )}
 
         {/* 标签页 */}
-        <div className="flex space-x-4 mb-4">
+        <div className="flex flex-wrap gap-4 mb-4">
           <button
             onClick={() => setActiveTab('records')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -305,7 +355,17 @@ export default function AdminPage() {
           >
             短链接
           </button>
-          <div className="flex-1" />
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="搜索名称或链接..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
           <button
             onClick={fetchData}
             disabled={loading}
@@ -320,9 +380,9 @@ export default function AdminPage() {
         {/* 转换记录列表 */}
         {activeTab === 'records' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            {records.length === 0 ? (
+            {filteredRecords.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                暂无记录
+                {searchTerm ? '未找到匹配的记录' : '暂无记录'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -339,7 +399,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {records.map((record) => (
+                    {filteredRecords.map((record) => (
                       <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
@@ -354,8 +414,12 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{record.hits}</td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(record.lastAccess)}</td>
                         <td className="px-4 py-3 text-sm">
-                          <button onClick={() => deleteRecord(record.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
-                            删除
+                          <button
+                            onClick={() => deleteRecord(record.id)}
+                            disabled={deletingId === record.id}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 disabled:opacity-50"
+                          >
+                            {deletingId === record.id ? '删除中...' : '删除'}
                           </button>
                         </td>
                       </tr>
@@ -370,9 +434,9 @@ export default function AdminPage() {
         {/* 短链接列表 */}
         {activeTab === 'shortlinks' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            {shortLinks.length === 0 ? (
+            {filteredShortLinks.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                暂无短链接
+                {searchTerm ? '未找到匹配的短链接' : '暂无短链接'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -388,7 +452,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {shortLinks.map((link) => (
+                    {filteredShortLinks.map((link) => (
                       <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="px-4 py-3 text-sm">
                           <code className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-blue-600 dark:text-blue-400">
@@ -406,8 +470,12 @@ export default function AdminPage() {
                           >
                             复制
                           </button>
-                          <button onClick={() => deleteShortLink(link.id)} className="text-red-600 hover:text-red-800 dark:text-red-400">
-                            删除
+                          <button
+                            onClick={() => deleteShortLink(link.id)}
+                            disabled={deletingId === link.id}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 disabled:opacity-50"
+                          >
+                            {deletingId === link.id ? '删除中...' : '删除'}
                           </button>
                         </td>
                       </tr>
@@ -421,7 +489,10 @@ export default function AdminPage() {
 
         {/* 底部信息 */}
         <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          {activeTab === 'records' ? `共 ${records.length} 条记录` : `共 ${shortLinks.length} 个短链接`}
+          {activeTab === 'records'
+            ? `共 ${filteredRecords.length} 条记录${searchTerm ? ` (筛选自 ${records.length} 条)` : ''}`
+            : `共 ${filteredShortLinks.length} 个短链接${searchTerm ? ` (筛选自 ${shortLinks.length} 个)` : ''}`
+          }
         </div>
       </div>
     </div>

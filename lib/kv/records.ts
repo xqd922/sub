@@ -76,6 +76,10 @@ export class RecordService {
           lastIp: clientIp
         }
         await KVClient.saveRecord(updated)
+
+        // 记录每日统计
+        await KVClient.incrementDailyHits(id)
+
         return updated
       }
 
@@ -95,6 +99,9 @@ export class RecordService {
 
       await KVClient.saveRecord(record)
       await KVClient.addToIndex(id)
+
+      // 记录每日统计
+      await KVClient.incrementDailyHits(id)
 
       return record
     } catch (error) {
@@ -183,10 +190,8 @@ export class RecordService {
     const records = await this.getAllRecords()
     const now = Date.now()
     const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
-    const todayStart = new Date().setHours(0, 0, 0, 0)
 
     let totalHits = 0
-    let todayHits = 0
     let activeRecords = 0
 
     for (const record of records) {
@@ -195,12 +200,12 @@ export class RecordService {
       if (record.lastAccess > sevenDaysAgo) {
         activeRecords++
       }
-
-      // 简化：用最后访问判断今日访问（实际应该单独记录）
-      if (record.lastAccess > todayStart) {
-        todayHits += 1
-      }
     }
+
+    // 获取真实的今日访问次数
+    const today = new Date().toISOString().slice(0, 10)
+    const dailyStats = await KVClient.getDailyStats(today)
+    const todayHits = dailyStats?.totalHits || 0
 
     return {
       totalRecords: records.length,

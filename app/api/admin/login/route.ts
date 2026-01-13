@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { generateSessionToken } from '@/lib/auth'
 
 export const runtime = 'edge'
 
@@ -29,12 +30,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // 生成简单的 session token（基于时间戳和密码的 hash）
-    const encoder = new TextEncoder()
-    const data = encoder.encode(`${adminUsername}:${adminPassword}:${Date.now()}`)
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const token = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    // 生成 session token（与验证时使用相同算法）
+    const token = await generateSessionToken()
+    if (!token) {
+      return NextResponse.json(
+        { error: '生成 token 失败' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

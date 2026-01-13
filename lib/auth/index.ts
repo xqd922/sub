@@ -1,8 +1,24 @@
 /**
+ * 生成 session token（基于用户名和密码的固定 hash）
+ */
+export async function generateSessionToken(): Promise<string | null> {
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin'
+  const adminPassword = process.env.ADMIN_PASSWORD
+
+  if (!adminPassword) return null
+
+  const encoder = new TextEncoder()
+  const data = encoder.encode(`${adminUsername}:${adminPassword}:session`)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
  * 验证管理员请求
  * 支持两种方式：
  * 1. ADMIN_TOKEN 直接验证
- * 2. 登录后生成的 session token
+ * 2. 登录后生成的 session token（重新计算 hash 对比）
  */
 export async function validateAdminAuth(request: Request): Promise<boolean> {
   const authHeader = request.headers.get('authorization')
@@ -18,11 +34,9 @@ export async function validateAdminAuth(request: Request): Promise<boolean> {
     return true
   }
 
-  // 方式2：验证 session token（64位十六进制）
-  // session token 是登录时生成的，有效期内有效
-  if (token.length === 64 && /^[a-f0-9]+$/.test(token)) {
-    // 简单验证：只要是有效的 hash 格式就接受
-    // 实际生产环境应该用 JWT 或存储在 KV 中验证
+  // 方式2：验证 session token - 重新计算并对比
+  const expectedToken = await generateSessionToken()
+  if (expectedToken && token === expectedToken) {
     return true
   }
 

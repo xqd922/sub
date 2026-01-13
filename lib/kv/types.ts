@@ -50,11 +50,21 @@ export interface StatsData {
 }
 
 /**
+ * 每日统计数据
+ */
+export interface DailyStats {
+  date: string            // YYYY-MM-DD
+  totalHits: number       // 当日总访问次数
+  uniqueUrls: number      // 当日独立 URL 数
+}
+
+/**
  * KV 键前缀
  */
 export const KV_PREFIX = {
   RECORD: 'record:',      // 单条记录
   INDEX: 'index:records', // 记录索引
   STATS: 'stats:global',  // 全局统计
+  DAILY: 'stats:daily:',  // 每日统计前缀
   SHORT: 'short:',        // 短链接
 } as const
