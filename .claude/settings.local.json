@@ -29,7 +29,11 @@
       "Read(//d/Me/**)",
       "Bash(ls:*)",
       "Bash(bunx wrangler pages dev:*)",
-      "Bash(bunx wrangler:*)"
+      "Bash(bunx wrangler:*)",
+      "Bash(dir:*)",
+      "Skill(document-skills:frontend-design)",
+      "WebFetch(domain:v3.heroui.com)",
+      "Bash(bunx jiti:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { GlobalErrorBoundary } from "./components/ErrorBoundary";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "通用订阅转换",
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="zh" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <GlobalErrorBoundary>
-          {children}
-        </GlobalErrorBoundary>
+        <Providers>
+          <GlobalErrorBoundary>
+            {children}
+          </GlobalErrorBoundary>
+        </Providers>
       </body>
     </html>
   );
