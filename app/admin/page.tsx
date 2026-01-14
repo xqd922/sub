@@ -152,11 +152,11 @@ export default function AdminPage() {
           <Tabs.ListContainer>
             <Tabs.List aria-label="管理选项">
               <Tabs.Tab id="records">
-                转换记录
+                <span>转换记录</span>
                 <Tabs.Indicator />
               </Tabs.Tab>
               <Tabs.Tab id="shortlinks">
-                短链接
+                <span>短链接</span>
                 <Tabs.Indicator />
               </Tabs.Tab>
             </Tabs.List>
