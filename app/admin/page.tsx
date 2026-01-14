@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Input, Button, Tabs } from '@heroui/react'
+import { Input, Button } from '@heroui/react'
 import { useAuth } from './hooks/useAuth'
 import { useAdminData } from './hooks/useAdminData'
 import { useToast } from './hooks/useToast'
@@ -145,53 +145,66 @@ export default function AdminPage() {
         </div>
 
         {/* 标签页 */}
-        <Tabs
-          selectedKey={activeTab}
-          onSelectionChange={(key) => setActiveTab(key as TabType)}
-        >
-          <Tabs.ListContainer>
-            <Tabs.List aria-label="管理选项">
-              <Tabs.Tab id="records">
-                <span>转换记录</span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-              <Tabs.Tab id="shortlinks">
-                <span>短链接</span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            </Tabs.List>
-          </Tabs.ListContainer>
+        <div className="space-y-4">
+          {/* 标签按钮 */}
+          <div className="border-b border-default-200">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab('records')}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  activeTab === 'records'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-default-500 hover:text-default-700'
+                }`}
+              >
+                转换记录
+              </button>
+              <button
+                onClick={() => setActiveTab('shortlinks')}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  activeTab === 'shortlinks'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-default-500 hover:text-default-700'
+                }`}
+              >
+                短链接
+              </button>
+            </div>
+          </div>
 
-          <Tabs.Panel id="records">
-            <RecordsTable
-              records={records}
-              loading={dataLoading}
-              onDelete={(id) => {
-                const record = records.find(r => r.id === id)
-                if (record) {
-                  openDeleteModal('record', id, record.name)
-                }
-              }}
-              onCopy={handleCopy}
-              searchTerm={searchTerm}
-            />
-          </Tabs.Panel>
+          {/* 标签内容 */}
+          <div className="pt-4">
+            {activeTab === 'records' && (
+              <RecordsTable
+                records={records}
+                loading={dataLoading}
+                onDelete={(id) => {
+                  const record = records.find(r => r.id === id)
+                  if (record) {
+                    openDeleteModal('record', id, record.name)
+                  }
+                }}
+                onCopy={handleCopy}
+                searchTerm={searchTerm}
+              />
+            )}
 
-          <Tabs.Panel id="shortlinks">
-            <ShortLinksTable
-              shortLinks={shortLinks}
-              loading={dataLoading}
-              onDelete={(id) => {
-                const link = shortLinks.find(l => l.id === id)
-                if (link) {
-                  openDeleteModal('shortlink', id, link.name)
-                }
-              }}
-              onCopy={handleCopy}
-              searchTerm={searchTerm}
-            />
-          </Tabs.Panel>
-        </Tabs>
+            {activeTab === 'shortlinks' && (
+              <ShortLinksTable
+                shortLinks={shortLinks}
+                loading={dataLoading}
+                onDelete={(id) => {
+                  const link = shortLinks.find(l => l.id === id)
+                  if (link) {
+                    openDeleteModal('shortlink', id, link.name)
+                  }
+                }}
+                onCopy={handleCopy}
+                searchTerm={searchTerm}
+              />
+            )}
+          </div>
+        </div>
       </AdminLayout>
 
       {/* 删除确认弹窗 */}
