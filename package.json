@@ -21,6 +21,7 @@
   ],
   "scripts": {
     "dev": "next dev --turbo",
+    "dev:cf": "bunx --bun wrangler pages dev --port 3000 --persist-to .wrangler/state .next",
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
     "build": "next build",
     "pages:build": "bun x @cloudflare/next-on-pages",
@@ -53,6 +54,7 @@
     "eslint-config-next": "15.1.6",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.59.2"
   }
 }
