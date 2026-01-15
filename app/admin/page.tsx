@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Input, Button } from '@heroui/react'
 import { useAuth } from './hooks/useAuth'
 import { useAdminData } from './hooks/useAdminData'
@@ -27,8 +27,25 @@ export default function AdminPage() {
   } = useAdminData(token)
   const { toasts, showToast, hideToast } = useToast()
 
+  const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState<TabType>('records')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 搜索防抖
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+    debounceRef.current = setTimeout(() => {
+      setSearchTerm(searchInput)
+    }, 300)
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [searchInput])
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean
     type: 'record' | 'shortlink'
@@ -50,6 +67,7 @@ export default function AdminPage() {
   // 处理登出
   const handleLogout = () => {
     logout()
+    setSearchInput('')
     setSearchTerm('')
     setActiveTab('records')
   }
@@ -98,7 +116,7 @@ export default function AdminPage() {
 
   // 防抖搜索
   const handleSearch = (value: string) => {
-    setSearchTerm(value)
+    setSearchInput(value)
   }
 
   // 登录界面
@@ -131,7 +149,7 @@ export default function AdminPage() {
           <Input
             type="text"
             placeholder="搜索名称或链接..."
-            value={searchTerm}
+            value={searchInput}
             onChange={(e) => handleSearch(e.target.value)}
             className="flex-1 min-w-[200px]"
           />

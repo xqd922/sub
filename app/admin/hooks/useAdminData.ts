@@ -10,8 +10,6 @@ interface UseAdminDataReturn {
   refetch: () => Promise<void>
   deleteRecord: (id: string) => Promise<boolean>
   deleteShortLink: (id: string) => Promise<boolean>
-  updateRecord: (id: string, updates: Partial<ConvertRecord>) => Promise<boolean>
-  updateShortLink: (id: string, updates: Partial<ShortLink>) => Promise<boolean>
 }
 
 export function useAdminData(token: string): UseAdminDataReturn {
@@ -96,48 +94,6 @@ export function useAdminData(token: string): UseAdminDataReturn {
     }
   }, [token])
 
-  const updateRecord = useCallback(async (id: string, updates: Partial<ConvertRecord>): Promise<boolean> => {
-    try {
-      const res = await fetch(`/api/admin/records/${id}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
-      })
-      if (res.ok) {
-        setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
-        return true
-      }
-      return false
-    } catch (err) {
-      console.error('更新失败:', err)
-      return false
-    }
-  }, [token])
-
-  const updateShortLink = useCallback(async (id: string, updates: Partial<ShortLink>): Promise<boolean> => {
-    try {
-      const res = await fetch(`/api/admin/shortlinks/${id}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
-      })
-      if (res.ok) {
-        setShortLinks(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l))
-        return true
-      }
-      return false
-    } catch (err) {
-      console.error('更新短链接失败:', err)
-      return false
-    }
-  }, [token])
-
   return {
     records,
     shortLinks,
@@ -146,8 +102,6 @@ export function useAdminData(token: string): UseAdminDataReturn {
     error,
     refetch: fetchData,
     deleteRecord,
-    deleteShortLink,
-    updateRecord,
-    updateShortLink
+    deleteShortLink
   }
 }
