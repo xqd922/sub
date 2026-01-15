@@ -74,16 +74,7 @@ export function ShortLinksTable({
     }))
   }
 
-  if (filteredLinks.length === 0 && !loading) {
-    return (
-      <EmptyState
-        title={searchTerm ? '未找到匹配的短链接' : '暂无短链接'}
-        description={searchTerm ? '尝试使用其他关键词搜索' : '创建短链接后，将显示在这里'}
-      />
-    )
-  }
-
-  return (
+            return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
@@ -125,11 +116,11 @@ export function ShortLinksTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-default-500">
-                  加载中...
+                <td colSpan={6} className="p-12">
+                  <EmptyState title="加载中..." />
                 </td>
               </tr>
-            ) : (
+            ) : items.length > 0 ? (
               items.map((link) => (
                 <tr key={link.id} className="border-b border-default-200 hover:bg-default-50">
                   <td className="px-4 py-3">
@@ -166,6 +157,15 @@ export function ShortLinksTable({
                   </td>
                 </tr>
               ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="p-12">
+                  <EmptyState
+                    title={searchTerm ? '未找到匹配的短链接' : '暂无短链接'}
+                    description={searchTerm ? '尝试使用其他关键词搜索' : '创建短链接后，将显示在这里'}
+                  />
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

@@ -83,16 +83,7 @@ export function RecordsTable({
     }))
   }
 
-  if (filteredRecords.length === 0 && !loading) {
-    return (
-      <EmptyState
-        title={searchTerm ? '未找到匹配的记录' : '暂无记录'}
-        description={searchTerm ? '尝试使用其他关键词搜索' : '开始使用订阅转换服务后，记录将显示在这里'}
-      />
-    )
-  }
-
-  return (
+            return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
@@ -135,11 +126,11 @@ export function RecordsTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-default-500">
-                  加载中...
+                <td colSpan={7} className="p-12">
+                  <EmptyState title="加载中..." />
                 </td>
               </tr>
-            ) : (
+            ) : items.length > 0 ? (
               items.map((record) => (
                 <tr key={record.id} className="border-b border-default-200 hover:bg-default-50">
                   <td className="px-4 py-3">{record.name}</td>
@@ -179,6 +170,15 @@ export function RecordsTable({
                   </td>
                 </tr>
               ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="p-12">
+                  <EmptyState
+                    title={searchTerm ? '未找到匹配的记录' : '暂无记录'}
+                    description={searchTerm ? '尝试使用其他关键词搜索' : '开始使用订阅转换服务后，记录将显示在这里'}
+                  />
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
