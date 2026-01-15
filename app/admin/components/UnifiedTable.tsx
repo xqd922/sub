@@ -147,21 +147,14 @@ export function UnifiedTable({
           <thead>
             <tr>
               <th
-                className={sortDescriptor.column === 'type' ? 'sorted' : ''}
-                onClick={() => handleSort('type')}
-              >
-                类型
-                <span className="sort-indicator">{getSortIndicator('type')}</span>
-              </th>
-              <th
                 className={sortDescriptor.column === 'name' ? 'sorted' : ''}
                 onClick={() => handleSort('name')}
               >
                 名称
                 <span className="sort-indicator">{getSortIndicator('name')}</span>
               </th>
-              <th>链接</th>
-              <th>详情</th>
+              <th>原始链接</th>
+              <th>短链接</th>
               <th
                 className={sortDescriptor.column === 'hits' ? 'sorted' : ''}
                 onClick={() => handleSort('hits')}
@@ -182,18 +175,13 @@ export function UnifiedTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <EmptyState title="加载中..." />
                 </td>
               </tr>
             ) : items.length > 0 ? (
               items.map((item) => (
                 <tr key={`${item.type}-${item.id}`}>
-                  <td>
-                    <span className={`type-badge ${item.type}`}>
-                      {item.type === 'convert' ? '订阅' : '短链'}
-                    </span>
-                  </td>
                   <td className="cell-name">{item.name}</td>
                   <td>
                     <span className="cell-url" title={item.url}>
@@ -201,16 +189,9 @@ export function UnifiedTable({
                     </span>
                   </td>
                   <td>
-                    {item.type === 'convert' ? (
-                      <span className="detail-info">
-                        <span className={`client-tag ${item.clientType?.toLowerCase()}`}>
-                          {item.clientType}
-                        </span>
-                        <span className="node-count">{item.nodeCount} 节点</span>
-                      </span>
-                    ) : (
-                      <span className="detail-info muted">—</span>
-                    )}
+                    <span className="short-link" onClick={() => onCopy(getLink(item))}>
+                      {getLink(item).replace(window.location.origin, '')}
+                    </span>
                   </td>
                   <td className="cell-number">{item.hits}</td>
                   <td className="cell-date">{formatDate(item.lastAccess)}</td>
@@ -234,7 +215,7 @@ export function UnifiedTable({
               ))
             ) : (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <EmptyState
                     title={searchTerm ? '未找到匹配项' : '暂无数据'}
                     description={searchTerm ? '尝试其他关键词' : '开始使用服务后，数据将显示在这里'}

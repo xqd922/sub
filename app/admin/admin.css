@@ -343,6 +343,21 @@
   white-space: nowrap;
 }
 
+.short-link {
+  font-size: 13px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  color: var(--apple-blue);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 122, 255, 0.08);
+  transition: all var(--apple-transition);
+}
+
+.short-link:hover {
+  background: rgba(0, 122, 255, 0.15);
+}
+
 .cell-badge {
   display: inline-flex;
   padding: 4px 12px;
