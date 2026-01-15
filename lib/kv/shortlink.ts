@@ -155,7 +155,7 @@ export class ShortLinkService {
   }
 
   /**
-   * 获取所有短链接
+   * 获取所有短链接（并行优化）
    */
   static async getAll(): Promise<ShortLink[]> {
     const kv = await getKV()
@@ -165,11 +165,12 @@ export class ShortLinkService {
       const indexData = await kv.get(SHORT_INDEX_KEY, 'json') as { ids: string[] } | null
       const ids = indexData?.ids || []
 
-      const shortLinks: ShortLink[] = []
-      for (const id of ids) {
-        const link = await this.get(id)
-        if (link) shortLinks.push(link)
-      }
+      // 并行获取所有短链接
+      const linkPromises = ids.map(id => this.get(id))
+      const linkResults = await Promise.all(linkPromises)
+
+      // 过滤掉 null 值
+      const shortLinks = linkResults.filter((link): link is ShortLink => link !== null)
 
       // 按创建时间倒序
       return shortLinks.sort((a, b) => b.createdAt - a.createdAt)

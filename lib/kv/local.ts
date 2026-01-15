@@ -28,8 +28,9 @@ class LocalKVStore {
 
   async list(options?: { prefix?: string }): Promise<{ keys: Array<{ name: string }> }> {
     const keys = Array.from(this.records.keys())
-    const filtered = options?.prefix
-      ? keys.filter(k => k.startsWith(options.prefix))
+    const prefix = options?.prefix
+    const filtered = prefix
+      ? keys.filter(k => k.startsWith(prefix))
       : keys
     return { keys: filtered.map(name => ({ name })) }
   }
