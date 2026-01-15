@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "dev": "next dev --turbo",
-    "dev:cf": "bunx --bun wrangler pages dev --port 3000 --persist-to .wrangler/state .next",
+    "dev:cf": "wrangler pages dev --port 3000 --persist-to .wrangler/state .next",
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
     "build": "next build",
     "pages:build": "bun x @cloudflare/next-on-pages",
