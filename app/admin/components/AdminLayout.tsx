@@ -1,5 +1,3 @@
-import { Button } from '@heroui/react'
-
 interface AdminLayoutProps {
   children: React.ReactNode
   onLogout: () => void
@@ -7,21 +5,21 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, onLogout }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="admin-root">
+      <div className="admin-container">
         {/* 头部 */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">订阅转换管理</h1>
-          <Button
-            className="text-danger hover:bg-danger/10"
+        <header className="admin-header">
+          <h1 className="admin-title">订阅管理</h1>
+          <button
+            className="admin-logout-btn"
             onClick={onLogout}
           >
-            退出
-          </Button>
-        </div>
+            退出登录
+          </button>
+        </header>
 
         {/* 内容区域 */}
-        {children}
+        <main>{children}</main>
       </div>
     </div>
   )

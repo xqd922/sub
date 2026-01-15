@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Input, Button } from '@heroui/react'
 import { useAuth } from './hooks/useAuth'
 import { useAdminData } from './hooks/useAdminData'
 import { useToast } from './hooks/useToast'
@@ -13,6 +12,14 @@ import { ShortLinksTable } from './components/ShortLinksTable'
 import { DeleteConfirmModal } from './components/DeleteConfirmModal'
 import { ToastContainer } from './components/ToastContainer'
 import type { TabType } from './types'
+import './admin.css'
+
+// 搜索图标
+const SearchIcon = () => (
+  <svg className="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+)
 
 export default function AdminPage() {
   const { isAuthed, token, loading: authLoading, error: authError, login, logout } = useAuth()
@@ -46,6 +53,7 @@ export default function AdminPage() {
       }
     }
   }, [searchInput])
+
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean
     type: 'record' | 'shortlink'
@@ -114,11 +122,6 @@ export default function AdminPage() {
     }
   }
 
-  // 防抖搜索
-  const handleSearch = (value: string) => {
-    setSearchInput(value)
-  }
-
   // 登录界面
   if (!isAuthed) {
     return (
@@ -145,53 +148,44 @@ export default function AdminPage() {
         />
 
         {/* 操作栏 */}
-        <div className="flex flex-wrap gap-4">
-          <Input
-            type="text"
-            placeholder="搜索名称或链接..."
-            value={searchInput}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="flex-1 min-w-[200px]"
-          />
-          <Button
-            variant="ghost"
+        <div className="actions-bar">
+          <div className="search-input-wrapper">
+            <SearchIcon />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="搜索名称或链接..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+          <button
+            className="refresh-btn"
             onClick={refetch}
-            isDisabled={dataLoading}
+            disabled={dataLoading}
           >
-            {dataLoading ? '刷新中...' : '刷新'}
-          </Button>
+            {dataLoading ? '刷新中...' : '刷新数据'}
+          </button>
         </div>
 
         {/* 标签页 */}
-        <div className="space-y-4">
-          {/* 标签按钮 */}
-          <div className="border-b border-default-200">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setActiveTab('records')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  activeTab === 'records'
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-default-500 hover:text-default-700'
-                }`}
-              >
-                转换记录
-              </button>
-              <button
-                onClick={() => setActiveTab('shortlinks')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  activeTab === 'shortlinks'
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-default-500 hover:text-default-700'
-                }`}
-              >
-                短链接
-              </button>
-            </div>
+        <div className="tabs-container">
+          <div className="tabs-header">
+            <button
+              className={`tab-btn ${activeTab === 'records' ? 'active' : ''}`}
+              onClick={() => setActiveTab('records')}
+            >
+              转换记录
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'shortlinks' ? 'active' : ''}`}
+              onClick={() => setActiveTab('shortlinks')}
+            >
+              短链接
+            </button>
           </div>
 
-          {/* 标签内容 */}
-          <div className="pt-4">
+          <div className="tabs-content">
             {activeTab === 'records' && (
               <RecordsTable
                 records={records}

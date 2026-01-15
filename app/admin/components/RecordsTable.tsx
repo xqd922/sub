@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Chip, Button } from '@heroui/react'
 import type { ConvertRecord, SortDescriptor } from '../types'
 import { EmptyState } from './EmptyState'
 
@@ -39,7 +38,6 @@ export function RecordsTable({
       let first = a[column]
       let second = b[column]
 
-      // 处理 undefined 值
       if (first === undefined) first = ''
       if (second === undefined) second = ''
 
@@ -83,96 +81,108 @@ export function RecordsTable({
     }))
   }
 
-            return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead className="bg-default-100">
+  const getSortIndicator = (column: string) => {
+    if (sortDescriptor.column !== column) return null
+    return sortDescriptor.direction === 'ascending' ? '↑' : '↓'
+  }
+
+  const getClientBadgeClass = (clientType: string) => {
+    const type = clientType.toLowerCase()
+    if (type.includes('clash')) return 'cell-badge clash'
+    if (type.includes('sing')) return 'cell-badge singbox'
+    return 'cell-badge'
+  }
+
+  return (
+    <div>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="data-table">
+          <thead>
             <tr>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'name' ? 'sorted' : ''}
                 onClick={() => handleSort('name')}
               >
-                名称 {sortDescriptor.column === 'name' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                名称
+                <span className="sort-indicator">{getSortIndicator('name')}</span>
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium">原始链接</th>
+              <th>原始链接</th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'clientType' ? 'sorted' : ''}
                 onClick={() => handleSort('clientType')}
               >
-                客户端 {sortDescriptor.column === 'clientType' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                客户端
+                <span className="sort-indicator">{getSortIndicator('clientType')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'nodeCount' ? 'sorted' : ''}
                 onClick={() => handleSort('nodeCount')}
               >
-                节点数 {sortDescriptor.column === 'nodeCount' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                节点数
+                <span className="sort-indicator">{getSortIndicator('nodeCount')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'hits' ? 'sorted' : ''}
                 onClick={() => handleSort('hits')}
               >
-                访问 {sortDescriptor.column === 'hits' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                访问
+                <span className="sort-indicator">{getSortIndicator('hits')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'lastAccess' ? 'sorted' : ''}
                 onClick={() => handleSort('lastAccess')}
               >
-                最后访问 {sortDescriptor.column === 'lastAccess' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                最后访问
+                <span className="sort-indicator">{getSortIndicator('lastAccess')}</span>
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="p-12">
+                <td colSpan={7}>
                   <EmptyState title="加载中..." />
                 </td>
               </tr>
             ) : items.length > 0 ? (
               items.map((record) => (
-                <tr key={record.id} className="border-b border-default-200 hover:bg-default-50">
-                  <td className="px-4 py-3">{record.name}</td>
-                  <td className="px-4 py-3">
-                    <span title={record.originalUrl} className="text-default-500 text-sm">
+                <tr key={record.id}>
+                  <td className="cell-name">{record.name}</td>
+                  <td>
+                    <span className="cell-url" title={record.originalUrl}>
                       {formatUrl(record.originalUrl)}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <Chip size="sm" variant="soft">
+                  <td>
+                    <span className={getClientBadgeClass(record.clientType)}>
                       {record.clientType}
-                    </Chip>
+                    </span>
                   </td>
-                  <td className="px-4 py-3">{record.nodeCount}</td>
-                  <td className="px-4 py-3">{record.hits}</td>
-                  <td className="px-4 py-3 text-default-500 text-sm">
-                    {formatDate(record.lastAccess)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onPress={() => onCopy(`${window.location.origin}/sub/${record.id}`)}
+                  <td className="cell-number">{record.nodeCount}</td>
+                  <td className="cell-number">{record.hits}</td>
+                  <td className="cell-date">{formatDate(record.lastAccess)}</td>
+                  <td>
+                    <div className="action-btns">
+                      <button
+                        className="action-btn copy"
+                        onClick={() => onCopy(`${window.location.origin}/sub/${record.id}`)}
                       >
                         复制
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="text-danger hover:bg-danger/10"
-                        variant="ghost"
-                        onPress={() => onDelete(record.id)}
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => onDelete(record.id)}
                       >
                         删除
-                      </Button>
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="p-12">
+                <td colSpan={7}>
                   <EmptyState
                     title={searchTerm ? '未找到匹配的记录' : '暂无记录'}
                     description={searchTerm ? '尝试使用其他关键词搜索' : '开始使用订阅转换服务后，记录将显示在这里'}
@@ -185,30 +195,28 @@ export function RecordsTable({
       </div>
 
       {pages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            isDisabled={page === 1}
-            onPress={() => setPage(p => Math.max(1, p - 1))}
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            disabled={page === 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
           >
             上一页
-          </Button>
-          <span className="flex items-center px-4 text-sm text-default-500">
+          </button>
+          <span className="pagination-info">
             第 {page} / {pages} 页
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            isDisabled={page === pages}
-            onPress={() => setPage(p => Math.min(pages, p + 1))}
+          <button
+            className="pagination-btn"
+            disabled={page === pages}
+            onClick={() => setPage(p => Math.min(pages, p + 1))}
           >
             下一页
-          </Button>
+          </button>
         </div>
       )}
 
-      <div className="text-center text-sm text-default-500">
+      <div className="record-count">
         共 {filteredRecords.length} 条记录
         {searchTerm && ` (筛选自 ${records.length} 条)`}
       </div>

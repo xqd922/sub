@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Chip, Button } from '@heroui/react'
 import type { ShortLink, SortDescriptor } from '../types'
 import { EmptyState } from './EmptyState'
 
@@ -39,7 +38,6 @@ export function ShortLinksTable({
       let first = a[column]
       let second = b[column]
 
-      // 处理 undefined 值
       if (first === undefined) first = ''
       if (second === undefined) second = ''
 
@@ -74,92 +72,93 @@ export function ShortLinksTable({
     }))
   }
 
-            return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead className="bg-default-100">
+  const getSortIndicator = (column: string) => {
+    if (sortDescriptor.column !== column) return null
+    return sortDescriptor.direction === 'ascending' ? '↑' : '↓'
+  }
+
+  return (
+    <div>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="data-table">
+          <thead>
             <tr>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'id' ? 'sorted' : ''}
                 onClick={() => handleSort('id')}
               >
-                短链接 {sortDescriptor.column === 'id' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                短链接
+                <span className="sort-indicator">{getSortIndicator('id')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'name' ? 'sorted' : ''}
                 onClick={() => handleSort('name')}
               >
-                名称 {sortDescriptor.column === 'name' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                名称
+                <span className="sort-indicator">{getSortIndicator('name')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'hits' ? 'sorted' : ''}
                 onClick={() => handleSort('hits')}
               >
-                访问次数 {sortDescriptor.column === 'hits' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                访问次数
+                <span className="sort-indicator">{getSortIndicator('hits')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'createdAt' ? 'sorted' : ''}
                 onClick={() => handleSort('createdAt')}
               >
-                创建时间 {sortDescriptor.column === 'createdAt' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                创建时间
+                <span className="sort-indicator">{getSortIndicator('createdAt')}</span>
               </th>
               <th
-                className="px-4 py-3 text-left text-sm font-medium cursor-pointer hover:bg-default-200"
+                className={sortDescriptor.column === 'lastAccess' ? 'sorted' : ''}
                 onClick={() => handleSort('lastAccess')}
               >
-                最后访问 {sortDescriptor.column === 'lastAccess' && (sortDescriptor.direction === 'ascending' ? '↑' : '↓')}
+                最后访问
+                <span className="sort-indicator">{getSortIndicator('lastAccess')}</span>
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="p-12">
+                <td colSpan={6}>
                   <EmptyState title="加载中..." />
                 </td>
               </tr>
             ) : items.length > 0 ? (
               items.map((link) => (
-                <tr key={link.id} className="border-b border-default-200 hover:bg-default-50">
-                  <td className="px-4 py-3">
-                    <Chip size="sm" variant="soft">
-                      /s/{link.id}
-                    </Chip>
+                <tr key={link.id}>
+                  <td>
+                    <span className="cell-badge">/s/{link.id}</span>
                   </td>
-                  <td className="px-4 py-3">{link.name}</td>
-                  <td className="px-4 py-3">{link.hits}</td>
-                  <td className="px-4 py-3 text-default-500 text-sm">
-                    {formatDate(link.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 text-default-500 text-sm">
-                    {formatDate(link.lastAccess)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onPress={() => onCopy(`${window.location.origin}/s/${link.id}`)}
+                  <td className="cell-name">{link.name}</td>
+                  <td className="cell-number">{link.hits}</td>
+                  <td className="cell-date">{formatDate(link.createdAt)}</td>
+                  <td className="cell-date">{formatDate(link.lastAccess)}</td>
+                  <td>
+                    <div className="action-btns">
+                      <button
+                        className="action-btn copy"
+                        onClick={() => onCopy(`${window.location.origin}/s/${link.id}`)}
                       >
                         复制
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="text-danger hover:bg-danger/10"
-                        variant="ghost"
-                        onPress={() => onDelete(link.id)}
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => onDelete(link.id)}
                       >
                         删除
-                      </Button>
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="p-12">
+                <td colSpan={6}>
                   <EmptyState
                     title={searchTerm ? '未找到匹配的短链接' : '暂无短链接'}
                     description={searchTerm ? '尝试使用其他关键词搜索' : '创建短链接后，将显示在这里'}
@@ -172,30 +171,28 @@ export function ShortLinksTable({
       </div>
 
       {pages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            isDisabled={page === 1}
-            onPress={() => setPage(p => Math.max(1, p - 1))}
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            disabled={page === 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
           >
             上一页
-          </Button>
-          <span className="flex items-center px-4 text-sm text-default-500">
+          </button>
+          <span className="pagination-info">
             第 {page} / {pages} 页
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            isDisabled={page === pages}
-            onPress={() => setPage(p => Math.min(pages, p + 1))}
+          <button
+            className="pagination-btn"
+            disabled={page === pages}
+            onClick={() => setPage(p => Math.min(pages, p + 1))}
           >
             下一页
-          </Button>
+          </button>
         </div>
       )}
 
-      <div className="text-center text-sm text-default-500">
+      <div className="record-count">
         共 {filteredLinks.length} 个短链接
         {searchTerm && ` (筛选自 ${shortLinks.length} 个)`}
       </div>
