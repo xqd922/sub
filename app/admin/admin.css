@@ -363,6 +363,73 @@
   color: var(--apple-purple);
 }
 
+/* Type Badge */
+.type-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.type-badge.convert {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--apple-blue);
+}
+
+.type-badge.shortlink {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--apple-green);
+}
+
+/* Client Tag */
+.client-tag {
+  display: inline-flex;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  margin-right: 8px;
+  background: var(--apple-gray-6);
+  color: var(--apple-text-secondary);
+}
+
+.client-tag.clash {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--apple-blue);
+}
+
+.client-tag.singbox,
+.client-tag.sing-box {
+  background: rgba(175, 82, 222, 0.1);
+  color: var(--apple-purple);
+}
+
+.detail-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-info.muted {
+  color: var(--apple-gray-3);
+}
+
+.node-count {
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+}
+
+/* Table Card */
+.table-card {
+  background: var(--apple-card);
+  border-radius: var(--apple-radius-xl);
+  box-shadow: var(--apple-shadow-sm);
+  overflow: hidden;
+  padding: 24px;
+}
+
 .cell-number {
   font-variant-numeric: tabular-nums;
   font-weight: 500;

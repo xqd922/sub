@@ -7,11 +7,9 @@ import { useToast } from './hooks/useToast'
 import { LoginForm } from './components/LoginForm'
 import { AdminLayout } from './components/AdminLayout'
 import { StatsCards } from './components/StatsCards'
-import { RecordsTable } from './components/RecordsTable'
-import { ShortLinksTable } from './components/ShortLinksTable'
+import { UnifiedTable } from './components/UnifiedTable'
 import { DeleteConfirmModal } from './components/DeleteConfirmModal'
 import { ToastContainer } from './components/ToastContainer'
-import type { TabType } from './types'
 import './admin.css'
 
 // 搜索图标
@@ -36,7 +34,6 @@ export default function AdminPage() {
 
   const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState<TabType>('records')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 搜索防抖
@@ -77,7 +74,6 @@ export default function AdminPage() {
     logout()
     setSearchInput('')
     setSearchTerm('')
-    setActiveTab('records')
   }
 
   // 打开删除确认弹窗
@@ -168,55 +164,26 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* 标签页 */}
-        <div className="tabs-container">
-          <div className="tabs-header">
-            <button
-              className={`tab-btn ${activeTab === 'records' ? 'active' : ''}`}
-              onClick={() => setActiveTab('records')}
-            >
-              转换记录
-            </button>
-            <button
-              className={`tab-btn ${activeTab === 'shortlinks' ? 'active' : ''}`}
-              onClick={() => setActiveTab('shortlinks')}
-            >
-              短链接
-            </button>
-          </div>
-
-          <div className="tabs-content">
-            {activeTab === 'records' && (
-              <RecordsTable
-                records={records}
-                loading={dataLoading}
-                onDelete={(id) => {
-                  const record = records.find(r => r.id === id)
-                  if (record) {
-                    openDeleteModal('record', id, record.name)
-                  }
-                }}
-                onCopy={handleCopy}
-                searchTerm={searchTerm}
-              />
-            )}
-
-            {activeTab === 'shortlinks' && (
-              <ShortLinksTable
-                shortLinks={shortLinks}
-                loading={dataLoading}
-                onDelete={(id) => {
-                  const link = shortLinks.find(l => l.id === id)
-                  if (link) {
-                    openDeleteModal('shortlink', id, link.name)
-                  }
-                }}
-                onCopy={handleCopy}
-                searchTerm={searchTerm}
-              />
-            )}
-          </div>
-        </div>
+        {/* 统一数据表格 */}
+        <UnifiedTable
+          records={records}
+          shortLinks={shortLinks}
+          loading={dataLoading}
+          onDeleteRecord={(id) => {
+            const record = records.find(r => r.id === id)
+            if (record) {
+              openDeleteModal('record', id, record.name)
+            }
+          }}
+          onDeleteShortLink={(id) => {
+            const link = shortLinks.find(l => l.id === id)
+            if (link) {
+              openDeleteModal('shortlink', id, link.name)
+            }
+          }}
+          onCopy={handleCopy}
+          searchTerm={searchTerm}
+        />
       </AdminLayout>
 
       {/* 删除确认弹窗 */}
@@ -225,7 +192,7 @@ export default function AdminPage() {
         onClose={closeDeleteModal}
         onConfirm={handleDelete}
         loading={deleting}
-        title={`删除${deleteModal.type === 'record' ? '记录' : '短链接'}`}
+        title={`删除${deleteModal.type === 'record' ? '订阅' : '短链接'}`}
         message={`确定要删除"${deleteModal.name}"吗？${deleteModal.type === 'record' ? '删除后该订阅链接将无法使用。' : ''}`}
       />
 
