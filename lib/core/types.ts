@@ -86,7 +86,7 @@ export interface DnsConfig {
   enable: boolean
   ipv6: boolean
   listen?: string
-  'default-nameserver': string[]
+  'default-nameserver'?: string[]
   'enhanced-mode'?: string
   'fake-ip-range': string
   'use-hosts': boolean
@@ -95,6 +95,8 @@ export interface DnsConfig {
   nameserver: string[]
   fallback?: string[]
   'fake-ip-filter'?: string[]
+  'cache-algorithm'?: string
+  'nameserver-policy'?: Record<string, string | string[]>
   'fallback-filter'?: {
     geoip: boolean
     'geoip-code'?: string
@@ -113,20 +115,28 @@ export interface ClashConfig {
   mode: string
   'log-level': string
   ipv6?: boolean
+  'unified-delay'?: boolean
   'tcp-concurrent'?: boolean
+  'find-process-mode'?: string
   'external-controller'?: string
   'external-ui'?: string
   'external-ui-url'?: string
   secret?: string
+  profile?: {
+    'store-selected'?: boolean
+    'store-fake-ip'?: boolean
+  }
   dns?: DnsConfig
   proxies: Proxy[]
   'proxy-groups': ProxyGroup[]
   rules: string[]
+  'rule-providers'?: Record<string, any>
   sniffer?: {
     enable?: boolean
     sniff?: {
-      TLS?: { ports?: number[], 'override-destination'?: boolean }
-      HTTP?: { ports?: number[], 'override-destination'?: boolean }
+      TLS?: { ports?: (number | string)[], 'override-destination'?: boolean }
+      HTTP?: { ports?: (number | string)[], 'override-destination'?: boolean }
+      QUIC?: { ports?: (number | string)[], 'override-destination'?: boolean }
     }
     'skip-domain'?: string[]
     'parse-pure-ip'?: boolean
