@@ -174,11 +174,22 @@ export function UnifiedTable({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6}>
-                  <EmptyState title="加载中..." />
-                </td>
-              </tr>
+              // 骨架屏加载状态
+              Array.from({ length: 3 }).map((_, i) => (
+                <tr key={`skeleton-${i}`} className="skeleton-row">
+                  <td><div className="skeleton skeleton-text"></div></td>
+                  <td><div className="skeleton skeleton-text"></div></td>
+                  <td><div className="skeleton skeleton-text"></div></td>
+                  <td><div className="skeleton skeleton-text skeleton-sm"></div></td>
+                  <td><div className="skeleton skeleton-text"></div></td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <div className="skeleton skeleton-btn"></div>
+                      <div className="skeleton skeleton-btn"></div>
+                    </div>
+                  </td>
+                </tr>
+              ))
             ) : items.length > 0 ? (
               items.map((item) => (
                 <tr key={`${item.type}-${item.id}`}>

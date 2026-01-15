@@ -443,6 +443,11 @@
   box-shadow: var(--apple-shadow-sm);
   overflow: hidden;
   padding: 24px;
+  min-height: 400px;
+}
+
+.table-card .data-table {
+  min-height: 300px;
 }
 
 .cell-number {
@@ -496,7 +501,12 @@
    ============================================ */
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state-icon {
@@ -839,6 +849,26 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--apple-radius-md);
+}
+
+.skeleton-row td {
+  padding: 16px;
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 100%;
+  max-width: 200px;
+}
+
+.skeleton-text.skeleton-sm {
+  max-width: 60px;
+}
+
+.skeleton-btn {
+  height: 32px;
+  width: 60px;
+  border-radius: var(--apple-radius-sm);
 }
 
 /* ============================================
