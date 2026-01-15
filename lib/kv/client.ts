@@ -1,4 +1,5 @@
 import { ConvertRecord, RecordIndex, DailyStats, KV_PREFIX } from './types'
+import { getLocalKV, isLocalDev } from './local'
 
 /**
  * Cloudflare 环境接口
@@ -12,6 +13,11 @@ interface CloudflareEnv {
  * 在 Cloudflare Pages 中通过 getRequestContext 获取
  */
 async function getKV(): Promise<KVNamespace | null> {
+  // 本地开发环境，返回 Mock KV
+  if (isLocalDev()) {
+    return getLocalKV()
+  }
+
   try {
     // 动态导入，避免在非 CF 环境报错
     const { getRequestContext } = await import('@cloudflare/next-on-pages')
@@ -19,8 +25,8 @@ async function getKV(): Promise<KVNamespace | null> {
     const env = ctx.env as CloudflareEnv
     return env.LINKS_KV || null
   } catch {
-    // 本地开发环境，返回 null
-    return null
+    // 如果无法获取 CF 上下文，回退到本地 Mock
+    return getLocalKV()
   }
 }
 

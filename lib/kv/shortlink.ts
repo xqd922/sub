@@ -1,4 +1,5 @@
 import { ShortLink, KV_PREFIX } from './types'
+import { getLocalKV, isLocalDev } from './local'
 
 /**
  * Cloudflare 环境接口
@@ -11,13 +12,19 @@ interface CloudflareEnv {
  * 获取 KV 绑定
  */
 async function getKV(): Promise<KVNamespace | null> {
+  // 本地开发环境，返回 Mock KV
+  if (isLocalDev()) {
+    return getLocalKV()
+  }
+
   try {
     const { getRequestContext } = await import('@cloudflare/next-on-pages')
     const ctx = getRequestContext()
     const env = ctx.env as CloudflareEnv
     return env.LINKS_KV || null
   } catch {
-    return null
+    // 回退到本地 Mock
+    return getLocalKV()
   }
 }
 

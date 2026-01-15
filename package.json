@@ -21,9 +21,10 @@
   ],
   "scripts": {
     "dev": "next dev --turbo",
-    "dev:cf": "wrangler pages dev --port 3000 --persist-to .wrangler/state .next",
+    "dev:cf": "wrangler pages dev --port 3000 --persist-to .wrangler/state .vercel/output/static",
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
     "build": "next build",
+    "build:cf": "bun run build && bun run pages:build",
     "pages:build": "bun x @cloudflare/next-on-pages",
     "pages:deploy": "bun run build && bun run pages:build",
     "start": "next start",
