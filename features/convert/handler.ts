@@ -131,14 +131,14 @@ export class CoreService {
 
     if (isSingBox) {
       // Sing-box JSON 配置
-      const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
+      const jsonConfig = ConfigService.generateSingboxConfig(formattedProxies, shouldFormatNames)
       const headers = ConfigService.generateResponseHeaders(subscription, true, false)
       return new NextResponse(jsonConfig, { headers })
     }
 
     if (isV2rayNG) {
       // v2rayNG base64 订阅
-      const base64Config = ConfigService.generateV2rayNGConfig(proxies)
+      const base64Config = ConfigService.generateV2rayNGConfig(formattedProxies)
       const headers = {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
@@ -153,7 +153,7 @@ export class CoreService {
     if (isBrowser) {
       // 浏览器预览，生成两种配置
       const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)
-      const jsonConfig = ConfigService.generateSingboxConfig(proxies, shouldFormatNames)
+      const jsonConfig = ConfigService.generateSingboxConfig(formattedProxies, shouldFormatNames)
       const headers = ConfigService.generateResponseHeaders(subscription, false, true)
       const html = ConfigService.generatePreviewHtml(yamlConfig, jsonConfig)
       return new NextResponse(html, { headers })

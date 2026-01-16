@@ -67,26 +67,39 @@ export class SubService {
    * 格式化节点名称（保留原有的地区重命名逻辑）
    */
   static formatProxyName(proxy: Proxy): Proxy {
-    const regionMatch = Object.keys(REGION_MAP).find(key => 
+    const regionMatch = Object.keys(REGION_MAP).find(key =>
       proxy.name.toLowerCase().includes(key.toLowerCase())
     )
-    
+
     if (!regionMatch) {
       return proxy
     }
-    
+
     const { flag, name } = REGION_MAP[regionMatch as RegionCode]
-    
-    // 提取倍率信息（支持多种格式：x0.01、0.8x、0.8倍、[0.5x]）
-    const match1 = proxy.name.match(/[xX×](\d+\.?\d*)/)  // x0.01 格式
-    const match2 = proxy.name.match(/(\d+\.?\d*)[xX×倍]/)  // 0.8x 或 0.8倍 格式
-    const multiplierValue = match1?.[1] || match2?.[1]
+
+    // 提取倍率信息（支持多种格式）
+    // 匹配格式：x0.01、0.8x、0.8×、0.8倍、*0.5、[0.5x]（已格式化）
+    let multiplierValue: string | undefined
+
+    // 1. 检查是否已经格式化过 [数字x]
+    const alreadyFormatted = proxy.name.match(/\[(\d+\.?\d*)x\]/i)
+    if (alreadyFormatted) {
+      multiplierValue = alreadyFormatted[1]
+    } else {
+      // 2. x前缀格式：x0.01、X0.01
+      const prefixMatch = proxy.name.match(/[xX×*](\d+\.?\d*)/)
+      // 3. x后缀格式：0.8x、0.8X、0.8×、0.8倍、0.8*
+      const suffixMatch = proxy.name.match(/(\d+\.?\d*)[xX×倍*]/)
+
+      multiplierValue = prefixMatch?.[1] || suffixMatch?.[1]
+    }
+
     const multiplier = multiplierValue ? ` [${multiplierValue}x]` : ''
-    
+
     // 初始化计数器
     this.counters[name] = this.counters[name] || 0
     const num = String(++this.counters[name]).padStart(2, '0')
-    
+
     return {
       ...proxy,
       name: `${flag} ${name} ${num}${multiplier}`.trim()
