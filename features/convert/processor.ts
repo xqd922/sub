@@ -130,8 +130,9 @@ export class SubService {
    * 从节点名称中提取倍率
    */
   private static extractMultiplier(name: string): number | undefined {
-    // 匹配格式：[2x]、【2x】、(2x)、2x、2×、2倍、x2、*2
+    // 匹配格式：[2x]、【2x】、(2x)、2x、2×、2倍、x2、*2、倍率:1.5
     const patterns = [
+      /倍率[：:](\d+\.?\d*)/,              // 倍率:1.5、倍率：2
       /[【\[\(](\d+\.?\d*)[xX×][】\]\)]/,  // [2x]、【2x】、(2x)
       /(\d+\.?\d*)[xX×倍]/,                 // 2x、2×、2倍
       /[xX×*](\d+\.?\d*)/,                  // x2、*2
