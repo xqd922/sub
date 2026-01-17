@@ -66,9 +66,10 @@ export class SubService {
   /**
    * 格式化节点名称
    * 格式：
-   * - 多城市国家有城市：🇺🇸 USA Seattle 01
-   * - 多城市国家无城市：🇺🇸 United States 01
-   * - 单城市国家：🇯🇵 Japan 01
+   * - 多城市国家有城市：🇺🇸 USA Seattle 01 [2x]
+   * - 多城市国家无城市：🇺🇸 United States 01 [2x]
+   * - 单城市国家：🇯🇵 Japan 01 [2x]
+   * - 倍率为1时不显示
    */
   static formatProxyName(proxy: Proxy): Proxy {
     // 先检测城市
@@ -87,6 +88,9 @@ export class SubService {
 
     const { flag, name: countryCode, en } = REGION_MAP[regionMatch as RegionCode]
     const isMultiCityCountry = countryCode in MULTI_CITY_COUNTRIES
+
+    // 提取倍率
+    const multiplier = this.extractMultiplier(proxy.name)
 
     let displayName: string
     let counterKey: string
@@ -112,10 +116,34 @@ export class SubService {
     this.counters[counterKey] = this.counters[counterKey] || 0
     const num = String(++this.counters[counterKey]).padStart(2, '0')
 
+    // 拼接最终名称（倍率非1时显示）
+    const multiplierSuffix = multiplier && multiplier !== 1 ? ` [${multiplier}x]` : ''
+
     return {
       ...proxy,
-      name: `${displayName} ${num}`
+      name: `${displayName} ${num}${multiplierSuffix}`
     }
+  }
+
+  /**
+   * 从节点名称中提取倍率
+   */
+  private static extractMultiplier(name: string): number | undefined {
+    // 匹配格式：[2x]、【2x】、(2x)、2x、2×、2倍、x2、*2
+    const patterns = [
+      /[【\[\(](\d+\.?\d*)[xX×][】\]\)]/,  // [2x]、【2x】、(2x)
+      /(\d+\.?\d*)[xX×倍]/,                 // 2x、2×、2倍
+      /[xX×*](\d+\.?\d*)/,                  // x2、*2
+    ]
+
+    for (const pattern of patterns) {
+      const match = name.match(pattern)
+      if (match) {
+        return parseFloat(match[1])
+      }
+    }
+
+    return undefined
   }
 
   /**
