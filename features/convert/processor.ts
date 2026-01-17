@@ -2,7 +2,7 @@ import { Proxy } from '@/lib/core/types'
 import { parseSubscription } from '@/lib/parse/subscription'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
-import { REGION_MAP, RegionCode } from '@/lib/format/region'
+import { REGION_MAP, RegionCode, CITY_MAP, MULTI_CITY_COUNTRIES } from '@/lib/format/region'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
 import { formatBytes } from '@/lib/core/utils'
@@ -64,9 +64,19 @@ export class SubService {
   }
 
   /**
-   * 格式化节点名称（保留原有的地区重命名逻辑）
+   * 格式化节点名称
+   * 格式：
+   * - 多城市国家有城市：🇺🇸 USA Seattle 01
+   * - 多城市国家无城市：🇺🇸 United States 01
+   * - 单城市国家：🇯🇵 Japan 01
    */
   static formatProxyName(proxy: Proxy): Proxy {
+    // 先检测城市
+    const cityMatch = Object.keys(CITY_MAP).find(key =>
+      proxy.name.includes(key)
+    )
+
+    // 再检测地区
     const regionMatch = Object.keys(REGION_MAP).find(key =>
       proxy.name.toLowerCase().includes(key.toLowerCase())
     )
@@ -75,34 +85,36 @@ export class SubService {
       return proxy
     }
 
-    const { flag, name } = REGION_MAP[regionMatch as RegionCode]
+    const { flag, name: countryCode, en } = REGION_MAP[regionMatch as RegionCode]
+    const isMultiCityCountry = countryCode in MULTI_CITY_COUNTRIES
 
-    // 提取倍率信息（支持多种格式）
-    // 匹配格式：x0.01、0.8x、0.8×、0.8倍、*0.5、[0.5x]（已格式化）
-    let multiplierValue: string | undefined
+    let displayName: string
+    let counterKey: string
 
-    // 1. 检查是否已经格式化过 [数字x]
-    const alreadyFormatted = proxy.name.match(/\[(\d+\.?\d*)x\]/i)
-    if (alreadyFormatted) {
-      multiplierValue = alreadyFormatted[1]
+    if (cityMatch && isMultiCityCountry) {
+      // 多城市国家 + 检测到城市 → 🇺🇸 USA Seattle 01
+      const cityInfo = CITY_MAP[cityMatch]
+      const countryShort = MULTI_CITY_COUNTRIES[countryCode].short
+      displayName = `${flag} ${countryShort} ${cityInfo.city}`
+      counterKey = `${countryCode}-${cityInfo.city}`
+    } else if (isMultiCityCountry) {
+      // 多城市国家 + 未检测到城市 → 🇺🇸 United States 01
+      const countryFull = MULTI_CITY_COUNTRIES[countryCode].full
+      displayName = `${flag} ${countryFull}`
+      counterKey = countryCode
     } else {
-      // 2. x前缀格式：x0.01、X0.01
-      const prefixMatch = proxy.name.match(/[xX×*](\d+\.?\d*)/)
-      // 3. x后缀格式：0.8x、0.8X、0.8×、0.8倍、0.8*
-      const suffixMatch = proxy.name.match(/(\d+\.?\d*)[xX×倍*]/)
-
-      multiplierValue = prefixMatch?.[1] || suffixMatch?.[1]
+      // 单城市国家 → 🇯🇵 Japan 01
+      displayName = `${flag} ${en}`
+      counterKey = en
     }
 
-    const multiplier = multiplierValue ? ` [${multiplierValue}x]` : ''
-
     // 初始化计数器
-    this.counters[name] = this.counters[name] || 0
-    const num = String(++this.counters[name]).padStart(2, '0')
+    this.counters[counterKey] = this.counters[counterKey] || 0
+    const num = String(++this.counters[counterKey]).padStart(2, '0')
 
     return {
       ...proxy,
-      name: `${flag} ${name} ${num}${multiplier}`.trim()
+      name: `${displayName} ${num}`
     }
   }
 
