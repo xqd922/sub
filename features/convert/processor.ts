@@ -77,8 +77,9 @@ export class SubService {
       proxy.name.includes(key)
     )
 
-    // 再检测地区
-    const regionMatch = Object.keys(REGION_MAP).find(key =>
+    // 再检测地区（按关键词长度降序排列，避免短词误匹配如 US 匹配到 RUS）
+    const sortedRegionKeys = Object.keys(REGION_MAP).sort((a, b) => b.length - a.length)
+    const regionMatch = sortedRegionKeys.find(key =>
       proxy.name.toLowerCase().includes(key.toLowerCase())
     )
 
