@@ -109,6 +109,8 @@ export class SingleNodeParser {
         return !!(proxy.password)
       case 'anytls':
         return !!(proxy.password)
+      case 'socks5':
+        return true
       default:
         return false
     }
