@@ -243,14 +243,6 @@ export const defaultConfig: ClashConfig = {
       url: 'https://raw.githubusercontent.com/xqd922/rules/main/emby/emby-domain.mrs',
       path: './rule_providers/emby.mrs',
       interval: 86400
-    },
-    'emby-ip': {
-      type: 'http',
-      behavior: 'ipcidr',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/xqd922/rules/main/emby/emby-ip.mrs',
-      path: './rule_providers/emby_ip.mrs',
-      interval: 86400
     }
   },
   rules: [
@@ -291,13 +283,7 @@ export const defaultConfig: ClashConfig = {
 
     // Emby
     'DOMAIN,ll.sdxya.top,DIRECT',
-    'DOMAIN-KEYWORD,embyvip,Emby',
-    'DOMAIN-KEYWORD,pilipiliultra,Emby',
-    'DOMAIN-KEYWORD,pilipili,Emby',
-    'DOMAIN-KEYWORD,mius,Emby',
-    'DOMAIN-KEYWORD,emby,Emby',
     'RULE-SET,emby,Emby',
-    'RULE-SET,emby-ip,Emby,no-resolve',
 
     // AI Services - 使用 rule-providers
     'RULE-SET,ai,AI',
