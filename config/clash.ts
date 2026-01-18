@@ -80,44 +80,43 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
 
 // 默认配置
 export const defaultConfig: ClashConfig = {
-
   'mixed-port': 7890,
   'allow-lan': true,
-  mode: 'Rule',
+  'mode': 'Rule',
   'log-level': 'info',
-  ipv6: true,
+  'ipv6': true,
   'unified-delay': true,
   'tcp-concurrent': true,
   'find-process-mode': 'off',
   'external-controller': '0.0.0.0:9090',
   'external-ui': 'ui',
   'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
-  secret: '',
-  profile: {
+  'secret': '',
+  'profile': {
     'store-selected': true,
     'store-fake-ip': true
   },
-  sniffer: {
-    enable: true,
+  'sniffer': {
+    'enable': true,
     'force-dns-mapping': true,
     'parse-pure-ip': true,
     'override-destination': false,
-    sniff: {
-      HTTP: { ports: [80, '8080-8880'], 'override-destination': true },
-      TLS: { ports: [443, 8443] },
-      QUIC: { ports: [443, 8443] }
+    'sniff': {
+      'HTTP': { 'ports': [80, '8080-8880'], 'override-destination': true },
+      'TLS': { 'ports': [443, 8443] },
+      'QUIC': { 'ports': [443, 8443] }
     },
     'skip-domain': ['Mijia Cloud', '+.push.apple.com']
   },
-  dns: {
-    enable: true,
-    ipv6: true,
+  'dns': {
+    'enable': true,
+    'ipv6': true,
     'cache-algorithm': 'arc',
-    listen: '0.0.0.0:1053',
+    'listen': '0.0.0.0:1053',
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'proxy-server-nameserver': ['https://doh.pub/dns-query'],
-    nameserver: ['https://dns.alidns.com/dns-query'],
+    'nameserver': ['https://dns.alidns.com/dns-query'],
     'nameserver-policy': {
       '*': 'system',
       '+.arpa': 'system',
@@ -126,171 +125,155 @@ export const defaultConfig: ClashConfig = {
     'use-hosts': true,
     'fake-ip-filter': [
       '+.market.xiaomi.com',
-      'lancache.steamcontent.com'
+      'lancache.steamcontent.com',
+      '+.edu.cn'
     ]
   },
-  proxies: [],
+  'proxies': [],
   'proxy-groups': [],
   'rule-providers': {
     'AWAvenue-Ads': {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.mrs',
-      path: './rule_providers/AWAvenue-Ads.mrs',
-      interval: 86400
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.mrs',
+      'path': './rule_providers/AWAvenue-Ads.mrs',
+      'interval': 86400
     },
-    private: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs',
-      path: './rule_providers/private.mrs',
-      interval: 86400
+    'private': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs',
+      'path': './rule_providers/private.mrs',
+      'interval': 86400
     },
     'private-ip': {
-      type: 'http',
-      behavior: 'ipcidr',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs',
-      path: './rule_providers/private_ip.mrs',
-      interval: 86400
+      'type': 'http',
+      'behavior': 'ipcidr',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs',
+      'path': './rule_providers/private_ip.mrs',
+      'interval': 86400
     },
-    ai: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/JohnsonRan/CRules/mihomo/resources/rules/ai.mrs',
-      path: './rule_providers/ai.mrs',
-      interval: 86400
+    'ai': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/JohnsonRan/CRules/mihomo/resources/rules/ai.mrs',
+      'path': './rule_providers/ai.mrs',
+      'interval': 86400
     },
-    telegram: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs',
-      path: './rule_providers/telegram.mrs',
-      interval: 86400
+    'telegram': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs',
+      'path': './rule_providers/telegram.mrs',
+      'interval': 86400
     },
     'telegram-ip': {
-      type: 'http',
-      behavior: 'ipcidr',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs',
-      path: './rule_providers/telegram_ip.mrs',
-      interval: 86400
+      'type': 'http',
+      'behavior': 'ipcidr',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs',
+      'path': './rule_providers/telegram_ip.mrs',
+      'interval': 86400
     },
-    github: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs',
-      path: './rule_providers/github.mrs',
-      interval: 86400
+    'github': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs',
+      'path': './rule_providers/github.mrs',
+      'interval': 86400
     },
-    twitter: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs',
-      path: './rule_providers/twitter.mrs',
-      interval: 86400
+    'twitter': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs',
+      'path': './rule_providers/twitter.mrs',
+      'interval': 86400
     },
-    youtube: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs',
-      path: './rule_providers/youtube.mrs',
-      interval: 86400
+    'youtube': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs',
+      'path': './rule_providers/youtube.mrs',
+      'interval': 86400
     },
-    google: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs',
-      path: './rule_providers/google.mrs',
-      interval: 86400
+    'google': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs',
+      'path': './rule_providers/google.mrs',
+      'interval': 86400
     },
-    gfw: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/gfw.mrs',
-      path: './rule_providers/gfw.mrs',
-      interval: 86400
+    'gfw': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/gfw.mrs',
+      'path': './rule_providers/gfw.mrs',
+      'interval': 86400
     },
-    cn: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/YiXuanZX/rules/main/cn-additional-list.mrs',
-      path: './rule_providers/cn.mrs',
-      interval: 86400
+    'cn': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/YiXuanZX/rules/main/cn-additional-list.mrs',
+      'path': './rule_providers/cn.mrs',
+      'interval': 86400
     },
     'cn-ip': {
-      type: 'http',
-      behavior: 'ipcidr',
-      format: 'mrs',
-      url: 'https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/cnip.mrs',
-      path: './rule_providers/cn_ip.mrs',
-      interval: 86400
+      'type': 'http',
+      'behavior': 'ipcidr',
+      'format': 'mrs',
+      'url': 'https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/cnip.mrs',
+      'path': './rule_providers/cn_ip.mrs',
+      'interval': 86400
     },
-    emby: {
-      type: 'http',
-      behavior: 'domain',
-      format: 'mrs',
-      url: 'https://raw.githubusercontent.com/xqd922/rules/main/emby/emby-domain.mrs',
-      path: './rule_providers/emby.mrs',
-      interval: 86400
+    'emby': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/xqd922/rules/main/emby/emby-domain.mrs',
+      'path': './rule_providers/emby.mrs',
+      'interval': 86400
     }
   },
-  rules: [
-    // 广告过滤 - 优先级最高
+  'rules': [
+    // 广告白名单
+    'DOMAIN,adsmind.gdtimg.com,DIRECT',
+
+    // 广告过滤
     'RULE-SET,AWAvenue-Ads,REJECT',
 
+    // 私有网络 - 优先直连
+    'RULE-SET,private,DIRECT',
+    'RULE-SET,private-ip,DIRECT,no-resolve',
+
     'DOMAIN,1001.pp.ua,DIRECT',
-    'DOMAIN-SUFFIX,sudugu.com,DIRECT',
-    'DOMAIN,chat.qwen.ai,DIRECT',
+    'DOMAIN-SUFFIX,qwen.ai,DIRECT',
     'DOMAIN-KEYWORD,zijieapi,REJECT',
-    'IP-CIDR,1.1.1.1/32,Manual,no-resolve',
-    'IP-CIDR,8.8.8.8/32,Manual,no-resolve',
-    'DOMAIN-SUFFIX,dns.cloudflare.com,Manual',
-    'DOMAIN-SUFFIX,sub.xqd.pp.ua,DIRECT',
-    'DOMAIN-SUFFIX,douyin.com,DIRECT',
-    'DOMAIN,lf3-static.bytednsdoc.com,DIRECT',
-    'DOMAIN,v5-dy-o-abtest.zjcdn.com,DIRECT',
-    'DOMAIN-SUFFIX,amemv.com,DIRECT',
-    'DOMAIN-SUFFIX,douyincdn.com,DIRECT',
-    'DOMAIN-SUFFIX,douyinpic.com,DIRECT',
-    'DOMAIN-SUFFIX,douyinstatic.com,DIRECT',
-    'DOMAIN-SUFFIX,douyinvod.com,DIRECT',
-    'DOMAIN-SUFFIX,idouyinvod.com,DIRECT',
-    'DOMAIN-SUFFIX,ixigua.com,DIRECT',
-    'DOMAIN-SUFFIX,ixiguavideo.com,DIRECT',
-    'DOMAIN-SUFFIX,pstatp.com,DIRECT',
-    'DOMAIN-SUFFIX,snssdk.com,DIRECT',
-    'DOMAIN-SUFFIX,toutiao.com,DIRECT',
-    'DOMAIN-SUFFIX,edu.cn,DIRECT',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
     'DOMAIN,shanghai.meby.my,DIRECT',
     'DOMAIN-SUFFIX,nodeseek.com,Manual',
     'DOMAIN-SUFFIX,mefun.org,Manual',
-    'DOMAIN-SUFFIX,1009.com.cn,DIRECT',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
     'DOMAIN-SUFFIX,sharepoint.com,DIRECT',
 
     // Emby
-    'DOMAIN,ll.sdxya.top,DIRECT',
     'RULE-SET,emby,Emby',
 
     // AI Services - 使用 rule-providers
     'RULE-SET,ai,AI',
 
     // 国际服务 - 使用 rule-providers
-    'RULE-SET,private,DIRECT',
-    'RULE-SET,private-ip,DIRECT,no-resolve',
     'RULE-SET,telegram,Manual',
     'RULE-SET,telegram-ip,Manual,no-resolve',
     'RULE-SET,github,Manual',

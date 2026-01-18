@@ -11,7 +11,11 @@
       "Skill(*)",
       "Task(*)",
       "Glob(*)",
-      "Grep(*)"
+      "Grep(*)",
+      "Bash(mihomo convert-ruleset:*)",
+      "Bash(sing-box rule-set compile:*)",
+      "Bash(./mihomo.exe convert-ruleset:*)",
+      "Bash(gh repo create:*)"
     ],
     "deny": [],
     "ask": []
