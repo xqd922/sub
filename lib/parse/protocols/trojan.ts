@@ -19,7 +19,6 @@ export class TrojanProtocol {
       port: parseInt(url.port),
       password: url.username,
       sni: params.get('sni') || url.hostname,
-      udp: true,
       'skip-cert-verify': params.get('allowInsecure') === '1'
     }
 
