@@ -246,9 +246,6 @@ export const defaultConfig: ClashConfig = {
     }
   },
   'rules': [
-    // 广告白名单
-    'DOMAIN,adsmind.gdtimg.com,DIRECT',
-
     // 广告过滤
     'RULE-SET,AWAvenue-Ads,REJECT',
 
@@ -257,13 +254,11 @@ export const defaultConfig: ClashConfig = {
     'RULE-SET,private-ip,DIRECT,no-resolve',
 
     'DOMAIN,1001.pp.ua,DIRECT',
+    'DOMAIN,cdn.lilyemby.com,DIRECT',
     'DOMAIN-SUFFIX,qwen.ai,DIRECT',
     'DOMAIN-KEYWORD,zijieapi,REJECT',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
-    'DOMAIN,shanghai.meby.my,DIRECT',
-    'DOMAIN-SUFFIX,nodeseek.com,Manual',
-    'DOMAIN-SUFFIX,mefun.org,Manual',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
     'DOMAIN-SUFFIX,sharepoint.com,DIRECT',
 
