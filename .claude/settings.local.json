@@ -1,21 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(*)",
-      "Read(*)",
-      "Write(*)",
-      "Edit(*)",
-      "WebFetch(*)",
-      "WebSearch",
-      "mcp__ide__getDiagnostics",
-      "Skill(*)",
-      "Task(*)",
-      "Glob(*)",
-      "Grep(*)",
-      "Bash(mihomo convert-ruleset:*)",
-      "Bash(sing-box rule-set compile:*)",
-      "Bash(./mihomo.exe convert-ruleset:*)",
-      "Bash(gh repo create:*)"
+      "Bash(git add config/clash.ts)"
     ],
     "deny": [],
     "ask": []

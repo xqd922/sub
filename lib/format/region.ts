@@ -1,232 +1,324 @@
 /**
- * 地区映射配置
- * 将节点名称中的地区关键词映射到标准化的国旗和代码
+ * 地区检测与格式化模块
+ * 使用混合方案：
+ * 1. 优先检测已有的国旗 emoji
+ * 2. 中文关键词映射到 ISO 码
+ * 3. 使用 country-emoji 库匹配英文
+ * 4. ISO 码转国旗 emoji（无依赖算法）
  */
 
-/** 地区映射表 */
-export const REGION_MAP = {
-  // 国旗 Emoji
-  '🇭🇰': { flag: '🇭🇰', name: 'HK', en: 'Hong Kong' },
-  '🇨🇳': { flag: '🇨🇳', name: 'TW', en: 'Taiwan' },
-  '🇲🇴': { flag: '🇲🇴', name: 'MO', en: 'Macao' },
-  '🇯🇵': { flag: '🇯🇵', name: 'JP', en: 'Japan' },
-  '🇰🇷': { flag: '🇰🇷', name: 'KR', en: 'Korea' },
-  '🇸🇬': { flag: '🇸🇬', name: 'SG', en: 'Singapore' },
-  '🇲🇾': { flag: '🇲🇾', name: 'MY', en: 'Malaysia' },
-  '🇮🇩': { flag: '🇮🇩', name: 'ID', en: 'Indonesia' },
-  '🇹🇭': { flag: '🇹🇭', name: 'TH', en: 'Thailand' },
-  '🇻🇳': { flag: '🇻🇳', name: 'VN', en: 'Vietnam' },
-  '🇵🇭': { flag: '🇵🇭', name: 'PH', en: 'Philippines' },
-  '🇬🇧': { flag: '🇬🇧', name: 'GB', en: 'UK' },
-  '🇩🇪': { flag: '🇩🇪', name: 'DE', en: 'Germany' },
-  '🇫🇷': { flag: '🇫🇷', name: 'FR', en: 'France' },
-  '🇮🇹': { flag: '🇮🇹', name: 'IT', en: 'Italy' },
-  '🇪🇸': { flag: '🇪🇸', name: 'ES', en: 'Spain' },
-  '🇺🇸': { flag: '🇺🇸', name: 'US', en: 'USA' },
-  '🇨🇦': { flag: '🇨🇦', name: 'CA', en: 'Canada' },
-  '🇦🇺': { flag: '🇦🇺', name: 'AU', en: 'Australia' },
-  '🇳🇿': { flag: '🇳🇿', name: 'NZ', en: 'New Zealand' },
-  '🇧🇷': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  '🇰🇿': { flag: '🇰🇿', name: 'KZ', en: 'Kazakhstan' },
+import { flag as getFlag, code as getCode } from 'country-emoji'
 
+/** 地区信息 */
+export interface RegionInfo {
+  flag: string
+  code: string
+  name: string
+}
+
+/**
+ * 特殊旗帜覆盖映射
+ * 用于覆盖某些地区的默认旗帜
+ */
+const FLAG_OVERRIDES: Record<string, string> = {
+  'TW': '🇨🇳',  // 台湾使用中国国旗
+}
+
+/**
+ * ISO 3166-1 alpha-2 国家码转国旗 emoji
+ * 原理：国旗 emoji 由两个 Regional Indicator Symbol 组成
+ * 'A' 的 Unicode 是 65，Regional Indicator 'A' 是 127462
+ * 所以偏移量是 127462 - 65 = 127397
+ */
+export function isoToFlag(countryCode: string): string {
+  if (!countryCode || countryCode.length !== 2) return ''
+  const upperCode = countryCode.toUpperCase()
+  // 检查是否有特殊覆盖
+  if (FLAG_OVERRIDES[upperCode]) {
+    return FLAG_OVERRIDES[upperCode]
+  }
+  const codePoints = upperCode
+    .split('')
+    .map(char => 127397 + char.charCodeAt(0))
+  return String.fromCodePoint(...codePoints)
+}
+
+/**
+ * 检测字符串中的国旗 emoji
+ * 国旗 emoji 由两个 Regional Indicator Symbol (U+1F1E6 到 U+1F1FF) 组成
+ */
+export function extractFlagEmoji(text: string): string | null {
+  // 匹配国旗 emoji（两个连续的 Regional Indicator Symbol）
+  const flagRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/gu
+  const match = text.match(flagRegex)
+  return match ? match[0] : null
+}
+
+/**
+ * 中文地区名到 ISO 码的映射（精简版，只保留常用的）
+ */
+const CHINESE_TO_ISO: Record<string, string> = {
   // 东亚
-  '香港': { flag: '🇭🇰', name: 'HK', en: 'Hong Kong' },
-  'HK': { flag: '🇭🇰', name: 'HK', en: 'Hong Kong' },
-  'Hong Kong': { flag: '🇭🇰', name: 'HK', en: 'Hong Kong' },
-  'HKG': { flag: '🇭🇰', name: 'HK', en: 'Hong Kong' },
-  '台湾': { flag: '🇨🇳', name: 'TW', en: 'Taiwan' },
-  'TW': { flag: '🇨🇳', name: 'TW', en: 'Taiwan' },
-  'Taiwan': { flag: '🇨🇳', name: 'TW', en: 'Taiwan' },
-  'TWN': { flag: '🇨🇳', name: 'TW', en: 'Taiwan' },
-  '澳门': { flag: '🇲🇴', name: 'MO', en: 'Macao' },
-  'MO': { flag: '🇲🇴', name: 'MO', en: 'Macao' },
-  'Macao': { flag: '🇲🇴', name: 'MO', en: 'Macao' },
-  '日本': { flag: '🇯🇵', name: 'JP', en: 'Japan' },
-  'JP': { flag: '🇯🇵', name: 'JP', en: 'Japan' },
-  'Japan': { flag: '🇯🇵', name: 'JP', en: 'Japan' },
-  'JPN': { flag: '🇯🇵', name: 'JP', en: 'Japan' },
-  '韩国': { flag: '🇰🇷', name: 'KR', en: 'Korea' },
-  'KR': { flag: '🇰🇷', name: 'KR', en: 'Korea' },
-  'Korea': { flag: '🇰🇷', name: 'KR', en: 'Korea' },
-  'KOR': { flag: '🇰🇷', name: 'KR', en: 'Korea' },
+  '香港': 'HK', '港': 'HK',
+  '台湾': 'TW', '台': 'TW',
+  '澳门': 'MO',
+  '日本': 'JP',
+  '韩国': 'KR', '南韩': 'KR',
 
   // 东南亚
-  '狮城': { flag: '🇸🇬', name: 'SG', en: 'Singapore' },
-  '新加坡': { flag: '🇸🇬', name: 'SG', en: 'Singapore' },
-  'SG': { flag: '🇸🇬', name: 'SG', en: 'Singapore' },
-  'Singapore': { flag: '🇸🇬', name: 'SG', en: 'Singapore' },
-  'SGP': { flag: '🇸🇬', name: 'SG', en: 'Singapore' },
-  '马来西亚': { flag: '🇲🇾', name: 'MY', en: 'Malaysia' },
-  'MY': { flag: '🇲🇾', name: 'MY', en: 'Malaysia' },
-  'Malaysia': { flag: '🇲🇾', name: 'MY', en: 'Malaysia' },
-  'MYS': { flag: '🇲🇾', name: 'MY', en: 'Malaysia' },
-  '印尼': { flag: '🇮🇩', name: 'ID', en: 'Indonesia' },
-  '印度尼西亚': { flag: '🇮🇩', name: 'ID', en: 'Indonesia' },
-  'ID': { flag: '🇮🇩', name: 'ID', en: 'Indonesia' },
-  'Indonesia': { flag: '🇮🇩', name: 'ID', en: 'Indonesia' },
-  'IDN': { flag: '🇮🇩', name: 'ID', en: 'Indonesia' },
-  '泰国': { flag: '🇹🇭', name: 'TH', en: 'Thailand' },
-  'TH': { flag: '🇹🇭', name: 'TH', en: 'Thailand' },
-  'Thailand': { flag: '🇹🇭', name: 'TH', en: 'Thailand' },
-  'THA': { flag: '🇹🇭', name: 'TH', en: 'Thailand' },
-  '越南': { flag: '🇻🇳', name: 'VN', en: 'Vietnam' },
-  'VN': { flag: '🇻🇳', name: 'VN', en: 'Vietnam' },
-  'Vietnam': { flag: '🇻🇳', name: 'VN', en: 'Vietnam' },
-  'VNM': { flag: '🇻🇳', name: 'VN', en: 'Vietnam' },
-  '菲律宾': { flag: '🇵🇭', name: 'PH', en: 'Philippines' },
-  'PH': { flag: '🇵🇭', name: 'PH', en: 'Philippines' },
-  'Philippines': { flag: '🇵🇭', name: 'PH', en: 'Philippines' },
-  'PHL': { flag: '🇵🇭', name: 'PH', en: 'Philippines' },
-  '柬埔寨': { flag: '🇰🇭', name: 'KH', en: 'Cambodia' },
-  'KH': { flag: '🇰🇭', name: 'KH', en: 'Cambodia' },
+  '新加坡': 'SG', '狮城': 'SG', '坡': 'SG',
+  '马来西亚': 'MY', '马来': 'MY', '大马': 'MY',
+  '印尼': 'ID', '印度尼西亚': 'ID',
+  '泰国': 'TH', '泰': 'TH',
+  '越南': 'VN', '越': 'VN',
+  '菲律宾': 'PH', '菲': 'PH',
+  '柬埔寨': 'KH',
 
   // 南亚
-  '印度': { flag: '🇮🇳', name: 'IN', en: 'India' },
-  'IN': { flag: '🇮🇳', name: 'IN', en: 'India' },
-  'India': { flag: '🇮🇳', name: 'IN', en: 'India' },
-  'IND': { flag: '🇮🇳', name: 'IN', en: 'India' },
-  '巴基斯坦': { flag: '🇵🇰', name: 'PK', en: 'Pakistan' },
-  'PK': { flag: '🇵🇰', name: 'PK', en: 'Pakistan' },
-  'Pakistan': { flag: '🇵🇰', name: 'PK', en: 'Pakistan' },
-  'PAK': { flag: '🇵🇰', name: 'PK', en: 'Pakistan' },
+  '印度': 'IN',
+  '巴基斯坦': 'PK',
 
   // 欧洲
-  '英国': { flag: '🇬🇧', name: 'GB', en: 'UK' },
-  'UK': { flag: '🇬🇧', name: 'GB', en: 'UK' },
-  'GB': { flag: '🇬🇧', name: 'GB', en: 'UK' },
-  'United Kingdom': { flag: '🇬🇧', name: 'GB', en: 'UK' },
-  'GBR': { flag: '🇬🇧', name: 'GB', en: 'UK' },
-  '德国': { flag: '🇩🇪', name: 'DE', en: 'Germany' },
-  'DE': { flag: '🇩🇪', name: 'DE', en: 'Germany' },
-  'Germany': { flag: '🇩🇪', name: 'DE', en: 'Germany' },
-  'DEU': { flag: '🇩🇪', name: 'DE', en: 'Germany' },
-  '法国': { flag: '🇫🇷', name: 'FR', en: 'France' },
-  'FR': { flag: '🇫🇷', name: 'FR', en: 'France' },
-  'France': { flag: '🇫🇷', name: 'FR', en: 'France' },
-  'FRA': { flag: '🇫🇷', name: 'FR', en: 'France' },
-  '意大利': { flag: '🇮🇹', name: 'IT', en: 'Italy' },
-  'IT': { flag: '🇮🇹', name: 'IT', en: 'Italy' },
-  'Italy': { flag: '🇮🇹', name: 'IT', en: 'Italy' },
-  'ITA': { flag: '🇮🇹', name: 'IT', en: 'Italy' },
-  '西班牙': { flag: '🇪🇸', name: 'ES', en: 'Spain' },
-  'ES': { flag: '🇪🇸', name: 'ES', en: 'Spain' },
-  'Spain': { flag: '🇪🇸', name: 'ES', en: 'Spain' },
-  'ESP': { flag: '🇪🇸', name: 'ES', en: 'Spain' },
-  '荷兰': { flag: '🇳🇱', name: 'NL', en: 'Netherlands' },
-  'NL': { flag: '🇳🇱', name: 'NL', en: 'Netherlands' },
-  'Netherlands': { flag: '🇳🇱', name: 'NL', en: 'Netherlands' },
-  'NLD': { flag: '🇳🇱', name: 'NL', en: 'Netherlands' },
-  '波兰': { flag: '🇵🇱', name: 'PL', en: 'Poland' },
-  'PL': { flag: '🇵🇱', name: 'PL', en: 'Poland' },
-  '乌克兰': { flag: '🇺🇦', name: 'UA', en: 'Ukraine' },
-  'UA': { flag: '🇺🇦', name: 'UA', en: 'Ukraine' },
-  '保加利亚': { flag: '🇧🇬', name: 'BG', en: 'Bulgaria' },
-  'BG': { flag: '🇧🇬', name: 'BG', en: 'Bulgaria' },
-  'Bulgaria': { flag: '🇧🇬', name: 'BG', en: 'Bulgaria' },
-  'BGR': { flag: '🇧🇬', name: 'BG', en: 'Bulgaria' },
-  '摩尔多瓦': { flag: '🇲🇩', name: 'MD', en: 'Moldova' },
-  'MD': { flag: '🇲🇩', name: 'MD', en: 'Moldova' },
-  'Moldova': { flag: '🇲🇩', name: 'MD', en: 'Moldova' },
-  'MDA': { flag: '🇲🇩', name: 'MD', en: 'Moldova' },
-  '圣保罗': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  'SP': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  'Sao Paulo': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-
-  // 北欧
-  '瑞典': { flag: '🇸🇪', name: 'SE', en: 'Sweden' },
-  'SE': { flag: '🇸🇪', name: 'SE', en: 'Sweden' },
-  'Sweden': { flag: '🇸🇪', name: 'SE', en: 'Sweden' },
-  'SWE': { flag: '🇸🇪', name: 'SE', en: 'Sweden' },
-  '挪威': { flag: '🇳🇴', name: 'NO', en: 'Norway' },
-  'NO': { flag: '🇳🇴', name: 'NO', en: 'Norway' },
-  'Norway': { flag: '🇳🇴', name: 'NO', en: 'Norway' },
-  'NOR': { flag: '🇳🇴', name: 'NO', en: 'Norway' },
-  '芬兰': { flag: '🇫🇮', name: 'FI', en: 'Finland' },
-  'FI': { flag: '🇫🇮', name: 'FI', en: 'Finland' },
-  '丹麦': { flag: '🇩🇰', name: 'DK', en: 'Denmark' },
-  'DK': { flag: '🇩🇰', name: 'DK', en: 'Denmark' },
-  '冰岛': { flag: '🇮🇸', name: 'IS', en: 'Iceland' },
-  'IS': { flag: '🇮🇸', name: 'IS', en: 'Iceland' },
+  '英国': 'GB', '英': 'GB',
+  '德国': 'DE', '德': 'DE',
+  '法国': 'FR', '法': 'FR',
+  '意大利': 'IT', '意': 'IT',
+  '西班牙': 'ES',
+  '荷兰': 'NL',
+  '波兰': 'PL',
+  '乌克兰': 'UA',
+  '瑞士': 'CH',
+  '瑞典': 'SE',
+  '挪威': 'NO',
+  '芬兰': 'FI',
+  '丹麦': 'DK',
+  '冰岛': 'IS',
+  '奥地利': 'AT',
+  '爱尔兰': 'IE',
+  '匈牙利': 'HU',
+  '保加利亚': 'BG',
+  '摩尔多瓦': 'MD',
+  '罗马尼亚': 'RO',
+  '捷克': 'CZ',
+  '葡萄牙': 'PT',
+  '比利时': 'BE',
+  '希腊': 'GR',
 
   // 北美
-  '美国': { flag: '🇺🇸', name: 'US', en: 'USA' },
-  'US': { flag: '🇺🇸', name: 'US', en: 'USA' },
-  'USA': { flag: '🇺🇸', name: 'US', en: 'USA' },
-  'United States': { flag: '🇺🇸', name: 'US', en: 'USA' },
-  '加拿大': { flag: '🇨🇦', name: 'CA', en: 'Canada' },
-  'CA': { flag: '🇨🇦', name: 'CA', en: 'Canada' },
-  'Canada': { flag: '🇨🇦', name: 'CA', en: 'Canada' },
-  'CAN': { flag: '🇨🇦', name: 'CA', en: 'Canada' },
-  '墨西哥': { flag: '🇲🇽', name: 'MX', en: 'Mexico' },
-  'MX': { flag: '🇲🇽', name: 'MX', en: 'Mexico' },
-  'Mexico': { flag: '🇲🇽', name: 'MX', en: 'Mexico' },
-  'MEX': { flag: '🇲🇽', name: 'MX', en: 'Mexico' },
+  '美国': 'US', '美': 'US',
+  '加拿大': 'CA',
+  '墨西哥': 'MX',
+
+  // 南美
+  '巴西': 'BR',
+  '阿根廷': 'AR',
+  '智利': 'CL',
 
   // 大洋洲
-  '澳大利亚': { flag: '🇦🇺', name: 'AU', en: 'Australia' },
-  'AU': { flag: '🇦🇺', name: 'AU', en: 'Australia' },
-  'Australia': { flag: '🇦🇺', name: 'AU', en: 'Australia' },
-  'AUS': { flag: '🇦🇺', name: 'AU', en: 'Australia' },
-  '新西兰': { flag: '🇳🇿', name: 'NZ', en: 'New Zealand' },
-  'NZ': { flag: '🇳🇿', name: 'NZ', en: 'New Zealand' },
-  'New Zealand': { flag: '🇳🇿', name: 'NZ', en: 'New Zealand' },
-  'NZL': { flag: '🇳🇿', name: 'NZ', en: 'New Zealand' },
+  '澳大利亚': 'AU', '澳洲': 'AU', '澳': 'AU',
+  '新西兰': 'NZ',
 
-  // 其他
-  '俄罗斯': { flag: '🇷🇺', name: 'RU', en: 'Russia' },
-  'RU': { flag: '🇷🇺', name: 'RU', en: 'Russia' },
-  'Russia': { flag: '🇷🇺', name: 'RU', en: 'Russia' },
-  'RUS': { flag: '🇷🇺', name: 'RU', en: 'Russia' },
-  '土耳其': { flag: '🇹🇷', name: 'TR', en: 'Turkey' },
-  'TR': { flag: '🇹🇷', name: 'TR', en: 'Turkey' },
-  'Turkey': { flag: '🇹🇷', name: 'TR', en: 'Turkey' },
-  'TUR': { flag: '🇹🇷', name: 'TR', en: 'Turkey' },
-  '巴西': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  'BR': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  'Brazil': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  'BRA': { flag: '🇧🇷', name: 'BR', en: 'Brazil' },
-  '阿根廷': { flag: '🇦🇷', name: 'AR', en: 'Argentina' },
-  'AR': { flag: '🇦🇷', name: 'AR', en: 'Argentina' },
-  '南非': { flag: '🇿🇦', name: 'ZA', en: 'South Africa' },
-  'ZA': { flag: '🇿🇦', name: 'ZA', en: 'South Africa' },
-  '以色列': { flag: '🇮🇱', name: 'IL', en: 'Israel' },
-  'IL': { flag: '🇮🇱', name: 'IL', en: 'Israel' },
-  '伊拉克': { flag: '🇮🇶', name: 'IQ', en: 'Iraq' },
-  'IQ': { flag: '🇮🇶', name: 'IQ', en: 'Iraq' },
-  '尼日利亚': { flag: '🇳🇬', name: 'NG', en: 'Nigeria' },
-  'NG': { flag: '🇳🇬', name: 'NG', en: 'Nigeria' },
-  '瑞士': { flag: '🇨🇭', name: 'CH', en: 'Switzerland' },
-  '🇸🇦': { flag: '🇸🇦', name: 'SA', en: 'Saudi Arabia' },
-  '沙特阿拉伯': { flag: '🇸🇦', name: 'SA', en: 'Saudi Arabia' },
-  '阿联酋': { flag: '🇦🇪', name: 'AE', en: 'United Arab Emirates' },
-  'AE': { flag: '🇦🇪', name: 'AE', en: 'United Arab Emirates' },
-  'UAE': { flag: '🇦🇪', name: 'AE', en: 'United Arab Emirates' },
-  '智利': { flag: '🇨🇱', name: 'CL', en: 'Chile' },
-  'CL': { flag: '🇨🇱', name: 'CL', en: 'Chile' },
-  'Chile': { flag: '🇨🇱', name: 'CL', en: 'Chile' },
-  '匈牙利': { flag: '🇭🇺', name: 'HU', en: 'Hungary' },
-  'HU': { flag: '🇭🇺', name: 'HU', en: 'Hungary' },
-  'Hungary': { flag: '🇭🇺', name: 'HU', en: 'Hungary' },
-  '奥地利': { flag: '🇦🇹', name: 'AT', en: 'Austria' },
-  'AT': { flag: '🇦🇹', name: 'AT', en: 'Austria' },
-  'Austria': { flag: '🇦🇹', name: 'AT', en: 'Austria' },
-  '爱尔兰': { flag: '🇮🇪', name: 'IE', en: 'Ireland' },
-  'IE': { flag: '🇮🇪', name: 'IE', en: 'Ireland' },
-  'Ireland': { flag: '🇮🇪', name: 'IE', en: 'Ireland' },
+  // 中亚/西亚
+  '俄罗斯': 'RU', '俄': 'RU',
+  '土耳其': 'TR',
+  '哈萨克斯坦': 'KZ', '哈萨克': 'KZ', '哈国': 'KZ',
+  '以色列': 'IL',
+  '阿联酋': 'AE',
+  '沙特': 'SA', '沙特阿拉伯': 'SA',
+  '伊拉克': 'IQ',
 
-  // 中亚
-  '哈萨克斯坦': { flag: '🇰🇿', name: 'KZ', en: 'Kazakhstan' },
-  'KZ': { flag: '🇰🇿', name: 'KZ', en: 'Kazakhstan' },
-  'Kazakhstan': { flag: '🇰🇿', name: 'KZ', en: 'Kazakhstan' },
-  'KAZ': { flag: '🇰🇿', name: 'KZ', en: 'Kazakhstan' },
-  '哈国': { flag: '🇰🇿', name: 'KZ', en: 'Kazakhstan' }
-} as const
+  // 非洲
+  '南非': 'ZA',
+  '尼日利亚': 'NG',
+  '埃及': 'EG',
+}
 
-/** 地区代码类型 */
-export type RegionCode = keyof typeof REGION_MAP
+/**
+ * 英文/缩写到 ISO 码的映射（只保留 country-emoji 可能无法识别的）
+ */
+const ENGLISH_TO_ISO: Record<string, string> = {
+  // 常见缩写
+  'HK': 'HK', 'HKG': 'HK',
+  'TW': 'TW', 'TWN': 'TW',
+  'MO': 'MO',
+  'JP': 'JP', 'JPN': 'JP',
+  'KR': 'KR', 'KOR': 'KR',
+  'SG': 'SG', 'SGP': 'SG',
+  'MY': 'MY', 'MYS': 'MY',
+  'ID': 'ID', 'IDN': 'ID',
+  'TH': 'TH', 'THA': 'TH',
+  'VN': 'VN', 'VNM': 'VN',
+  'PH': 'PH', 'PHL': 'PH',
+  'IN': 'IN', 'IND': 'IN',
+  'PK': 'PK', 'PAK': 'PK',
+  'GB': 'GB', 'GBR': 'GB', 'UK': 'GB',
+  'DE': 'DE', 'DEU': 'DE',
+  'FR': 'FR', 'FRA': 'FR',
+  'IT': 'IT', 'ITA': 'IT',
+  'ES': 'ES', 'ESP': 'ES',
+  'NL': 'NL', 'NLD': 'NL',
+  'US': 'US', 'USA': 'US',
+  'CA': 'CA', 'CAN': 'CA',
+  'AU': 'AU', 'AUS': 'AU',
+  'NZ': 'NZ', 'NZL': 'NZ',
+  'RU': 'RU', 'RUS': 'RU',
+  'TR': 'TR', 'TUR': 'TR',
+  'BR': 'BR', 'BRA': 'BR',
+  'AR': 'AR', 'ARG': 'AR',
+  'KZ': 'KZ', 'KAZ': 'KZ',
+  'ZA': 'ZA',
+  'AE': 'AE', 'UAE': 'AE',
+  'CH': 'CH',
+  'SE': 'SE', 'SWE': 'SE',
+  'NO': 'NO', 'NOR': 'NO',
+  'FI': 'FI', 'FIN': 'FI',
+  'DK': 'DK', 'DNK': 'DK',
+  'IS': 'IS', 'ISL': 'IS',
+  'AT': 'AT', 'AUT': 'AT',
+  'IE': 'IE', 'IRL': 'IE',
+  'HU': 'HU', 'HUN': 'HU',
+  'BG': 'BG', 'BGR': 'BG',
+  'MD': 'MD', 'MDA': 'MD',
+  'PL': 'PL', 'POL': 'PL',
+  'UA': 'UA', 'UKR': 'UA',
+  'IL': 'IL', 'ISR': 'IL',
+  'SA': 'SA', 'SAU': 'SA',
+  'IQ': 'IQ', 'IRQ': 'IQ',
+  'CL': 'CL', 'CHL': 'CL',
+  'MX': 'MX', 'MEX': 'MX',
+  'KH': 'KH', 'KHM': 'KH',
+  'NG': 'NG', 'NGA': 'NG',
+  'EG': 'EG', 'EGY': 'EG',
+  'RO': 'RO', 'ROU': 'RO',
+  'CZ': 'CZ', 'CZE': 'CZ',
+  'PT': 'PT', 'PRT': 'PT',
+  'BE': 'BE', 'BEL': 'BE',
+  'GR': 'GR', 'GRC': 'GR',
+}
 
-/** 地区信息类型 */
-export type RegionInfo = typeof REGION_MAP[RegionCode]
+/**
+ * ISO 码到英文名的映射
+ */
+const ISO_TO_NAME: Record<string, string> = {
+  'HK': 'Hong Kong',
+  'TW': 'Taiwan',
+  'MO': 'Macao',
+  'JP': 'Japan',
+  'KR': 'Korea',
+  'SG': 'Singapore',
+  'MY': 'Malaysia',
+  'ID': 'Indonesia',
+  'TH': 'Thailand',
+  'VN': 'Vietnam',
+  'PH': 'Philippines',
+  'KH': 'Cambodia',
+  'IN': 'India',
+  'PK': 'Pakistan',
+  'GB': 'UK',
+  'DE': 'Germany',
+  'FR': 'France',
+  'IT': 'Italy',
+  'ES': 'Spain',
+  'NL': 'Netherlands',
+  'PL': 'Poland',
+  'UA': 'Ukraine',
+  'CH': 'Switzerland',
+  'SE': 'Sweden',
+  'NO': 'Norway',
+  'FI': 'Finland',
+  'DK': 'Denmark',
+  'IS': 'Iceland',
+  'AT': 'Austria',
+  'IE': 'Ireland',
+  'HU': 'Hungary',
+  'BG': 'Bulgaria',
+  'MD': 'Moldova',
+  'RO': 'Romania',
+  'CZ': 'Czechia',
+  'PT': 'Portugal',
+  'BE': 'Belgium',
+  'GR': 'Greece',
+  'US': 'USA',
+  'CA': 'Canada',
+  'MX': 'Mexico',
+  'BR': 'Brazil',
+  'AR': 'Argentina',
+  'CL': 'Chile',
+  'AU': 'Australia',
+  'NZ': 'New Zealand',
+  'RU': 'Russia',
+  'TR': 'Turkey',
+  'KZ': 'Kazakhstan',
+  'IL': 'Israel',
+  'AE': 'UAE',
+  'SA': 'Saudi Arabia',
+  'IQ': 'Iraq',
+  'ZA': 'South Africa',
+  'NG': 'Nigeria',
+  'EG': 'Egypt',
+}
+
+/**
+ * 从节点名称检测地区
+ * 返回 { flag, code, name } 或 null
+ */
+export function detectRegion(nodeName: string): RegionInfo | null {
+  // 1. 优先检测已有的国旗 emoji
+  const existingFlag = extractFlagEmoji(nodeName)
+  if (existingFlag) {
+    const code = getCode(existingFlag)
+    if (code) {
+      return {
+        flag: existingFlag,
+        code: code,
+        name: ISO_TO_NAME[code] || code
+      }
+    }
+  }
+
+  // 2. 检测中文关键词（按长度降序，避免短词误匹配）
+  const chineseKeys = Object.keys(CHINESE_TO_ISO).sort((a, b) => b.length - a.length)
+  for (const key of chineseKeys) {
+    if (nodeName.includes(key)) {
+      const code = CHINESE_TO_ISO[key]
+      return {
+        flag: isoToFlag(code),
+        code: code,
+        name: ISO_TO_NAME[code] || code
+      }
+    }
+  }
+
+  // 3. 检测英文缩写（需要边界匹配，避免 "US" 匹配到 "RUS"）
+  const englishKeys = Object.keys(ENGLISH_TO_ISO).sort((a, b) => b.length - a.length)
+  for (const key of englishKeys) {
+    // 使用单词边界匹配
+    const regex = new RegExp(`(^|[^A-Za-z])${key}([^A-Za-z]|$)`, 'i')
+    if (regex.test(nodeName)) {
+      const code = ENGLISH_TO_ISO[key]
+      return {
+        flag: isoToFlag(code),
+        code: code,
+        name: ISO_TO_NAME[code] || code
+      }
+    }
+  }
+
+  // 4. 使用 country-emoji 库尝试匹配（处理完整国家名）
+  const flag = getFlag(nodeName)
+  if (flag) {
+    const code = getCode(flag)
+    if (code) {
+      return {
+        flag: flag,
+        code: code,
+        name: ISO_TO_NAME[code] || code
+      }
+    }
+  }
+
+  return null
+}
 
 /** 多城市国家配置（需要显示城市名的国家） */
 export const MULTI_CITY_COUNTRIES: Record<string, { short: string; full: string }> = {
@@ -294,4 +386,40 @@ export const CITY_MAP: Record<string, { country: string; city: string }> = {
   'Melbourne': { country: 'AU', city: 'Melbourne' },
   '布里斯班': { country: 'AU', city: 'Brisbane' },
   'Brisbane': { country: 'AU', city: 'Brisbane' },
-} 
+
+  // 日本城市
+  '东京': { country: 'JP', city: 'Tokyo' },
+  'Tokyo': { country: 'JP', city: 'Tokyo' },
+  '大阪': { country: 'JP', city: 'Osaka' },
+  'Osaka': { country: 'JP', city: 'Osaka' },
+}
+
+// ============ 兼容旧 API（保持向后兼容）============
+
+/** @deprecated 使用 detectRegion 代替 */
+export const REGION_MAP = new Proxy({} as Record<string, RegionInfo>, {
+  get(_target, prop: string) {
+    // 尝试各种方式获取地区信息
+    const region = detectRegion(prop)
+    if (region) {
+      return {
+        flag: region.flag,
+        name: region.code,
+        en: region.name
+      }
+    }
+    return undefined
+  },
+  has(_target, prop: string) {
+    return detectRegion(prop) !== null
+  },
+  ownKeys() {
+    return Object.keys(CHINESE_TO_ISO).concat(Object.keys(ENGLISH_TO_ISO))
+  },
+  getOwnPropertyDescriptor() {
+    return { enumerable: true, configurable: true }
+  }
+})
+
+/** @deprecated 使用 detectRegion 返回的 code 代替 */
+export type RegionCode = string

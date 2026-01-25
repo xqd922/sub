@@ -240,7 +240,7 @@ export const defaultConfig: ClashConfig = {
       'type': 'http',
       'behavior': 'domain',
       'format': 'mrs',
-      'url': 'https://raw.githubusercontent.com/xqd922/rules/main/emby/emby-domain.mrs',
+      'url': 'https://raw.githubusercontent.com/xqd922/rules/main/emby/emby.mrs',
       'path': './rule_providers/emby.mrs',
       'interval': 86400
     }

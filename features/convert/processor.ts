@@ -2,7 +2,7 @@ import { Proxy } from '@/lib/core/types'
 import { parseSubscription } from '@/lib/parse/subscription'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
-import { REGION_MAP, RegionCode, CITY_MAP, MULTI_CITY_COUNTRIES } from '@/lib/format/region'
+import { detectRegion, CITY_MAP, MULTI_CITY_COUNTRIES } from '@/lib/format/region'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
 import { formatBytes } from '@/lib/core/utils'
@@ -77,17 +77,14 @@ export class SubService {
       proxy.name.includes(key)
     )
 
-    // 再检测地区（按关键词长度降序排列，避免短词误匹配如 US 匹配到 RUS）
-    const sortedRegionKeys = Object.keys(REGION_MAP).sort((a, b) => b.length - a.length)
-    const regionMatch = sortedRegionKeys.find(key =>
-      proxy.name.toLowerCase().includes(key.toLowerCase())
-    )
+    // 使用新的 detectRegion 函数检测地区
+    const region = detectRegion(proxy.name)
 
-    if (!regionMatch) {
+    if (!region) {
       return proxy
     }
 
-    const { flag, name: countryCode, en } = REGION_MAP[regionMatch as RegionCode]
+    const { flag, code: countryCode, name: regionName } = region
     const isMultiCityCountry = countryCode in MULTI_CITY_COUNTRIES
 
     // 提取倍率
@@ -109,8 +106,8 @@ export class SubService {
       counterKey = countryCode
     } else {
       // 单城市国家 → 🇯🇵 Japan 01
-      displayName = `${flag} ${en}`
-      counterKey = en
+      displayName = `${flag} ${regionName}`
+      counterKey = regionName
     }
 
     // 初始化计数器
