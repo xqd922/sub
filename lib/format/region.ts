@@ -272,8 +272,12 @@ export function detectRegion(nodeName: string): RegionInfo | null {
   // 1. 优先检测已有的国旗 emoji
   const existingFlag = extractFlagEmoji(nodeName)
   if (existingFlag) {
-    const code = getCode(existingFlag)
+    let code = getCode(existingFlag)
     if (code) {
+      // 特殊处理：如果节点名包含台湾关键词，则识别为台湾（无论旗帜是中国还是台湾）
+      if ((code === 'CN' || code === 'TW') && (nodeName.includes('台湾') || nodeName.includes('台') || /\bTW\b/i.test(nodeName) || /Taiwan/i.test(nodeName))) {
+        code = 'TW'
+      }
       // 检查是否需要覆盖旗帜（如台湾用中国旗帜）
       const flag = FLAG_OVERRIDES[code] || existingFlag
       return {
