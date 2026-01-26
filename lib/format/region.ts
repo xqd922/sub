@@ -113,6 +113,8 @@ const CHINESE_TO_ISO: Record<string, string> = {
   '巴西': 'BR',
   '阿根廷': 'AR',
   '智利': 'CL',
+  '秘鲁': 'PE',
+  '哥伦比亚': 'CO',
 
   // 大洋洲
   '澳大利亚': 'AU', '澳洲': 'AU', '澳': 'AU',
@@ -185,6 +187,8 @@ const ENGLISH_TO_ISO: Record<string, string> = {
   'SA': 'SA', 'SAU': 'SA',
   'IQ': 'IQ', 'IRQ': 'IQ',
   'CL': 'CL', 'CHL': 'CL',
+  'PE': 'PE', 'PER': 'PE',
+  'CO': 'CO', 'COL': 'CO',
   'MX': 'MX', 'MEX': 'MX',
   'KH': 'KH', 'KHM': 'KH',
   'NG': 'NG', 'NGA': 'NG',
@@ -244,6 +248,8 @@ const ISO_TO_NAME: Record<string, string> = {
   'BR': 'Brazil',
   'AR': 'Argentina',
   'CL': 'Chile',
+  'PE': 'Peru',
+  'CO': 'Colombia',
   'AU': 'Australia',
   'NZ': 'New Zealand',
   'RU': 'Russia',

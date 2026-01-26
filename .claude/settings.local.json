@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add config/clash.ts)"
+      "Bash(git add config/clash.ts)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(bun add country-emoji)",
+      "Bash(bun run build)",
+      "Bash(git add bun.lock config/clash.ts features/convert/processor.ts lib/format/region.ts package.json)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: 重构地区检测模块，使用混合匹配方案\n\n- 引入 country-emoji 库支持模糊匹配\n- 实现 ISO 码转国旗 emoji 算法（无依赖）\n- 精简中文/英文关键词映射表\n- 添加单词边界匹配避免误匹配（如 US 匹配到 RUS）\n- 支持特殊旗帜覆盖（FLAG_OVERRIDES）\n- 保持向后兼容（REGION_MAP 通过 Proxy 实现）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
