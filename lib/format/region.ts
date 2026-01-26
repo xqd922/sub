@@ -274,8 +274,10 @@ export function detectRegion(nodeName: string): RegionInfo | null {
   if (existingFlag) {
     const code = getCode(existingFlag)
     if (code) {
+      // 检查是否需要覆盖旗帜（如台湾用中国旗帜）
+      const flag = FLAG_OVERRIDES[code] || existingFlag
       return {
-        flag: existingFlag,
+        flag: flag,
         code: code,
         name: ISO_TO_NAME[code] || code
       }
