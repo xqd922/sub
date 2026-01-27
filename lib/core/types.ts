@@ -130,7 +130,7 @@ export interface ClashConfig {
   proxies: Proxy[]
   'proxy-groups': ProxyGroup[]
   rules: string[]
-  'rule-providers'?: Record<string, any>
+  'rule-providers'?: Record<string, RuleProvider>
   sniffer?: {
     enable?: boolean
     sniff?: {
@@ -152,6 +152,26 @@ export interface ProxyGroup {
   url?: string
   interval?: number
   tolerance?: number
+}
+
+/**
+ * Clash 规则提供者配置
+ */
+export interface RuleProvider {
+  type: 'http' | 'file'
+  behavior: 'domain' | 'ipcidr' | 'classical'
+  format?: 'yaml' | 'text' | 'mrs'
+  url?: string
+  path: string
+  interval?: number
+}
+
+/**
+ * YAML 订阅解析结果（带 proxies 字段）
+ */
+export interface YamlSubscription {
+  proxies?: Proxy[]
+  [key: string]: unknown
 }
 
 // 添加错误相关类型

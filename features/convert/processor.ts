@@ -1,8 +1,8 @@
-import { Proxy } from '@/lib/core/types'
-import { parseSubscription } from '@/lib/parse/subscription'
+import { Proxy, YamlSubscription } from '@/lib/core/types'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
 import { detectRegion, CITY_MAP, MULTI_CITY_COUNTRIES } from '@/lib/format/region'
+import { isProtocolUrl, isGistUrl, shouldFormatNodeNames } from '@/lib/core/protocols'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
 import { formatBytes } from '@/lib/core/utils'
@@ -13,9 +13,6 @@ import yaml from 'js-yaml'
  * 订阅处理服务 - 处理各种订阅源
  */
 export class SubService {
-  // 节点重命名计数器
-  private static counters: Record<string, number> = {}
-
   /**
    * 处理订阅请求的主入口
    */
@@ -26,14 +23,11 @@ export class SubService {
   }> {
     logger.info('开始处理订阅:', url)
 
-    // 重置计数器
-    this.resetCounters()
-
     let proxies: Proxy[]
     let subscription: SubscriptionInfo
     let isAirportSubscription = false  // 默认为非机场订阅
 
-    if (this.isGistUrl(url)) {
+    if (isGistUrl(url)) {
       logger.info('检测到 Gist 订阅，获取所有节点')
       const result = await fetchNodesFromRemote(url)
       proxies = result.proxies
@@ -41,7 +35,7 @@ export class SubService {
       // 只有当 Gist 中包含订阅链接时才生成 HK 组
       isAirportSubscription = result.hasSubscriptionUrls
       logger.info(`Gist 包含订阅链接: ${result.hasSubscriptionUrls}, 是否生成 HK 组: ${isAirportSubscription}`)
-    } else if (this.isSingleNodeUrl(url)) {
+    } else if (isProtocolUrl(url)) {
       logger.info('检测到节点链接，使用节点解析器')
       proxies = SingleNodeParser.parseMultiple(url)
       if (!proxies.length) {
@@ -64,14 +58,14 @@ export class SubService {
   }
 
   /**
-   * 格式化节点名称
+   * 格式化节点名称（使用传入的计数器避免静态状态）
    * 格式：
    * - 多城市国家有城市：🇺🇸 USA Seattle 01 [2x]
    * - 多城市国家无城市：🇺🇸 United States 01 [2x]
    * - 单城市国家：🇯🇵 Japan 01 [2x]
    * - 倍率为1时不显示
    */
-  static formatProxyName(proxy: Proxy): Proxy {
+  private static formatProxyName(proxy: Proxy, counters: Record<string, number>): Proxy {
     // 先检测城市
     const cityMatch = Object.keys(CITY_MAP).find(key =>
       proxy.name.includes(key)
@@ -110,9 +104,9 @@ export class SubService {
       counterKey = regionName
     }
 
-    // 初始化计数器
-    this.counters[counterKey] = this.counters[counterKey] || 0
-    const num = String(++this.counters[counterKey]).padStart(2, '0')
+    // 使用传入的计数器
+    counters[counterKey] = counters[counterKey] || 0
+    const num = String(++counters[counterKey]).padStart(2, '0')
 
     // 拼接最终名称（倍率非1时显示）
     const multiplierSuffix = multiplier && multiplier !== 1 ? ` [${multiplier}x]` : ''
@@ -146,60 +140,22 @@ export class SubService {
   }
 
   /**
-   * 批量格式化节点名称
+   * 批量格式化节点名称（每次调用创建新的计数器）
    */
   static formatProxies(proxies: Proxy[], shouldFormat: boolean): Proxy[] {
     if (!shouldFormat) {
       return [...proxies]
     }
-    return proxies.map(proxy => this.formatProxyName(proxy))
+    // 每次调用创建新的计数器，避免跨请求状态共享
+    const counters: Record<string, number> = {}
+    return proxies.map(proxy => this.formatProxyName(proxy, counters))
   }
 
   /**
    * 检查是否需要格式化节点名称
    */
   static shouldFormatNames(url: string): boolean {
-    return !(
-      url.startsWith('ss://') ||
-      url.startsWith('vmess://') ||
-      url.startsWith('trojan://') ||
-      url.startsWith('vless://') ||
-      url.startsWith('hysteria2://') ||
-      url.startsWith('hy2://') ||
-      url.startsWith('socks://') ||
-      url.startsWith('anytls://') ||
-      url.includes('gist.githubusercontent.com')
-    )
-  }
-
-  /**
-   * 重置节点名称计数器
-   */
-  private static resetCounters(): void {
-    Object.keys(this.counters).forEach(key => {
-      this.counters[key] = 0
-    })
-  }
-
-  /**
-   * 检查是否为 Gist URL
-   */
-  private static isGistUrl(url: string): boolean {
-    return url.includes('gist.githubusercontent.com')
-  }
-
-  /**
-   * 检查是否为单节点URL
-   */
-  private static isSingleNodeUrl(url: string): boolean {
-    return url.startsWith('ss://') ||
-           url.startsWith('vmess://') ||
-           url.startsWith('trojan://') ||
-           url.startsWith('vless://') ||
-           url.startsWith('hysteria2://') ||
-           url.startsWith('hy2://') ||
-           url.startsWith('socks://') ||
-           url.startsWith('anytls://')
+    return shouldFormatNodeNames(url)
   }
 
   /**
@@ -306,9 +262,9 @@ export class SubService {
   /**
    * 解析订阅文本内容为节点
    */
-  private static async parseSubscriptionContent(text: string): Promise<Proxy[]> {
+  private static parseSubscriptionContent(text: string): Proxy[] {
     if (text.includes('proxies:')) {
-      const config = yaml.load(text) as any
+      const config = yaml.load(text) as YamlSubscription
       const proxies = config.proxies || []
 
       // 使用统一的去重函数
@@ -335,6 +291,8 @@ export class SubService {
 
       return proxies
     } catch (e) {
+      // Base64 解码失败，记录警告并返回空数组
+      logger.warn('订阅内容解码失败，非有效的 Base64 或 YAML 格式:', e)
       return []
     }
   }

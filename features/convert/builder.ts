@@ -1,7 +1,7 @@
 import yaml from 'js-yaml'
 import { Proxy } from '@/lib/core/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
-import { generateSingboxConfig } from '@/config/singbox'
+import { generateSingboxConfig as buildSingboxConfig } from '@/config/singbox'
 import { generateBase64Subscription } from '@/lib/parse/protocols'
 import { previewStyles } from '@/styles/preview'
 import { SubscriptionInfo } from './processor'
@@ -56,7 +56,7 @@ export class ConfigService {
    * 生成 Sing-box JSON 配置
    */
   static generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean): string {
-    const config = generateSingboxConfig(proxies, shouldFormatNames)
+    const config = buildSingboxConfig(proxies, shouldFormatNames)
     return JSON.stringify(config, null, 2)
   }
 

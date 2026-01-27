@@ -17,6 +17,124 @@ export interface RegionInfo {
 }
 
 /**
+ * 地区配置数据 - 单一数据源
+ * 包含 ISO 码、英文名、中文名及其别名
+ */
+interface RegionData {
+  name: string           // 英文显示名
+  chinese: string[]      // 中文名及别名
+  aliases?: string[]     // 英文别名（3字母缩写等）
+}
+
+const REGIONS: Record<string, RegionData> = {
+  // 东亚
+  'HK': { name: 'Hong Kong', chinese: ['香港', '港'], aliases: ['HKG'] },
+  'TW': { name: 'Taiwan', chinese: ['台湾', '台'], aliases: ['TWN'] },
+  'MO': { name: 'Macao', chinese: ['澳门'] },
+  'JP': { name: 'Japan', chinese: ['日本'], aliases: ['JPN'] },
+  'KR': { name: 'Korea', chinese: ['韩国', '南韩'], aliases: ['KOR'] },
+
+  // 东南亚
+  'SG': { name: 'Singapore', chinese: ['新加坡', '狮城', '坡'], aliases: ['SGP'] },
+  'MY': { name: 'Malaysia', chinese: ['马来西亚', '马来', '大马'], aliases: ['MYS'] },
+  'ID': { name: 'Indonesia', chinese: ['印尼', '印度尼西亚'], aliases: ['IDN'] },
+  'TH': { name: 'Thailand', chinese: ['泰国', '泰'], aliases: ['THA'] },
+  'VN': { name: 'Vietnam', chinese: ['越南', '越'], aliases: ['VNM'] },
+  'PH': { name: 'Philippines', chinese: ['菲律宾', '菲'], aliases: ['PHL'] },
+  'KH': { name: 'Cambodia', chinese: ['柬埔寨'], aliases: ['KHM'] },
+
+  // 南亚
+  'IN': { name: 'India', chinese: ['印度'], aliases: ['IND'] },
+  'PK': { name: 'Pakistan', chinese: ['巴基斯坦'], aliases: ['PAK'] },
+
+  // 欧洲
+  'GB': { name: 'UK', chinese: ['英国', '英'], aliases: ['GBR', 'UK'] },
+  'DE': { name: 'Germany', chinese: ['德国', '德'], aliases: ['DEU'] },
+  'FR': { name: 'France', chinese: ['法国', '法'], aliases: ['FRA'] },
+  'IT': { name: 'Italy', chinese: ['意大利', '意'], aliases: ['ITA'] },
+  'ES': { name: 'Spain', chinese: ['西班牙'], aliases: ['ESP'] },
+  'NL': { name: 'Netherlands', chinese: ['荷兰'], aliases: ['NLD'] },
+  'PL': { name: 'Poland', chinese: ['波兰'], aliases: ['POL'] },
+  'UA': { name: 'Ukraine', chinese: ['乌克兰'], aliases: ['UKR'] },
+  'CH': { name: 'Switzerland', chinese: ['瑞士'] },
+  'SE': { name: 'Sweden', chinese: ['瑞典'], aliases: ['SWE'] },
+  'NO': { name: 'Norway', chinese: ['挪威'], aliases: ['NOR'] },
+  'FI': { name: 'Finland', chinese: ['芬兰'], aliases: ['FIN'] },
+  'DK': { name: 'Denmark', chinese: ['丹麦'], aliases: ['DNK'] },
+  'IS': { name: 'Iceland', chinese: ['冰岛'], aliases: ['ISL'] },
+  'AT': { name: 'Austria', chinese: ['奥地利'], aliases: ['AUT'] },
+  'IE': { name: 'Ireland', chinese: ['爱尔兰'], aliases: ['IRL'] },
+  'HU': { name: 'Hungary', chinese: ['匈牙利'], aliases: ['HUN'] },
+  'BG': { name: 'Bulgaria', chinese: ['保加利亚'], aliases: ['BGR'] },
+  'MD': { name: 'Moldova', chinese: ['摩尔多瓦'], aliases: ['MDA'] },
+  'RO': { name: 'Romania', chinese: ['罗马尼亚'], aliases: ['ROU'] },
+  'CZ': { name: 'Czechia', chinese: ['捷克'], aliases: ['CZE'] },
+  'PT': { name: 'Portugal', chinese: ['葡萄牙'], aliases: ['PRT'] },
+  'BE': { name: 'Belgium', chinese: ['比利时'], aliases: ['BEL'] },
+  'GR': { name: 'Greece', chinese: ['希腊'], aliases: ['GRC'] },
+
+  // 北美
+  'US': { name: 'USA', chinese: ['美国', '美'], aliases: ['USA'] },
+  'CA': { name: 'Canada', chinese: ['加拿大'], aliases: ['CAN'] },
+  'MX': { name: 'Mexico', chinese: ['墨西哥'], aliases: ['MEX'] },
+
+  // 南美
+  'BR': { name: 'Brazil', chinese: ['巴西'], aliases: ['BRA'] },
+  'AR': { name: 'Argentina', chinese: ['阿根廷'], aliases: ['ARG'] },
+  'CL': { name: 'Chile', chinese: ['智利'], aliases: ['CHL'] },
+  'PE': { name: 'Peru', chinese: ['秘鲁'], aliases: ['PER'] },
+  'CO': { name: 'Colombia', chinese: ['哥伦比亚'], aliases: ['COL'] },
+
+  // 大洋洲
+  'AU': { name: 'Australia', chinese: ['澳大利亚', '澳洲', '澳'], aliases: ['AUS'] },
+  'NZ': { name: 'New Zealand', chinese: ['新西兰'], aliases: ['NZL'] },
+
+  // 中亚/西亚
+  'RU': { name: 'Russia', chinese: ['俄罗斯', '俄'], aliases: ['RUS'] },
+  'TR': { name: 'Turkey', chinese: ['土耳其'], aliases: ['TUR'] },
+  'KZ': { name: 'Kazakhstan', chinese: ['哈萨克斯坦', '哈萨克', '哈国'], aliases: ['KAZ'] },
+  'IL': { name: 'Israel', chinese: ['以色列'], aliases: ['ISR'] },
+  'AE': { name: 'UAE', chinese: ['阿联酋'], aliases: ['UAE'] },
+  'SA': { name: 'Saudi Arabia', chinese: ['沙特', '沙特阿拉伯'], aliases: ['SAU'] },
+  'IQ': { name: 'Iraq', chinese: ['伊拉克'], aliases: ['IRQ'] },
+
+  // 非洲
+  'ZA': { name: 'South Africa', chinese: ['南非'] },
+  'NG': { name: 'Nigeria', chinese: ['尼日利亚'], aliases: ['NGA'] },
+  'EG': { name: 'Egypt', chinese: ['埃及'], aliases: ['EGY'] },
+}
+
+// ============ 从单一数据源生成的映射表 ============
+
+/** 中文地区名到 ISO 码的映射（自动生成） */
+const CHINESE_TO_ISO: Record<string, string> = {}
+
+/** 英文/缩写到 ISO 码的映射（自动生成） */
+const ENGLISH_TO_ISO: Record<string, string> = {}
+
+/** ISO 码到英文名的映射（自动生成） */
+const ISO_TO_NAME: Record<string, string> = {}
+
+// 初始化映射表
+for (const [code, data] of Object.entries(REGIONS)) {
+  // ISO 码到英文名
+  ISO_TO_NAME[code] = data.name
+
+  // 中文名到 ISO 码
+  for (const cn of data.chinese) {
+    CHINESE_TO_ISO[cn] = code
+  }
+
+  // 英文缩写到 ISO 码（包括 ISO 码本身和别名）
+  ENGLISH_TO_ISO[code] = code
+  if (data.aliases) {
+    for (const alias of data.aliases) {
+      ENGLISH_TO_ISO[alias] = code
+    }
+  }
+}
+
+/**
  * 特殊旗帜覆盖映射
  * 用于覆盖某些地区的默认旗帜
  */
@@ -52,216 +170,6 @@ export function extractFlagEmoji(text: string): string | null {
   const flagRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/gu
   const match = text.match(flagRegex)
   return match ? match[0] : null
-}
-
-/**
- * 中文地区名到 ISO 码的映射（精简版，只保留常用的）
- */
-const CHINESE_TO_ISO: Record<string, string> = {
-  // 东亚
-  '香港': 'HK', '港': 'HK',
-  '台湾': 'TW', '台': 'TW',
-  '澳门': 'MO',
-  '日本': 'JP',
-  '韩国': 'KR', '南韩': 'KR',
-
-  // 东南亚
-  '新加坡': 'SG', '狮城': 'SG', '坡': 'SG',
-  '马来西亚': 'MY', '马来': 'MY', '大马': 'MY',
-  '印尼': 'ID', '印度尼西亚': 'ID',
-  '泰国': 'TH', '泰': 'TH',
-  '越南': 'VN', '越': 'VN',
-  '菲律宾': 'PH', '菲': 'PH',
-  '柬埔寨': 'KH',
-
-  // 南亚
-  '印度': 'IN',
-  '巴基斯坦': 'PK',
-
-  // 欧洲
-  '英国': 'GB', '英': 'GB',
-  '德国': 'DE', '德': 'DE',
-  '法国': 'FR', '法': 'FR',
-  '意大利': 'IT', '意': 'IT',
-  '西班牙': 'ES',
-  '荷兰': 'NL',
-  '波兰': 'PL',
-  '乌克兰': 'UA',
-  '瑞士': 'CH',
-  '瑞典': 'SE',
-  '挪威': 'NO',
-  '芬兰': 'FI',
-  '丹麦': 'DK',
-  '冰岛': 'IS',
-  '奥地利': 'AT',
-  '爱尔兰': 'IE',
-  '匈牙利': 'HU',
-  '保加利亚': 'BG',
-  '摩尔多瓦': 'MD',
-  '罗马尼亚': 'RO',
-  '捷克': 'CZ',
-  '葡萄牙': 'PT',
-  '比利时': 'BE',
-  '希腊': 'GR',
-
-  // 北美
-  '美国': 'US', '美': 'US',
-  '加拿大': 'CA',
-  '墨西哥': 'MX',
-
-  // 南美
-  '巴西': 'BR',
-  '阿根廷': 'AR',
-  '智利': 'CL',
-  '秘鲁': 'PE',
-  '哥伦比亚': 'CO',
-
-  // 大洋洲
-  '澳大利亚': 'AU', '澳洲': 'AU', '澳': 'AU',
-  '新西兰': 'NZ',
-
-  // 中亚/西亚
-  '俄罗斯': 'RU', '俄': 'RU',
-  '土耳其': 'TR',
-  '哈萨克斯坦': 'KZ', '哈萨克': 'KZ', '哈国': 'KZ',
-  '以色列': 'IL',
-  '阿联酋': 'AE',
-  '沙特': 'SA', '沙特阿拉伯': 'SA',
-  '伊拉克': 'IQ',
-
-  // 非洲
-  '南非': 'ZA',
-  '尼日利亚': 'NG',
-  '埃及': 'EG',
-}
-
-/**
- * 英文/缩写到 ISO 码的映射（只保留 country-emoji 可能无法识别的）
- */
-const ENGLISH_TO_ISO: Record<string, string> = {
-  // 常见缩写
-  'HK': 'HK', 'HKG': 'HK',
-  'TW': 'TW', 'TWN': 'TW',
-  'MO': 'MO',
-  'JP': 'JP', 'JPN': 'JP',
-  'KR': 'KR', 'KOR': 'KR',
-  'SG': 'SG', 'SGP': 'SG',
-  'MY': 'MY', 'MYS': 'MY',
-  'ID': 'ID', 'IDN': 'ID',
-  'TH': 'TH', 'THA': 'TH',
-  'VN': 'VN', 'VNM': 'VN',
-  'PH': 'PH', 'PHL': 'PH',
-  'IN': 'IN', 'IND': 'IN',
-  'PK': 'PK', 'PAK': 'PK',
-  'GB': 'GB', 'GBR': 'GB', 'UK': 'GB',
-  'DE': 'DE', 'DEU': 'DE',
-  'FR': 'FR', 'FRA': 'FR',
-  'IT': 'IT', 'ITA': 'IT',
-  'ES': 'ES', 'ESP': 'ES',
-  'NL': 'NL', 'NLD': 'NL',
-  'US': 'US', 'USA': 'US',
-  'CA': 'CA', 'CAN': 'CA',
-  'AU': 'AU', 'AUS': 'AU',
-  'NZ': 'NZ', 'NZL': 'NZ',
-  'RU': 'RU', 'RUS': 'RU',
-  'TR': 'TR', 'TUR': 'TR',
-  'BR': 'BR', 'BRA': 'BR',
-  'AR': 'AR', 'ARG': 'AR',
-  'KZ': 'KZ', 'KAZ': 'KZ',
-  'ZA': 'ZA',
-  'AE': 'AE', 'UAE': 'AE',
-  'CH': 'CH',
-  'SE': 'SE', 'SWE': 'SE',
-  'NO': 'NO', 'NOR': 'NO',
-  'FI': 'FI', 'FIN': 'FI',
-  'DK': 'DK', 'DNK': 'DK',
-  'IS': 'IS', 'ISL': 'IS',
-  'AT': 'AT', 'AUT': 'AT',
-  'IE': 'IE', 'IRL': 'IE',
-  'HU': 'HU', 'HUN': 'HU',
-  'BG': 'BG', 'BGR': 'BG',
-  'MD': 'MD', 'MDA': 'MD',
-  'PL': 'PL', 'POL': 'PL',
-  'UA': 'UA', 'UKR': 'UA',
-  'IL': 'IL', 'ISR': 'IL',
-  'SA': 'SA', 'SAU': 'SA',
-  'IQ': 'IQ', 'IRQ': 'IQ',
-  'CL': 'CL', 'CHL': 'CL',
-  'PE': 'PE', 'PER': 'PE',
-  'CO': 'CO', 'COL': 'CO',
-  'MX': 'MX', 'MEX': 'MX',
-  'KH': 'KH', 'KHM': 'KH',
-  'NG': 'NG', 'NGA': 'NG',
-  'EG': 'EG', 'EGY': 'EG',
-  'RO': 'RO', 'ROU': 'RO',
-  'CZ': 'CZ', 'CZE': 'CZ',
-  'PT': 'PT', 'PRT': 'PT',
-  'BE': 'BE', 'BEL': 'BE',
-  'GR': 'GR', 'GRC': 'GR',
-}
-
-/**
- * ISO 码到英文名的映射
- */
-const ISO_TO_NAME: Record<string, string> = {
-  'HK': 'Hong Kong',
-  'TW': 'Taiwan',
-  'MO': 'Macao',
-  'JP': 'Japan',
-  'KR': 'Korea',
-  'SG': 'Singapore',
-  'MY': 'Malaysia',
-  'ID': 'Indonesia',
-  'TH': 'Thailand',
-  'VN': 'Vietnam',
-  'PH': 'Philippines',
-  'KH': 'Cambodia',
-  'IN': 'India',
-  'PK': 'Pakistan',
-  'GB': 'UK',
-  'DE': 'Germany',
-  'FR': 'France',
-  'IT': 'Italy',
-  'ES': 'Spain',
-  'NL': 'Netherlands',
-  'PL': 'Poland',
-  'UA': 'Ukraine',
-  'CH': 'Switzerland',
-  'SE': 'Sweden',
-  'NO': 'Norway',
-  'FI': 'Finland',
-  'DK': 'Denmark',
-  'IS': 'Iceland',
-  'AT': 'Austria',
-  'IE': 'Ireland',
-  'HU': 'Hungary',
-  'BG': 'Bulgaria',
-  'MD': 'Moldova',
-  'RO': 'Romania',
-  'CZ': 'Czechia',
-  'PT': 'Portugal',
-  'BE': 'Belgium',
-  'GR': 'Greece',
-  'US': 'USA',
-  'CA': 'Canada',
-  'MX': 'Mexico',
-  'BR': 'Brazil',
-  'AR': 'Argentina',
-  'CL': 'Chile',
-  'PE': 'Peru',
-  'CO': 'Colombia',
-  'AU': 'Australia',
-  'NZ': 'New Zealand',
-  'RU': 'Russia',
-  'TR': 'Turkey',
-  'KZ': 'Kazakhstan',
-  'IL': 'Israel',
-  'AE': 'UAE',
-  'SA': 'Saudi Arabia',
-  'IQ': 'Iraq',
-  'ZA': 'South Africa',
-  'NG': 'Nigeria',
-  'EG': 'Egypt',
 }
 
 /**
@@ -340,70 +248,61 @@ export const MULTI_CITY_COUNTRIES: Record<string, { short: string; full: string 
   'AU': { short: 'Australia', full: 'Australia' },
 }
 
-/** 城市映射表 */
-export const CITY_MAP: Record<string, { country: string; city: string }> = {
+/** 城市配置数据 */
+interface CityData {
+  country: string
+  city: string
+  aliases: string[]  // 中英文别名
+}
+
+const CITIES: CityData[] = [
   // 美国城市
-  '洛杉矶': { country: 'US', city: 'Los Angeles' },
-  'Los Angeles': { country: 'US', city: 'Los Angeles' },
-  'LA': { country: 'US', city: 'Los Angeles' },
-  '西雅图': { country: 'US', city: 'Seattle' },
-  'Seattle': { country: 'US', city: 'Seattle' },
-  '圣何塞': { country: 'US', city: 'San Jose' },
-  'San Jose': { country: 'US', city: 'San Jose' },
-  '硅谷': { country: 'US', city: 'Silicon Valley' },
-  'Silicon Valley': { country: 'US', city: 'Silicon Valley' },
-  '纽约': { country: 'US', city: 'New York' },
-  'New York': { country: 'US', city: 'New York' },
-  'NYC': { country: 'US', city: 'New York' },
-  '芝加哥': { country: 'US', city: 'Chicago' },
-  'Chicago': { country: 'US', city: 'Chicago' },
-  '达拉斯': { country: 'US', city: 'Dallas' },
-  'Dallas': { country: 'US', city: 'Dallas' },
-  '迈阿密': { country: 'US', city: 'Miami' },
-  'Miami': { country: 'US', city: 'Miami' },
-  '旧金山': { country: 'US', city: 'San Francisco' },
-  'San Francisco': { country: 'US', city: 'San Francisco' },
-  'SF': { country: 'US', city: 'San Francisco' },
-  '华盛顿': { country: 'US', city: 'Washington' },
-  'Washington': { country: 'US', city: 'Washington' },
-  'DC': { country: 'US', city: 'Washington DC' },
-  '凤凰城': { country: 'US', city: 'Phoenix' },
-  'Phoenix': { country: 'US', city: 'Phoenix' },
-  '丹佛': { country: 'US', city: 'Denver' },
-  'Denver': { country: 'US', city: 'Denver' },
-  '亚特兰大': { country: 'US', city: 'Atlanta' },
-  'Atlanta': { country: 'US', city: 'Atlanta' },
+  { country: 'US', city: 'Los Angeles', aliases: ['洛杉矶', 'LA'] },
+  { country: 'US', city: 'Seattle', aliases: ['西雅图'] },
+  { country: 'US', city: 'San Jose', aliases: ['圣何塞'] },
+  { country: 'US', city: 'Silicon Valley', aliases: ['硅谷'] },
+  { country: 'US', city: 'New York', aliases: ['纽约', 'NYC'] },
+  { country: 'US', city: 'Chicago', aliases: ['芝加哥'] },
+  { country: 'US', city: 'Dallas', aliases: ['达拉斯'] },
+  { country: 'US', city: 'Miami', aliases: ['迈阿密'] },
+  { country: 'US', city: 'San Francisco', aliases: ['旧金山', 'SF'] },
+  { country: 'US', city: 'Washington', aliases: ['华盛顿'] },
+  { country: 'US', city: 'Washington DC', aliases: ['DC'] },
+  { country: 'US', city: 'Phoenix', aliases: ['凤凰城'] },
+  { country: 'US', city: 'Denver', aliases: ['丹佛'] },
+  { country: 'US', city: 'Atlanta', aliases: ['亚特兰大'] },
 
   // 英国城市
-  '伦敦': { country: 'GB', city: 'London' },
-  'London': { country: 'GB', city: 'London' },
-  '考文垂': { country: 'GB', city: 'Coventry' },
-  'Coventry': { country: 'GB', city: 'Coventry' },
-  '曼彻斯特': { country: 'GB', city: 'Manchester' },
-  'Manchester': { country: 'GB', city: 'Manchester' },
-  '伯明翰': { country: 'GB', city: 'Birmingham' },
-  'Birmingham': { country: 'GB', city: 'Birmingham' },
+  { country: 'GB', city: 'London', aliases: ['伦敦'] },
+  { country: 'GB', city: 'Coventry', aliases: ['考文垂'] },
+  { country: 'GB', city: 'Manchester', aliases: ['曼彻斯特'] },
+  { country: 'GB', city: 'Birmingham', aliases: ['伯明翰'] },
 
   // 俄罗斯城市
-  '莫斯科': { country: 'RU', city: 'Moscow' },
-  'Moscow': { country: 'RU', city: 'Moscow' },
-  '圣彼得堡': { country: 'RU', city: 'St. Petersburg' },
-  'St. Petersburg': { country: 'RU', city: 'St. Petersburg' },
-  'Saint Petersburg': { country: 'RU', city: 'St. Petersburg' },
+  { country: 'RU', city: 'Moscow', aliases: ['莫斯科'] },
+  { country: 'RU', city: 'St. Petersburg', aliases: ['圣彼得堡', 'Saint Petersburg'] },
 
   // 澳大利亚城市
-  '悉尼': { country: 'AU', city: 'Sydney' },
-  'Sydney': { country: 'AU', city: 'Sydney' },
-  '墨尔本': { country: 'AU', city: 'Melbourne' },
-  'Melbourne': { country: 'AU', city: 'Melbourne' },
-  '布里斯班': { country: 'AU', city: 'Brisbane' },
-  'Brisbane': { country: 'AU', city: 'Brisbane' },
+  { country: 'AU', city: 'Sydney', aliases: ['悉尼'] },
+  { country: 'AU', city: 'Melbourne', aliases: ['墨尔本'] },
+  { country: 'AU', city: 'Brisbane', aliases: ['布里斯班'] },
 
   // 日本城市
-  '东京': { country: 'JP', city: 'Tokyo' },
-  'Tokyo': { country: 'JP', city: 'Tokyo' },
-  '大阪': { country: 'JP', city: 'Osaka' },
-  'Osaka': { country: 'JP', city: 'Osaka' },
+  { country: 'JP', city: 'Tokyo', aliases: ['东京'] },
+  { country: 'JP', city: 'Osaka', aliases: ['大阪'] },
+]
+
+/** 城市映射表（自动生成） */
+export const CITY_MAP: Record<string, { country: string; city: string }> = {}
+
+// 初始化城市映射
+for (const cityData of CITIES) {
+  // 英文城市名
+  CITY_MAP[cityData.city] = { country: cityData.country, city: cityData.city }
+  // 所有别名
+  for (const alias of cityData.aliases) {
+    CITY_MAP[alias] = { country: cityData.country, city: cityData.city }
+  }
 }
 
 // ============ 兼容旧 API（保持向后兼容）============

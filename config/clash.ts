@@ -1,7 +1,7 @@
-import { ClashConfig, Proxy } from '@/lib/core/types'
+import { ClashConfig, Proxy, ProxyGroup } from '@/lib/core/types'
 
 // 生成代理组配置
-export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true) {
+export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true): ProxyGroup[] {
   const proxyNames = proxies.map(proxy => proxy.name);
 
   // 筛选 HK 节点
@@ -25,7 +25,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   embyProxies.push(...proxyNames)
 
   // 构建代理组数组
-  const groups: any[] = [
+  const groups: ProxyGroup[] = [
     {
       name: 'Manual',
       type: 'select',
