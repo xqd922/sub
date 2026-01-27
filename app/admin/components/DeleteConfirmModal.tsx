@@ -1,3 +1,5 @@
+import { AlertDialog, Button } from '@heroui/react'
+
 interface DeleteConfirmModalProps {
   isOpen: boolean
   onClose: () => void
@@ -15,34 +17,28 @@ export function DeleteConfirmModal({
   title,
   message
 }: DeleteConfirmModalProps) {
-  if (!isOpen) return null
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
-        </div>
-        <div className="modal-body">
-          <p className="modal-message">{message}</p>
-        </div>
-        <div className="modal-footer">
-          <button
-            className="modal-btn cancel"
-            onClick={onClose}
-            disabled={loading}
-          >
-            取消
-          </button>
-          <button
-            className="modal-btn confirm"
-            onClick={onConfirm}
-            disabled={loading}
-          >
-            {loading ? '删除中...' : '确认删除'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <AlertDialog isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <AlertDialog.Backdrop variant="blur" />
+      <AlertDialog.Container placement="center">
+        <AlertDialog.Dialog>
+          <AlertDialog.Header>
+            <AlertDialog.Icon status="danger" />
+            <AlertDialog.Heading>{title}</AlertDialog.Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            <p>{message}</p>
+          </AlertDialog.Body>
+          <AlertDialog.Footer>
+            <AlertDialog.CloseTrigger isDisabled={loading}>
+              取消
+            </AlertDialog.CloseTrigger>
+            <Button variant="danger" onPress={onConfirm} isDisabled={loading}>
+              {loading ? '删除中...' : '确认删除'}
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Dialog>
+      </AlertDialog.Container>
+    </AlertDialog>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TextField, Input, Label, Button, Alert } from '@heroui/react'
 
 interface LoginFormProps {
   onLogin: (username: string, password: string) => Promise<void>
@@ -14,12 +15,6 @@ export function LoginForm({ onLogin, loading, error }: LoginFormProps) {
     await onLogin(username, password)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && username && password && !loading) {
-      handleSubmit()
-    }
-  }
-
   return (
     <div className="admin-root login-container">
       <div className="login-card">
@@ -28,45 +23,48 @@ export function LoginForm({ onLogin, loading, error }: LoginFormProps) {
 
         <div className="login-form">
           {error && (
-            <div className="login-error">{error}</div>
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{error}</Alert.Title>
+              </Alert.Content>
+            </Alert>
           )}
 
-          <div className="form-field">
-            <label htmlFor="username" className="form-label">用户名</label>
-            <input
-              id="username"
-              type="text"
-              className="form-input"
-              placeholder="输入用户名"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
-              autoComplete="username"
-            />
-          </div>
+          <TextField
+            value={username}
+            onChange={setUsername}
+            isDisabled={loading}
+            autoComplete="username"
+          >
+            <Label>用户名</Label>
+            <Input placeholder="输入用户名" />
+          </TextField>
 
-          <div className="form-field">
-            <label htmlFor="password" className="form-label">密码</label>
-            <input
-              id="password"
-              type="password"
-              className="form-input"
-              placeholder="输入密码"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={loading}
-              autoComplete="current-password"
-            />
-          </div>
+          <TextField
+            value={password}
+            onChange={setPassword}
+            isDisabled={loading}
+            autoComplete="current-password"
+            type="password"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && username && password && !loading) {
+                handleSubmit()
+              }
+            }}
+          >
+            <Label>密码</Label>
+            <Input placeholder="输入密码" />
+          </TextField>
 
-          <button
-            className="login-btn"
-            onClick={handleSubmit}
-            disabled={!username || !password || loading}
+          <Button
+            variant="primary"
+            fullWidth
+            onPress={handleSubmit}
+            isDisabled={!username || !password || loading}
           >
             {loading ? '登录中...' : '登录'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

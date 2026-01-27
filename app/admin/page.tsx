@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { SearchField, Button } from '@heroui/react'
 import { useAuth } from './hooks/useAuth'
 import { useAdminData } from './hooks/useAdminData'
 import { useToast } from './hooks/useToast'
@@ -11,13 +12,6 @@ import { UnifiedTable } from './components/UnifiedTable'
 import { DeleteConfirmModal } from './components/DeleteConfirmModal'
 import { ToastContainer } from './components/ToastContainer'
 import './admin.css'
-
-// 搜索图标
-const SearchIcon = () => (
-  <svg className="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-  </svg>
-)
 
 export default function AdminPage() {
   const { isAuthed, token, loading: authLoading, error: authError, login, logout } = useAuth()
@@ -145,23 +139,24 @@ export default function AdminPage() {
 
         {/* 操作栏 */}
         <div className="actions-bar">
-          <div className="search-input-wrapper">
-            <SearchIcon />
-            <input
-              type="text"
-              className="search-input"
-              placeholder="搜索名称或链接..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-          </div>
-          <button
-            className="refresh-btn"
-            onClick={refetch}
-            disabled={dataLoading}
+          <SearchField
+            value={searchInput}
+            onChange={setSearchInput}
+            className="flex-1 min-w-[240px]"
+          >
+            <SearchField.Group>
+              <SearchField.SearchIcon />
+              <SearchField.Input placeholder="搜索名称或链接..." />
+              <SearchField.ClearButton />
+            </SearchField.Group>
+          </SearchField>
+          <Button
+            variant="secondary"
+            onPress={refetch}
+            isDisabled={dataLoading}
           >
             {dataLoading ? '刷新中...' : '刷新数据'}
-          </button>
+          </Button>
         </div>
 
         {/* 统一数据表格 */}

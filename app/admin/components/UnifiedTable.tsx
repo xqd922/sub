@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Button, Chip, Skeleton } from '@heroui/react'
 import type { ConvertRecord, ShortLink, SortDescriptor } from '../types'
 import { EmptyState } from './EmptyState'
 
@@ -174,18 +175,17 @@ export function UnifiedTable({
           </thead>
           <tbody>
             {loading ? (
-              // 骨架屏加载状态
               Array.from({ length: 3 }).map((_, i) => (
-                <tr key={`skeleton-${i}`} className="skeleton-row">
-                  <td><div className="skeleton skeleton-text"></div></td>
-                  <td><div className="skeleton skeleton-text"></div></td>
-                  <td><div className="skeleton skeleton-text"></div></td>
-                  <td><div className="skeleton skeleton-text skeleton-sm"></div></td>
-                  <td><div className="skeleton skeleton-text"></div></td>
+                <tr key={`skeleton-${i}`}>
+                  <td><Skeleton className="h-4 w-32 rounded-lg" /></td>
+                  <td><Skeleton className="h-4 w-40 rounded-lg" /></td>
+                  <td><Skeleton className="h-4 w-24 rounded-lg" /></td>
+                  <td><Skeleton className="h-4 w-12 rounded-lg" /></td>
+                  <td><Skeleton className="h-4 w-36 rounded-lg" /></td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <div className="skeleton skeleton-btn"></div>
-                      <div className="skeleton skeleton-btn"></div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-14 rounded-lg" />
+                      <Skeleton className="h-8 w-14 rounded-lg" />
                     </div>
                   </td>
                 </tr>
@@ -207,19 +207,21 @@ export function UnifiedTable({
                   <td className="cell-number">{item.hits}</td>
                   <td className="cell-date">{formatDate(item.lastAccess)}</td>
                   <td>
-                    <div className="action-btns">
-                      <button
-                        className="action-btn copy"
-                        onClick={() => onCopy(getLink(item))}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => onCopy(getLink(item))}
                       >
                         复制
-                      </button>
-                      <button
-                        className="action-btn delete"
-                        onClick={() => handleDelete(item)}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger-soft"
+                        onPress={() => handleDelete(item)}
                       >
                         删除
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -240,23 +242,25 @@ export function UnifiedTable({
 
       {pages > 1 && (
         <div className="pagination">
-          <button
-            className="pagination-btn"
-            disabled={page === 1}
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+          <Button
+            size="sm"
+            variant="ghost"
+            isDisabled={page === 1}
+            onPress={() => setPage(p => Math.max(1, p - 1))}
           >
             上一页
-          </button>
+          </Button>
           <span className="pagination-info">
             第 {page} / {pages} 页
           </span>
-          <button
-            className="pagination-btn"
-            disabled={page === pages}
-            onClick={() => setPage(p => Math.min(pages, p + 1))}
+          <Button
+            size="sm"
+            variant="ghost"
+            isDisabled={page === pages}
+            onPress={() => setPage(p => Math.min(pages, p + 1))}
           >
             下一页
-          </button>
+          </Button>
         </div>
       )}
 

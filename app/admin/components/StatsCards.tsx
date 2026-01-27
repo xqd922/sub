@@ -1,3 +1,4 @@
+import { Card, Skeleton, Chip } from '@heroui/react'
 import type { Stats } from '../types'
 
 interface StatsCardsProps {
@@ -6,15 +7,24 @@ interface StatsCardsProps {
   shortLinksCount: number
 }
 
+const colorMap: Record<string, string> = {
+  blue: 'var(--apple-blue)',
+  green: 'var(--apple-green)',
+  purple: 'var(--apple-purple)',
+  orange: 'var(--apple-orange)'
+}
+
 export function StatsCards({ stats, loading, shortLinksCount }: StatsCardsProps) {
   if (loading) {
     return (
       <div className="stats-grid">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="stat-card">
-            <div className="skeleton" style={{ height: 40, width: 80, marginBottom: 12 }} />
-            <div className="skeleton" style={{ height: 16, width: 100 }} />
-          </div>
+          <Card key={i}>
+            <Card.Content className="p-6">
+              <Skeleton className="h-10 w-20 mb-3 rounded-xl" />
+              <Skeleton className="h-4 w-24 rounded-lg" />
+            </Card.Content>
+          </Card>
         ))}
       </div>
     )
@@ -52,17 +62,26 @@ export function StatsCards({ stats, loading, shortLinksCount }: StatsCardsProps)
   return (
     <div className="stats-grid">
       {cards.map((card, index) => (
-        <div key={index} className="stat-card">
-          <div className="stat-card-header">
-            <span className={`stat-value ${card.color}`}>
-              {card.value}
+        <Card key={index} className="stat-card">
+          <Card.Content className="p-6">
+            <div className="flex items-start justify-between mb-2">
+              <span
+                className="text-4xl font-bold tracking-tight leading-none"
+                style={{ color: colorMap[card.color] }}
+              >
+                {card.value}
+              </span>
+              {card.trend && (
+                <Chip size="sm" color="success" variant="soft">
+                  {card.trend}
+                </Chip>
+              )}
+            </div>
+            <span className="text-sm text-[var(--apple-text-secondary)]">
+              {card.label}
             </span>
-            {card.trend && (
-              <span className="stat-trend">{card.trend}</span>
-            )}
-          </div>
-          <span className="stat-label">{card.label}</span>
-        </div>
+          </Card.Content>
+        </Card>
       ))}
     </div>
   )
