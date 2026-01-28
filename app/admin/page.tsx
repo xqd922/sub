@@ -28,7 +28,9 @@ export default function AdminPage() {
 
   const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [autoRefresh, setAutoRefresh] = useState(true)  // 默认开启自动刷新
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // 搜索防抖
   useEffect(() => {
@@ -44,6 +46,21 @@ export default function AdminPage() {
       }
     }
   }, [searchInput])
+
+  // 自动刷新
+  useEffect(() => {
+    if (autoRefresh && isAuthed) {
+      autoRefreshRef.current = setInterval(() => {
+        refetch()
+      }, 30000) // 30秒刷新一次
+    }
+    return () => {
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current)
+        autoRefreshRef.current = null
+      }
+    }
+  }, [autoRefresh, isAuthed, refetch])
 
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean
@@ -112,6 +129,18 @@ export default function AdminPage() {
     }
   }
 
+  // 初始加载状态（验证 token 中）
+  if (authLoading && !isAuthed) {
+    return (
+      <div className="admin-root login-container">
+        <div className="login-card" style={{ textAlign: 'center' }}>
+          <h1 className="login-title">订阅管理</h1>
+          <p className="login-subtitle">正在验证登录状态...</p>
+        </div>
+      </div>
+    )
+  }
+
   // 登录界面
   if (!isAuthed) {
     return (
@@ -150,6 +179,14 @@ export default function AdminPage() {
               <SearchField.ClearButton />
             </SearchField.Group>
           </SearchField>
+          <label className="auto-refresh-toggle">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+            />
+            <span>自动刷新</span>
+          </label>
           <Button
             variant="secondary"
             onPress={refetch}

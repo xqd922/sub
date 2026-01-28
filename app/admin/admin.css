@@ -110,8 +110,30 @@
 .actions-bar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px;
   margin-bottom: 24px;
+}
+
+.auto-refresh-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--apple-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-refresh-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--apple-blue);
+  cursor: pointer;
+}
+
+.auto-refresh-toggle:hover {
+  color: var(--apple-text);
 }
 
 /* ============================================
@@ -126,17 +148,17 @@
 
 /* Column widths */
 .data-table th:nth-child(1),
-.data-table td:nth-child(1) { width: 12%; } /* 名称 */
+.data-table td:nth-child(1) { width: 20%; } /* 名称 */
 .data-table th:nth-child(2),
-.data-table td:nth-child(2) { width: 25%; } /* 原始链接 */
+.data-table td:nth-child(2) { width: 22%; } /* 原始链接 */
 .data-table th:nth-child(3),
-.data-table td:nth-child(3) { width: 18%; } /* 短链接 */
+.data-table td:nth-child(3) { width: 16%; } /* 短链接 */
 .data-table th:nth-child(4),
 .data-table td:nth-child(4) { width: 8%; }  /* 访问 */
 .data-table th:nth-child(5),
-.data-table td:nth-child(5) { width: 17%; } /* 最后访问 */
+.data-table td:nth-child(5) { width: 16%; } /* 最后访问 */
 .data-table th:nth-child(6),
-.data-table td:nth-child(6) { width: 20%; } /* 操作 */
+.data-table td:nth-child(6) { width: 18%; } /* 操作 */
 
 .data-table th {
   padding: 14px 16px;
@@ -149,11 +171,16 @@
   border-bottom: 1px solid var(--apple-gray-5);
   cursor: pointer;
   user-select: none;
-  transition: color var(--apple-transition);
+  transition: color var(--apple-transition), background var(--apple-transition);
 }
 
 .data-table th:hover {
   color: var(--apple-text);
+  background: var(--apple-gray-6);
+}
+
+.data-table th:active {
+  background: var(--apple-gray-5);
 }
 
 .data-table th .sort-indicator {
@@ -189,6 +216,10 @@
 /* Table Cell Variants */
 .cell-name {
   font-weight: 500;
+  overflow: hidden;
+}
+
+.cell-name .name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

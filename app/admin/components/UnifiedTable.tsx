@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { Button, Chip, Skeleton } from '@heroui/react'
 import type { ConvertRecord, ShortLink, SortDescriptor } from '../types'
 import { EmptyState } from './EmptyState'
@@ -65,6 +65,15 @@ export function UnifiedTable({
 
     return [...convertItems, ...shortLinkItems]
   }, [records, shortLinks])
+
+  // 搜索变化时重置分页
+  const prevSearchTerm = useRef(searchTerm)
+  useEffect(() => {
+    if (prevSearchTerm.current !== searchTerm) {
+      setPage(1)
+      prevSearchTerm.current = searchTerm
+    }
+  }, [searchTerm])
 
   // 过滤和排序
   const filteredItems = useMemo(() => {
@@ -191,41 +200,56 @@ export function UnifiedTable({
                 </tr>
               ))
             ) : items.length > 0 ? (
-              items.map((item) => (
-                <tr key={`${item.type}-${item.id}`}>
-                  <td className="cell-name">{item.name}</td>
-                  <td>
-                    <span className="cell-url" title={item.url}>
-                      {formatUrl(item.url)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="short-link" onClick={() => onCopy(getLink(item))}>
-                      {getLink(item).replace(window.location.origin, '')}
-                    </span>
-                  </td>
-                  <td className="cell-number">{item.hits}</td>
-                  <td className="cell-date">{formatDate(item.lastAccess)}</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => onCopy(getLink(item))}
-                      >
-                        复制
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger-soft"
-                        onPress={() => handleDelete(item)}
-                      >
-                        删除
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              items.map((item) => {
+                const itemKey = `${item.type}-${item.id}`
+                const link = getLink(item)
+                return (
+                  <tr key={itemKey}>
+                    <td className="cell-name">
+                      <div className="flex items-center gap-2">
+                        <Chip
+                          size="sm"
+                          color={item.type === 'convert' ? 'accent' : 'default'}
+                          variant="soft"
+                        >
+                          {item.type === 'convert' ? '订阅' : '短链'}
+                        </Chip>
+                        <span className="name-text">{item.name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="cell-url" title={item.url}>
+                        {formatUrl(item.url)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="short-link" onClick={() => onCopy(link)}>
+                        {link.replace(window.location.origin, '')}
+                      </span>
+                    </td>
+                    <td className="cell-number">{item.hits}</td>
+                    <td className="cell-date">{formatDate(item.lastAccess)}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => onCopy(link)}
+                        >
+                          复制
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger-soft"
+                          onPress={() => handleDelete(item)}
+                        >
+                          删除
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })
             ) : (
               <tr>
                 <td colSpan={6}>

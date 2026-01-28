@@ -34,8 +34,19 @@ export function useAdminData(token: string): UseAdminDataReturn {
         fetch('/api/admin/shortlinks', { headers })
       ])
 
-      if (recordsRes.status === 401 || statsRes.status === 401) {
-        setError('Token 无效')
+      // 检查所有响应的认证状态
+      if (recordsRes.status === 401 || statsRes.status === 401 || shortLinksRes.status === 401) {
+        setError('登录已过期，请重新登录')
+        return
+      }
+
+      // 检查其他错误状态
+      if (!recordsRes.ok || !statsRes.ok || !shortLinksRes.ok) {
+        const errors: string[] = []
+        if (!recordsRes.ok) errors.push(`记录: ${recordsRes.status}`)
+        if (!statsRes.ok) errors.push(`统计: ${statsRes.status}`)
+        if (!shortLinksRes.ok) errors.push(`短链接: ${shortLinksRes.status}`)
+        setError(`获取数据失败 (${errors.join(', ')})`)
         return
       }
 
@@ -47,7 +58,7 @@ export function useAdminData(token: string): UseAdminDataReturn {
       setStats(statsData)
       setShortLinks(shortLinksData.shortLinks || [])
     } catch (err) {
-      setError('获取数据失败')
+      setError('网络请求失败，请检查网络连接')
       console.error(err)
     } finally {
       setLoading(false)
@@ -67,7 +78,19 @@ export function useAdminData(token: string): UseAdminDataReturn {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
+        const deletedRecord = records.find(r => r.id === id)
         setRecords(prev => prev.filter(r => r.id !== id))
+        // 同步更新统计数据
+        if (stats && deletedRecord) {
+          setStats(prev => prev ? {
+            ...prev,
+            totalRecords: Math.max(0, prev.totalRecords - 1),
+            totalHits: Math.max(0, prev.totalHits - deletedRecord.hits),
+            activeRecords: deletedRecord.lastAccess > Date.now() - 7 * 24 * 60 * 60 * 1000
+              ? Math.max(0, prev.activeRecords - 1)
+              : prev.activeRecords
+          } : null)
+        }
         return true
       }
       return false
@@ -75,7 +98,7 @@ export function useAdminData(token: string): UseAdminDataReturn {
       console.error('删除失败:', err)
       return false
     }
-  }, [token])
+  }, [token, records, stats])
 
   const deleteShortLink = useCallback(async (id: string): Promise<boolean> => {
     try {

@@ -12,17 +12,39 @@ interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const [token, setToken] = useState('')
   const [isAuthed, setIsAuthed] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // 初始为 true，等待验证
   const [error, setError] = useState('')
 
-  // 初始化时从 localStorage 读取 token
-  useEffect(() => {
-    const savedToken = localStorage.getItem('admin_token')
-    if (savedToken) {
-      setToken(savedToken)
-      setIsAuthed(true)
+  // 验证 token 是否有效
+  const verifyToken = useCallback(async (savedToken: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${savedToken}` }
+      })
+      return res.ok
+    } catch {
+      return false
     }
   }, [])
+
+  // 初始化时从 localStorage 读取并验证 token
+  useEffect(() => {
+    const initAuth = async () => {
+      const savedToken = localStorage.getItem('admin_token')
+      if (savedToken) {
+        const isValid = await verifyToken(savedToken)
+        if (isValid) {
+          setToken(savedToken)
+          setIsAuthed(true)
+        } else {
+          // token 无效，清除
+          localStorage.removeItem('admin_token')
+        }
+      }
+      setLoading(false)
+    }
+    initAuth()
+  }, [verifyToken])
 
   const login = useCallback(async (username: string, password: string) => {
     if (!username || !password) {
