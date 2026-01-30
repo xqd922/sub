@@ -264,3 +264,30 @@ export function getDeduplicateStats(proxies: Proxy[]): DeduplicateStats {
 
   return { original: proxies.length, infoNodes, invalidNodes, duplicates, valid: seen.size }
 }
+
+/**
+ * 确保节点名称唯一
+ * 对同名节点添加序号后缀，保持原始顺序
+ * @param proxies 节点列表
+ * @returns 名称唯一化后的节点列表
+ */
+export function ensureUniqueNames(proxies: Proxy[]): Proxy[] {
+  const nameCount = new Map<string, number>()
+  const result: Proxy[] = []
+
+  for (const proxy of proxies) {
+    const baseName = proxy.name
+    const count = nameCount.get(baseName) || 0
+    nameCount.set(baseName, count + 1)
+
+    if (count === 0) {
+      // 第一个保持原名
+      result.push(proxy)
+    } else {
+      // 后续同名节点加序号
+      result.push({ ...proxy, name: `${baseName} (${count + 1})` })
+    }
+  }
+
+  return result
+}

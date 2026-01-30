@@ -8,6 +8,8 @@ import { SingleNodeParser } from './node'
 import { Proxy } from '../core/types'
 import { logger } from '../core/logger'
 import { NetService } from '@/features'
+import { deduplicateProxies } from '../core/dedup'
+import { formatProxiesShort } from '../format/proxy'
 
 /** 支持的单节点协议前缀 */
 const SINGLE_NODE_PREFIXES = [
@@ -17,53 +19,6 @@ const SINGLE_NODE_PREFIXES = [
 
 /** 支持的订阅链接前缀 */
 const SUBSCRIPTION_PREFIXES = ['http://', 'https://']
-
-/**
- * 解析单个节点或订阅链接
- * @param line 节点链接或订阅链接
- * @returns 解析后的节点或节点数组
- */
-async function parseNodeOrSubscription(line: string): Promise<Proxy | Proxy[] | null> {
-  try {
-    // 检查链式代理标记 (|dialer-proxy: / |detour: / |chain:)
-    const proxyMatch = line.match(/\|(dialer-proxy|detour|chain):\s*(.+?)$/i)
-    let dialerProxy = ''
-    let cleanLine = line
-
-    if (proxyMatch) {
-      const proxyType = proxyMatch[1].toLowerCase()
-      dialerProxy = proxyMatch[2].trim()
-      cleanLine = line.replace(/\|(dialer-proxy|detour|chain):.+$/i, '')
-      logger.info(`节点指定前置代理 (${proxyType}): ${dialerProxy}`)
-    }
-
-    let proxy: Proxy | Proxy[] | null = null
-
-    if (SINGLE_NODE_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
-      proxy = SingleNodeParser.parse(cleanLine)
-
-      // 添加链式代理字段
-      if (proxyMatch && dialerProxy && proxy && !Array.isArray(proxy)) {
-        const proxyType = proxyMatch[1].toLowerCase()
-        if (proxyType === 'dialer-proxy') {
-          proxy['dialer-proxy'] = dialerProxy
-        } else if (proxyType === 'detour') {
-          proxy['detour'] = dialerProxy
-        } else if (proxyType === 'chain') {
-          proxy['dialer-proxy'] = dialerProxy
-          proxy['detour'] = dialerProxy
-        }
-      }
-    } else if (SUBSCRIPTION_PREFIXES.some(prefix => cleanLine.startsWith(prefix))) {
-      proxy = await parseSubscription(cleanLine)
-    }
-
-    return proxy
-  } catch (error) {
-    logger.error(`解析节点失败: ${line}`, error)
-    return null
-  }
-}
 
 /**
  * 从远程 URL 获取节点列表
@@ -89,15 +44,134 @@ export async function fetchNodesFromRemote(url: string): Promise<{
       SUBSCRIPTION_PREFIXES.some(prefix => line.startsWith(prefix))
     )
 
-    const proxies = await Promise.all(lines.map(parseNodeOrSubscription))
+    // 分类处理：单节点和订阅链接
+    const singleNodeLines: string[] = []
+    const subscriptionLines: string[] = []
+    const lineOrder: { type: 'single' | 'sub'; index: number }[] = []
 
-    const filteredProxies = proxies
-      .filter((item): item is Proxy | Proxy[] => item !== null)
-      .flatMap(item => Array.isArray(item) ? item : [item])
+    for (const line of lines) {
+      if (SINGLE_NODE_PREFIXES.some(prefix => line.startsWith(prefix))) {
+        lineOrder.push({ type: 'single', index: singleNodeLines.length })
+        singleNodeLines.push(line)
+      } else if (SUBSCRIPTION_PREFIXES.some(prefix => line.startsWith(prefix))) {
+        lineOrder.push({ type: 'sub', index: subscriptionLines.length })
+        subscriptionLines.push(line)
+      }
+    }
 
-    return { proxies: filteredProxies, hasSubscriptionUrls }
+    // 1. 先解析订阅链接，收集机场节点名称（带容错）
+    const subscriptionResults: Proxy[][] = []
+    for (const line of subscriptionLines) {
+      try {
+        const proxies = await parseSubscription(line)
+        subscriptionResults.push(proxies)
+      } catch (error) {
+        logger.warn(`订阅解析失败，跳过: ${line}`, error)
+        subscriptionResults.push([])  // 失败时返回空数组
+      }
+    }
+    const subscriptionProxies = subscriptionResults.flat()
+    const subNames = new Set(subscriptionProxies.map(p => p.name))
+    logger.info(`Gist 订阅节点: ${subscriptionProxies.length} 个`)
+
+    // 2. 解析自建单节点（保留原名）
+    const singleNodeProxies = await Promise.all(
+      singleNodeLines.map(line => parseSingleNode(line))
+    )
+    const validSingleNodes = singleNodeProxies.filter((p): p is Proxy => p !== null)
+
+    // 3. 检查自建节点名称冲突，冲突时格式化为短格式
+    const conflictNodes: Proxy[] = []
+
+    for (const proxy of validSingleNodes) {
+      if (subNames.has(proxy.name)) {
+        conflictNodes.push(proxy)
+      }
+    }
+
+    // 格式化冲突的节点（使用短格式：🇭🇰 HK 01）
+    const formattedConflictNodes = formatProxiesShort(conflictNodes)
+    if (conflictNodes.length > 0) {
+      logger.info(`自建节点名称冲突: ${conflictNodes.length} 个，已格式化为短格式`)
+    }
+
+    // 合并：无冲突的保持原名，冲突的用格式化后的
+    const processedSingleNodes = validSingleNodes.map(proxy => {
+      const conflictIndex = conflictNodes.indexOf(proxy)
+      if (conflictIndex !== -1) {
+        return formattedConflictNodes[conflictIndex]
+      }
+      return proxy
+    })
+    logger.info(`Gist 自建节点: ${processedSingleNodes.length} 个`)
+
+    // 4. 按原顺序合并
+    const allProxies: Proxy[] = []
+    let singleIdx = 0
+
+    for (const item of lineOrder) {
+      if (item.type === 'single') {
+        if (singleIdx < processedSingleNodes.length) {
+          allProxies.push(processedSingleNodes[singleIdx])
+          singleIdx++
+        }
+      } else {
+        const subResult = subscriptionResults[item.index]
+        if (subResult) {
+          allProxies.push(...subResult)
+        }
+      }
+    }
+
+    // 5. 去重（按连接参数，保留先出现的）
+    const deduplicated = deduplicateProxies(allProxies, {
+      keepStrategy: 'first',
+      verbose: true
+    })
+
+    logger.info(`Gist 最终节点: ${deduplicated.length} 个`)
+
+    return { proxies: deduplicated, hasSubscriptionUrls }
   } catch (error) {
     logger.error('获取远程节点失败:', error)
     throw error
+  }
+}
+
+/**
+ * 解析单个节点链接
+ */
+async function parseSingleNode(line: string): Promise<Proxy | null> {
+  try {
+    // 检查链式代理标记
+    const proxyMatch = line.match(/\|(dialer-proxy|detour|chain):\s*(.+?)$/i)
+    let dialerProxy = ''
+    let cleanLine = line
+
+    if (proxyMatch) {
+      const proxyType = proxyMatch[1].toLowerCase()
+      dialerProxy = proxyMatch[2].trim()
+      cleanLine = line.replace(/\|(dialer-proxy|detour|chain):.+$/i, '')
+      logger.info(`节点指定前置代理 (${proxyType}): ${dialerProxy}`)
+    }
+
+    const proxy = SingleNodeParser.parse(cleanLine)
+
+    if (proxy && proxyMatch && dialerProxy) {
+      const proxyType = proxyMatch[1].toLowerCase()
+      if (proxyType === 'dialer-proxy') {
+        proxy['dialer-proxy'] = dialerProxy
+      } else if (proxyType === 'detour') {
+        proxy['detour'] = dialerProxy
+      } else if (proxyType === 'chain') {
+        proxy['dialer-proxy'] = dialerProxy
+        proxy['detour'] = dialerProxy
+      }
+    }
+
+    return proxy
+  } catch (error) {
+    logger.error(`解析节点失败: ${line}`, error)
+    return null
   }
 }
