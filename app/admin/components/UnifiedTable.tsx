@@ -38,6 +38,7 @@ export function UnifiedTable({
     column: 'lastAccess',
     direction: 'descending'
   })
+  const [typeFilter, setTypeFilter] = useState<'all' | 'convert' | 'shortlink'>('all')
 
   const rowsPerPage = 15
 
@@ -77,10 +78,13 @@ export function UnifiedTable({
 
   // 过滤和排序
   const filteredItems = useMemo(() => {
-    let filtered = allItems.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.url.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    let filtered = allItems.filter(item => {
+      // 类型筛选
+      if (typeFilter !== 'all' && item.type !== typeFilter) return false
+      // 搜索筛选
+      return item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.url.toLowerCase().includes(searchTerm.toLowerCase())
+    })
 
     filtered.sort((a, b) => {
       const column = sortDescriptor.column as keyof UnifiedItem
@@ -98,7 +102,16 @@ export function UnifiedTable({
     })
 
     return filtered
-  }, [allItems, searchTerm, sortDescriptor])
+  }, [allItems, searchTerm, sortDescriptor, typeFilter])
+
+  // 类型筛选变化时重置分页
+  const prevTypeFilter = useRef(typeFilter)
+  useEffect(() => {
+    if (prevTypeFilter.current !== typeFilter) {
+      setPage(1)
+      prevTypeFilter.current = typeFilter
+    }
+  }, [typeFilter])
 
   // 分页
   const pages = Math.ceil(filteredItems.length / rowsPerPage)
@@ -152,6 +165,28 @@ export function UnifiedTable({
 
   return (
     <div className="table-card">
+      {/* 类型筛选 */}
+      <div className="type-filter">
+        <button
+          className={`filter-btn ${typeFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setTypeFilter('all')}
+        >
+          全部 ({allItems.length})
+        </button>
+        <button
+          className={`filter-btn ${typeFilter === 'convert' ? 'active' : ''}`}
+          onClick={() => setTypeFilter('convert')}
+        >
+          订阅 ({records.length})
+        </button>
+        <button
+          className={`filter-btn ${typeFilter === 'shortlink' ? 'active' : ''}`}
+          onClick={() => setTypeFilter('shortlink')}
+        >
+          短链 ({shortLinks.length})
+        </button>
+      </div>
+
       <div style={{ overflowX: 'auto' }}>
         <table className="data-table">
           <thead>

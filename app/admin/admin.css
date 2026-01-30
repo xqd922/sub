@@ -139,6 +139,36 @@
 /* ============================================
    Table
    ============================================ */
+
+/* Type filter */
+.type-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+  background: var(--apple-gray-6);
+  border: none;
+  border-radius: var(--apple-radius-md);
+  cursor: pointer;
+  transition: all var(--apple-transition);
+}
+
+.filter-btn:hover {
+  background: var(--apple-gray-5);
+  color: var(--apple-text);
+}
+
+.filter-btn.active {
+  background: var(--apple-blue);
+  color: white;
+}
+
 .data-table {
   width: 100%;
   border-collapse: separate;
