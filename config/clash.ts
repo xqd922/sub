@@ -160,7 +160,7 @@ export const defaultConfig: ClashConfig = {
       'type': 'http',
       'behavior': 'domain',
       'format': 'mrs',
-      'url': 'https://raw.githubusercontent.com/JohnsonRan/CRules/mihomo/resources/rules/ai.mrs',
+      'url': 'https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs',
       'path': './rule_providers/ai.mrs',
       'interval': 86400
     },
