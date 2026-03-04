@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { RecordService } from '@/lib/kv'
-import { validateAdminAuth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { logger } from '@/lib/core/logger'
 
 export const runtime = 'edge'
@@ -9,9 +9,8 @@ export const runtime = 'edge'
  * GET /api/admin/stats - 获取统计数据
  */
 export async function GET(request: Request) {
-  if (!(await validateAdminAuth(request))) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 })
-  }
+  const denied = await requireAuth(request)
+  if (denied) return denied
 
   try {
     const stats = await RecordService.getStats()

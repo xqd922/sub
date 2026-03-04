@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server'
+
 /**
  * 生成 session token（基于用户名和密码的固定 hash）
  */
@@ -41,4 +43,14 @@ export async function validateAdminAuth(request: Request): Promise<boolean> {
   }
 
   return false
+}
+
+/**
+ * 认证守卫 - 验证失败时返回 401 响应，成功返回 null
+ */
+export async function requireAuth(request: Request): Promise<NextResponse | null> {
+  if (await validateAdminAuth(request)) {
+    return null
+  }
+  return NextResponse.json({ error: '未授权' }, { status: 401 })
 }
