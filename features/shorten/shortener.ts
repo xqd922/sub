@@ -174,6 +174,24 @@ export class ShortService {
   }
 
   /**
+   * 带超时的 fetch 封装
+   */
+  private static async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+    timeout = 5000
+  ): Promise<Response> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeout)
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal })
+      return response
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  /**
    * Sink 处理器
    */
   private static async handleSink(url: string): Promise<ShortResult> {
@@ -197,7 +215,7 @@ export class ShortService {
         throw new Error('无法生成短链接标识')
       }
 
-      const response = await fetch(`${SINK_URL}/api/link/create`, {
+      const response = await this.fetchWithTimeout(`${SINK_URL}/api/link/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,7 +274,7 @@ export class ShortService {
     // 检查是否已存在
     try {
       const encodedUrl = encodeURIComponent(fullUrl)
-      const checkResponse = await fetch(
+      const checkResponse = await this.fetchWithTimeout(
         `https://api-ssl.bitly.com/v4/bitlinks/by_url?long_url=${encodedUrl}`,
         {
           method: 'GET',
@@ -269,7 +287,7 @@ export class ShortService {
         const bitlink = existingData.id
 
         // 更新现有短链接
-        const updateResponse = await fetch(
+        const updateResponse = await this.fetchWithTimeout(
           `https://api-ssl.bitly.com/v4/bitlinks/${bitlink}`,
           {
             method: 'PATCH',
@@ -298,7 +316,7 @@ export class ShortService {
     }
 
     // 创建新短链接
-    const response = await fetch('https://api-ssl.bitly.com/v4/shorten', {
+    const response = await this.fetchWithTimeout('https://api-ssl.bitly.com/v4/shorten', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -333,7 +351,7 @@ export class ShortService {
       throw new Error('Cuttly服务配置不完整，请检查API密钥设置')
     }
 
-    const response = await fetch(
+    const response = await this.fetchWithTimeout(
       `https://cutt.ly/api/api.php?key=${token}&short=${encodeURIComponent(url)}`
     )
 
