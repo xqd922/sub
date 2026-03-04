@@ -1,7 +1,7 @@
 import { Proxy, YamlSubscription } from '@/lib/core/types'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
-import { detectRegion, CITY_MAP, MULTI_CITY_COUNTRIES } from '@/lib/format/region'
+import { formatProxies as formatProxiesImpl } from '@/lib/format/proxy'
 import { isProtocolUrl, isGistUrl, shouldFormatNodeNames } from '@/lib/core/protocols'
 import { NetService } from '../metrics/network'
 import { logger } from '@/lib/core/logger'
@@ -58,97 +58,13 @@ export class SubService {
   }
 
   /**
-   * 格式化节点名称（使用传入的计数器避免静态状态）
-   * 格式：
-   * - 多城市国家有城市：🇺🇸 USA Seattle 01 [2x]
-   * - 多城市国家无城市：🇺🇸 United States 01 [2x]
-   * - 单城市国家：🇯🇵 Japan 01 [2x]
-   * - 倍率为1时不显示
-   */
-  private static formatProxyName(proxy: Proxy, counters: Record<string, number>): Proxy {
-    // 先检测城市
-    const cityMatch = Object.keys(CITY_MAP).find(key =>
-      proxy.name.includes(key)
-    )
-
-    // 使用新的 detectRegion 函数检测地区
-    const region = detectRegion(proxy.name)
-
-    if (!region) {
-      return proxy
-    }
-
-    const { flag, code: countryCode, name: regionName } = region
-    const isMultiCityCountry = countryCode in MULTI_CITY_COUNTRIES
-
-    // 提取倍率
-    const multiplier = this.extractMultiplier(proxy.name)
-
-    let displayName: string
-    let counterKey: string
-
-    if (cityMatch && isMultiCityCountry) {
-      // 多城市国家 + 检测到城市 → 🇺🇸 USA Seattle 01
-      const cityInfo = CITY_MAP[cityMatch]
-      const countryShort = MULTI_CITY_COUNTRIES[countryCode].short
-      displayName = `${flag} ${countryShort} ${cityInfo.city}`
-      counterKey = `${countryCode}-${cityInfo.city}`
-    } else if (isMultiCityCountry) {
-      // 多城市国家 + 未检测到城市 → 🇺🇸 United States 01
-      const countryFull = MULTI_CITY_COUNTRIES[countryCode].full
-      displayName = `${flag} ${countryFull}`
-      counterKey = countryCode
-    } else {
-      // 单城市国家 → 🇯🇵 Japan 01
-      displayName = `${flag} ${regionName}`
-      counterKey = regionName
-    }
-
-    // 使用传入的计数器
-    counters[counterKey] = counters[counterKey] || 0
-    const num = String(++counters[counterKey]).padStart(2, '0')
-
-    // 拼接最终名称（倍率非1时显示）
-    const multiplierSuffix = multiplier && multiplier !== 1 ? ` [${multiplier}x]` : ''
-
-    return {
-      ...proxy,
-      name: `${displayName} ${num}${multiplierSuffix}`
-    }
-  }
-
-  /**
-   * 从节点名称中提取倍率
-   */
-  private static extractMultiplier(name: string): number | undefined {
-    // 匹配格式：[2x]、【2x】、(2x)、2x、2×、2倍、x2、*2、倍率:1.5
-    const patterns = [
-      /倍率[：:](\d+\.?\d*)/,              // 倍率:1.5、倍率：2
-      /[【\[\(](\d+\.?\d*)[xX×][】\]\)]/,  // [2x]、【2x】、(2x)
-      /(\d+\.?\d*)[xX×倍]/,                 // 2x、2×、2倍
-      /[xX×*](\d+\.?\d*)/,                  // x2、*2
-    ]
-
-    for (const pattern of patterns) {
-      const match = name.match(pattern)
-      if (match) {
-        return parseFloat(match[1])
-      }
-    }
-
-    return undefined
-  }
-
-  /**
    * 批量格式化节点名称（每次调用创建新的计数器）
    */
   static formatProxies(proxies: Proxy[], shouldFormat: boolean): Proxy[] {
     if (!shouldFormat) {
       return [...proxies]
     }
-    // 每次调用创建新的计数器，避免跨请求状态共享
-    const counters: Record<string, number> = {}
-    return proxies.map(proxy => this.formatProxyName(proxy, counters))
+    return formatProxiesImpl(proxies)
   }
 
   /**
