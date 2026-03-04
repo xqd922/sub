@@ -4,174 +4,117 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 开发命令
 
-- `bun dev` - 在端口 3000 启动开发服务器（已启用 Turbopack）
+- `bun dev` - 启动开发服务器（端口 3000，Turbopack）
 - `bun dev:fast` - 极速开发模式（跳过 lint 和类型检查）
+- `bun dev:cf` - 使用 Wrangler 本地模拟 Cloudflare Pages 环境
 - `bun run build` - 构建生产版本
-- `bun start` - 在端口 3000 启动生产服务器
-- `bun run lint` - 运行 ESLint 进行代码质量检查
+- `bun run build:cf` - 构建 Cloudflare Pages 版本（build + pages:build）
+- `bun start` - 启动生产服务器
+- `bun run lint` - ESLint 检查
 
-## 运行时配置
+项目无测试框架，使用 `bun run build` 做类型检查验证。
 
-**重要**：所有 API 路由使用 Edge 运行时 (`export const runtime = 'edge'`)，这是为了兼容 Cloudflare Pages 部署。Edge 运行时支持全球边缘部署，提供更快的响应速度和更好的可扩展性。
+## 关键约束
+
+- **必须使用 Bun** 作为包管理器和运行时，不使用 npm
+- **所有 API 路由必须声明** `export const runtime = 'edge'`（Cloudflare Pages 兼容）
+- **Edge Runtime 限制**：不可使用 Node.js 专有 API（fs、path 等）
+- **导入路径**：使用 `@/` 根目录别名
+- **UI 框架**：HeroUI (v3 beta) + Tailwind CSS v4
+- **React StrictMode 已禁用**（`next.config.ts` 中 `reactStrictMode: false`）
 
 ## 项目概述
 
-### 核心功能
-这是一个完整的订阅转换网页应用，提供用户友好的界面来转换代理订阅链接。应用将订阅链接转换为适用于不同客户端（Clash、Sing-box）的标准化配置，同时提供短链接生成功能。
+订阅转换网页应用：将代理订阅链接转换为 Clash / Sing-box / v2rayNG 格式，提供管理后台和短链接服务。
 
-## 架构设计
-
-### 项目结构
-```
-project/
-├── app/            # Next.js App Router（路由和页面）
-├── lib/            # 工具库（核心工具、解析器、格式化器）
-├── features/       # 功能模块（业务逻辑）
-├── config/         # 配置生成器
-├── styles/         # 样式文件
-└── public/         # 静态资源
-```
-
-### 功能模块架构 (features/)
-项目采用功能模块化架构，业务逻辑集中在 `features/` 目录：
-
-- **convert/** - 订阅转换核心
-  - `handler.ts` - 请求处理器（CoreService）
-  - `processor.ts` - 订阅处理器（SubService）
-  - `builder.ts` - 配置构建器（ConfigService）
-
-- **metrics/** - 监控和网络
-  - `network.ts` - 网络请求服务（NetService）
-
-- **shorten/** - 短链接服务
-  - `shortener.ts` - 短链接生成（ShortService）
-
-### 工具库架构 (lib/)
-工具库按功能分层组织：
-
-- **core/** - 核心基础设施
-  - `types.ts` - 类型定义
-  - `utils.ts` - 通用工具
-  - `logger.ts` - 日志系统
-
-- **parse/** - 解析器
-  - `node.ts` - 节点解析器
-  - `subscription.ts` - 订阅解析器
-  - `remote.ts` - 远程节点获取器
-  - `protocols/` - 协议解析器目录
-
-- **format/** - 格式化器
-  - `node.ts` - 节点格式化
-  - `region.ts` - 地区映射
-
-- **error/** - 错误处理
-  - `errors.ts` - 错误定义
-  - `reporter.ts` - 错误报告器
+## 架构概览
 
 ### 请求处理流程
 
-1. **API 入口**: `/sub` 路由接收请求
-2. **请求协调**: `CoreService.handleRequest()` 统一处理
-3. **订阅处理**: `SubService` 解析不同类型的订阅源
-4. **配置生成**: `ConfigService` 根据客户端类型生成配置
-5. **响应返回**: 智能检测客户端返回对应格式
-
-### 客户端检测系统
-
-应用通过 User-Agent 自动检测客户端类型：
-- **Clash 客户端**: 返回 YAML 配置
-- **Sing-box 客户端**: 返回 JSON 配置
-- **浏览器访问**: 返回 HTML 预览页面（并排显示两种配置）
-
-### 支持的输入格式
-
-- 标准订阅 URL（base64 编码或 YAML）
-- 单节点链接（ss://、vmess://、trojan://、vless://、hysteria2://、hy2://）
-- GitHub Gist URL（节点集合）
-
-### 错误处理系统
-
-项目实现了统一的错误处理架构：
-- **AppError 类**: 结构化错误信息，包含错误码、严重级别、请求 ID
-- **ErrorReporter**: 自动错误收集、上报和监控
-- **GlobalErrorBoundary**: React 错误边界组件，防止崩溃
-
-### 性能优化特性
-
-- **Turbopack**: 启用 Next.js 的下一代打包器
-- **智能 User-Agent 策略**: 根据客户端类型发送对应的真实 User-Agent，未知客户端时启用容灾轮换
-- **代码分割**: 组件级别的懒加载和动态导入
-
-### 智能 User-Agent 策略
-
-网络请求采用智能的 User-Agent 策略，提高订阅获取的成功率：
-
-**基本原则**:
-- **真实性优先**: 根据实际客户端发送对应的 User-Agent（如 Clash 客户端请求就用 Clash 的 User-Agent）
-- **容灾轮换**: 对于未知客户端或远程节点获取，使用预设的真实客户端标识进行轮换
-
-**容灾 User-Agent 池**:
-- `clash.meta/v1.19.13` - Clash Meta 客户端
-- `mihomo/v1.18.5` - Mihomo 客户端
-
-**应用场景**:
-- **订阅转换**: 使用客户端真实 User-Agent，提高兼容性和成功率
-- **远程节点获取**: 启用容灾轮换，避免被服务器屏蔽
-- **重试机制**: 失败时轮换不同的客户端标识，增强容错能力
-
-这样当你的订阅转换服务请求外部订阅链接时，会优先使用真实的客户端标识，让目标服务器认为请求来自合法的代理客户端，而不是网页应用。
-
-## 重要注意事项
-
-### 导入路径约定
-- 使用 `@/` 作为根目录别名
-- 功能模块通过 `@/features` 统一导出
-- 工具库通过具体路径导入（如 `@/lib/core/types`）
-
-### 开发环境配置
-- TypeScript 严格模式在开发时放宽，生产时严格
-- 禁用 React StrictMode 以提高开发体验
-- 使用 Bun 作为包管理器，避免使用 npm
-
-### 部署配置
-- 支持 Cloudflare Pages 和 Vercel 部署
-- 使用 Edge Runtime 实现全球边缘部署
-- 支持静态生成和服务器渲染的混合模式
-
-## Cloudflare Pages 部署
-
-### 前置准备
-项目使用 `@cloudflare/next-on-pages` 适配器将 Next.js 应用转换为 Cloudflare Pages 兼容格式。
-
-### 部署步骤
-1. 连接 GitHub 仓库到 Cloudflare Pages
-2. 配置构建设置：
-   - 框架预设：`Next.js`
-   - 构建命令：`bun run build && bun run pages:build`
-   - 构建输出目录：`.vercel/output/static`
-   - 环境变量（必须）：
-     - `NODE_VERSION=18`
-     - `BUN_VERSION=latest`
-3. 部署完成后自动生成预览和生产环境 URL
-
-### 本地测试 Cloudflare 构建
-```bash
-# 安装依赖
-bun install
-
-# 构建 Next.js
-bun run build
-
-# 构建 Cloudflare Pages 版本
-bun run pages:build
+```
+请求 → app/sub/route.ts → CoreService.handleRequest()
+  → 检测客户端类型（User-Agent）
+  → SubService.processSubscription() 解析订阅源
+  → ConfigService 生成对应格式配置
+  → 返回响应（YAML / JSON / Base64 / HTML 预览）
 ```
 
-### 环境变量（可选）
-- 在 Cloudflare Pages 设置中添加所需的环境变量
-- 支持生产和预览环境的独立配置
+### 服务层 (features/)
 
-### 注意事项
-- 所有 API 路由必须使用 `export const runtime = 'edge'`
-- Edge Runtime 不支持 Node.js 特定的 API（如 fs、path 等）
-- 静态资源会自动部署到 Cloudflare CDN
-- 必须使用 Bun 作为包管理器和运行时
+三个核心服务通过 `features/index.ts` 统一导出：
+
+- **CoreService** (`convert/handler.ts`) - 请求协调器，检测客户端、调度订阅处理和配置生成、记录转换日志到 KV
+- **SubService** (`convert/processor.ts`) - 订阅处理，解析三种输入（标准订阅 URL / 单节点链接 / Gist URL），节点名格式化（国旗+地区+编号）
+- **ConfigService** (`convert/builder.ts`) - 配置生成，客户端检测逻辑在此。支持四种输出：Clash YAML、Sing-box JSON、v2rayNG Base64、浏览器 HTML 预览
+- **NetService** (`metrics/network.ts`) - 网络层，封装重试、超时、User-Agent 轮换策略
+- **ShortService** (`shorten/shortener.ts`) - 短链接生成，多 provider 降级（KV → TinyURL → Sink → Bitly）
+
+### 客户端检测规则 (ConfigService.detectClientType)
+
+- `sing-box|SFA|SFI|SFM|SFT` → Sing-box（返回 JSON）
+- `v2rayn|v2rayng|quantumult|shadowrocket|surge|loon` → v2rayNG（返回 Base64）
+- 其他非浏览器 UA → Clash（返回 YAML）
+- 浏览器 → HTML 预览页面
+
+### 解析层 (lib/parse/)
+
+- `subscription.ts` - 订阅解析（YAML 和 Base64 两种格式）
+- `node.ts` - 单节点链接解析（`SingleNodeParser` 类）
+- `remote.ts` - 从 Gist 获取远程节点
+- `protocols/` - 协议解析器：shadowsocks、vmess、trojan、vless、hysteria2、socks、anytls
+
+### 配置生成 (config/)
+
+- `clash.ts` - Clash 配置，包含代理组生成逻辑（Manual/Auto/Emby/AI/HK/Min），规则提供者配置
+- `singbox.ts` - Sing-box 配置，包含 DNS、入站（tun/socks/mixed）、出站和路由规则
+
+`isAirportSubscription` 标志控制是否生成 Min（低延迟）代理组——仅对机场订阅生效。
+
+### KV 存储层 (lib/kv/)
+
+基于 Cloudflare KV 的持久化层，本地开发使用 mock：
+
+- `client.ts` - KV 客户端，`getKV()` 自动检测环境
+- `records.ts` - 转换记录服务（记录每次转换、统计数据）
+- `shortlink.ts` - 短链接 CRUD
+- `types.ts` - KV 键前缀和数据结构定义
+
+### 管理后台
+
+- 路由：`/admin`（前端）、`/api/admin/*`（API）
+- 功能：查看/删除转换记录、管理短链接、查看统计
+- 认证：Session token（SHA-256），Bearer token 验证（`lib/auth/index.ts`）
+- 组件在 `app/admin/components/`，hooks 在 `app/admin/hooks/`
+
+### 网络策略 (NetService)
+
+- 订阅获取：固定 `ClashX/1.95.1` UA
+- 远程节点获取：轮换 `clash.meta/v1.19.13` 和 `mihomo/v1.18.5`
+- 超时：订阅 30s、远程节点 15s、短链接 5s
+- 重试：3 次，指数退避
+
+### 节点处理特性
+
+- **去重** (`lib/core/dedup.ts`)：按代理配置生成唯一键，过滤信息节点（含"官网""流量""到期"等关键词）和无效服务器（私有 IP、DNS 服务器）
+- **名称格式化**：国旗检测 + 地区识别 + 城市检测（多城市国家如美国会显示城市名）+ 倍率提取（`[2x]`、`2×`、`倍率:2`）+ 编号
+- **链式代理**：支持 `chain:`、`dialer-proxy:`（Clash）、`detour:`（Sing-box）
+
+## API 路由
+
+| 路由 | 方法 | 说明 |
+|------|------|------|
+| `/sub` | GET | 订阅转换（主端点） |
+| `/api/shorten` | POST/GET | 短链接生成 |
+| `/s/[id]` | GET | 短链接重定向 |
+| `/api/admin/login` | POST | 管理员登录 |
+| `/api/admin/records` | GET | 转换记录列表 |
+| `/api/admin/records/[id]` | GET/DELETE | 单条记录管理 |
+| `/api/admin/shortlinks` | GET | 短链接列表 |
+| `/api/admin/shortlinks/[id]` | DELETE | 删除短链接 |
+| `/api/admin/stats` | GET | 统计数据 |
+
+## 部署
+
+主要部署目标为 **Cloudflare Pages**，使用 `@cloudflare/next-on-pages` 适配器。
+构建命令：`bun run build && bun run pages:build`，输出目录：`.vercel/output/static`。
+也支持 Vercel 直接部署。
