@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ShortLinkService } from '@/lib/kv'
-import { validateAdminAuth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { logger } from '@/lib/core/logger'
 
 export const runtime = 'edge'
@@ -13,9 +13,8 @@ interface RouteParams {
  * DELETE /api/admin/shortlinks/[id] - 删除短链接
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
-  if (!(await validateAdminAuth(request))) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 })
-  }
+  const denied = await requireAuth(request)
+  if (denied) return denied
 
   const { id } = await params
 

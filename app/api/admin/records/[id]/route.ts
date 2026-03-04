@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { RecordService } from '@/lib/kv'
-import { validateAdminAuth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { logger } from '@/lib/core/logger'
 
 export const runtime = 'edge'
@@ -13,9 +13,8 @@ interface RouteParams {
  * GET /api/admin/records/[id] - 获取单条记录
  */
 export async function GET(request: Request, { params }: RouteParams) {
-  if (!(await validateAdminAuth(request))) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 })
-  }
+  const denied = await requireAuth(request)
+  if (denied) return denied
 
   const { id } = await params
 
@@ -35,9 +34,8 @@ export async function GET(request: Request, { params }: RouteParams) {
  * PUT /api/admin/records/[id] - 更新记录
  */
 export async function PUT(request: Request, { params }: RouteParams) {
-  if (!(await validateAdminAuth(request))) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 })
-  }
+  const denied = await requireAuth(request)
+  if (denied) return denied
 
   const { id } = await params
 
@@ -64,9 +62,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
  * DELETE /api/admin/records/[id] - 删除记录（软删除，链接将失效）
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
-  if (!(await validateAdminAuth(request))) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 })
-  }
+  const denied = await requireAuth(request)
+  if (denied) return denied
 
   const { id } = await params
 
