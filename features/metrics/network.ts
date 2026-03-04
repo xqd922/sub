@@ -158,55 +158,24 @@ export class NetService {
   }
 
   /**
-   * 处理订阅URL参数
-   */
-  static processSubscriptionUrl(url: string): string {
-    const urlObj = new URL(url)
-    urlObj.searchParams.set('flag', 'meta')
-    urlObj.searchParams.set('types', 'all')
-    return urlObj.toString()
-  }
-
-  /**
    * 订阅专用网络请求 - 使用固定的 ClashX User-Agent 确保订阅获取成功
    */
   static async fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
-    // 使用固定的 ClashX/1.95.1 User-Agent 确保订阅获取成功
     const userAgent = 'ClashX/1.95.1'
     logger.info(`订阅请求 User-Agent: ${userAgent} (客户端原始: ${clientUserAgent || 'undefined'})`)
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': userAgent,
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        redirect: 'follow',
-        signal: controller.signal,
-        cache: 'no-store',
-        credentials: 'omit',
-        mode: 'cors',
-        referrerPolicy: 'no-referrer'
-      })
-
-      clearTimeout(timeout)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+    return this.fetchWithRetry(url, {
+      retries: 3,
+      timeout: 30000,
+      userAgent,
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       }
-
-      return response
-    } catch (error) {
-      clearTimeout(timeout)
-      throw error
-    }
+    })
   }
 
   /**
