@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { parsePort } from '../../core/utils'
 
 /**
  * SOCKS 协议解析器
@@ -89,7 +90,7 @@ export class SocksProtocol {
       type: 'socks5',
       name: decodedRemark || server,
       server,
-      port: parseInt(port),
+      port: parsePort(port, 1080),
       ...(username && { username }),
       ...(password && { password })
     }
@@ -111,7 +112,7 @@ export class SocksProtocol {
       type: 'socks',
       tag: proxy.name,
       server: proxy.server,
-      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
+      server_port: parsePort(proxy.port, 1080),
       version: '5',
       ...(proxy.username && { username: proxy.username }),
       ...(proxy.password && { password: proxy.password })

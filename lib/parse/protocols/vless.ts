@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { parsePort } from '../../core/utils'
 
 /**
  * VLess 协议解析器
@@ -36,7 +37,7 @@ export class VLessProtocol {
       type: 'vless',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
       server: server,
-      port: parseInt(url.port),
+      port: parsePort(url.port),
       uuid: url.username,
       tls: security === 'tls' || security === 'reality',
       ...(flow && { flow }),
@@ -92,7 +93,7 @@ export class VLessProtocol {
       type: 'vless',
       tag: proxy.name,
       server: proxy.server,
-      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
+      server_port: parsePort(proxy.port),
       uuid: proxy.uuid || '',
       ...(proxy.flow && { flow: proxy.flow }),
       packet_encoding: 'xudp'

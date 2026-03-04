@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { parsePort } from '../../core/utils'
 
 /**
  * Trojan 协议解析器
@@ -16,7 +17,7 @@ export class TrojanProtocol {
       type: 'trojan',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
       server: url.hostname,
-      port: parseInt(url.port),
+      port: parsePort(url.port),
       password: url.username,
       sni: params.get('sni') || url.hostname,
       'skip-cert-verify': params.get('allowInsecure') === '1'
@@ -66,7 +67,7 @@ export class TrojanProtocol {
       type: 'trojan',
       tag: proxy.name,
       server: proxy.server,
-      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
+      server_port: parsePort(proxy.port),
       password: proxy.password || '',
       tls: {
         enabled: true,

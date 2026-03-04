@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { parsePort } from '../../core/utils'
 
 /**
  * VMess 协议解析器
@@ -26,7 +27,7 @@ export class VMessProtocol {
       type: 'vmess',
       name: config.ps || server,
       server: server,
-      port: parseInt(config.port),
+      port: parsePort(config.port),
       uuid: config.id,
       alterId: parseInt(config.aid) || 0,
       cipher: 'auto',
@@ -71,7 +72,7 @@ export class VMessProtocol {
       type: 'vmess',
       tag: proxy.name,
       server: proxy.server,
-      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
+      server_port: parsePort(proxy.port),
       uuid: proxy.uuid || '',
       security: proxy.cipher || 'auto',
       alter_id: proxy.alterId || 0

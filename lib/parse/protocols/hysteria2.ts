@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { parsePort } from '../../core/utils'
 
 /**
  * Hysteria2 协议解析器
@@ -31,7 +32,7 @@ export class Hysteria2Protocol {
       type: 'hysteria2',
       name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
       server: server,
-      port: parseInt(url.port),
+      port: parsePort(url.port),
       password: url.username,
       sni: url.searchParams.get('sni') || '',
       'skip-cert-verify': url.searchParams.get('insecure') === '1',
@@ -67,7 +68,7 @@ export class Hysteria2Protocol {
       type: 'hysteria2',
       tag: proxy.name,
       server: proxy.server,
-      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
+      server_port: parsePort(proxy.port),
       password: proxy.password || '',
       tls: {
         enabled: true,

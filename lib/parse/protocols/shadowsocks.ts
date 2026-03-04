@@ -1,4 +1,5 @@
 import { Proxy, SingboxProxyConfig } from '../../core/types'
+import { parsePort } from '../../core/utils'
 import { logger } from '../../core/logger'
 
 /**
@@ -165,7 +166,7 @@ export class SSProtocol {
       type: 'ss',
       name: decodedRemark || server,
       server,
-      port: parseInt(port),
+      port: parsePort(port),
       'client-fingerprint': 'chrome',
       cipher: method,
       password: cleanPassword
@@ -221,7 +222,7 @@ export class SSProtocol {
       type: 'shadowsocks',
       tag: proxy.name,
       server: proxy.server,
-      server_port: typeof proxy.port === 'number' ? proxy.port : parseInt(String(proxy.port)),
+      server_port: parsePort(proxy.port),
       method: proxy['encrypt-method'] || proxy.cipher || 'aes-256-gcm',
       password: proxy.password || '',
       // 添加插件支持
