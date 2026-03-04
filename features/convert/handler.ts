@@ -231,10 +231,9 @@ export class CoreService {
 
     // 返回错误响应
     const { status, body } = createErrorResponse(enhancedError)
-    return new NextResponse(JSON.stringify(body), {
+    return NextResponse.json(body, {
       status,
       headers: {
-        'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Access-Control-Allow-Origin': '*'
       }
