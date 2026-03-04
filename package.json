@@ -8,7 +8,6 @@
     "dev:fast": "next dev --turbo --no-lint --no-type-check",
     "build": "next build",
     "build:cf": "bun run build && bun x @cloudflare/next-on-pages",
-    "pages:deploy": "bun run build && bun x @cloudflare/next-on-pages",
     "start": "next start",
     "lint": "next lint"
   },
