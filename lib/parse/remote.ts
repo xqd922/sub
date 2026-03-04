@@ -9,7 +9,7 @@ import { Proxy } from '../core/types'
 import { logger } from '../core/logger'
 import { NetService } from '@/features'
 import { deduplicateProxies } from '../core/dedup'
-import { formatProxiesShort } from '../format/proxy'
+import { formatProxies, formatProxiesShort } from '../format/proxy'
 
 /** 支持的单节点协议前缀 */
 const SINGLE_NODE_PREFIXES = [
@@ -59,12 +59,15 @@ export async function fetchNodesFromRemote(url: string): Promise<{
       }
     }
 
-    // 1. 先解析订阅链接，收集机场节点名称（带容错）
+    // 1. 先解析订阅链接，格式化节点名称（带容错）
     const subscriptionResults: Proxy[][] = []
+    const subCounters: Record<string, number> = {}  // 跨订阅共享计数器，保持编号连续
     for (const line of subscriptionLines) {
       try {
         const proxies = await parseSubscription(line)
-        subscriptionResults.push(proxies)
+        // 对订阅节点应用名称格式化，使用共享计数器保持编号连续
+        const formatted = formatProxies(proxies, subCounters)
+        subscriptionResults.push(formatted)
       } catch (error) {
         logger.warn(`订阅解析失败，跳过: ${line}`, error)
         subscriptionResults.push([])  // 失败时返回空数组
@@ -72,7 +75,7 @@ export async function fetchNodesFromRemote(url: string): Promise<{
     }
     const subscriptionProxies = subscriptionResults.flat()
     const subNames = new Set(subscriptionProxies.map(p => p.name))
-    logger.info(`Gist 订阅节点: ${subscriptionProxies.length} 个`)
+    logger.info(`Gist 订阅节点: ${subscriptionProxies.length} 个（已格式化名称）`)
 
     // 2. 解析自建单节点（保留原名）
     const singleNodeProxies = await Promise.all(
