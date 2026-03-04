@@ -7,8 +7,7 @@ import { Proxy, ProxyConfig } from '../core/types'
 import yaml from 'js-yaml'
 import { logger } from '../core/logger'
 import { NetService } from '@/features'
-import { VLessProtocol } from './protocols/vless'
-import { Hysteria2Protocol } from './protocols/hysteria2'
+import { SingleNodeParser } from './node'
 import { deduplicateProxies } from '../core/dedup'
 
 /**
@@ -59,9 +58,14 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
 
 /** 解析 YAML 格式订阅 */
 function parseYamlSubscription(text: string): Proxy[] {
-  const config = yaml.load(text) as ProxyConfig
-  const proxies = config.proxies || []
-  return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
+  try {
+    const config = yaml.load(text) as ProxyConfig
+    const proxies = config.proxies || []
+    return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
+  } catch (e) {
+    logger.warn('YAML 解析失败:', e instanceof Error ? e.message : String(e))
+    return []
+  }
 }
 
 /** 解析 Base64 格式订阅 */
@@ -77,20 +81,7 @@ function parseBase64Subscription(text: string): Proxy[] {
     if (!trimmed) continue
 
     try {
-      let proxy: Proxy | null = null
-
-      if (trimmed.startsWith('ss://')) {
-        proxy = parseSS(trimmed)
-      } else if (trimmed.startsWith('vmess://')) {
-        proxy = parseVmess(trimmed)
-      } else if (trimmed.startsWith('trojan://')) {
-        proxy = parseTrojan(trimmed)
-      } else if (trimmed.startsWith('vless://')) {
-        proxy = VLessProtocol.parse(trimmed)
-      } else if (trimmed.startsWith('hysteria2://') || trimmed.startsWith('hy2://')) {
-        proxy = Hysteria2Protocol.parse(trimmed)
-      }
-
+      const proxy = SingleNodeParser.parse(trimmed)
       if (proxy) proxies.push(proxy)
     } catch (e) {
       failedCount++
@@ -108,76 +99,4 @@ function parseBase64Subscription(text: string): Proxy[] {
   }
 
   return proxies
-}
-
-/** 解析 Shadowsocks 节点 */
-export function parseSS(line: string): Proxy {
-  const url = new URL(line)
-  const [method, password] = Buffer.from(url.username, 'base64').toString().split(':')
-
-  return {
-    name: url.hash ? decodeURIComponent(url.hash.slice(1)) : `${url.hostname}:${url.port}`,
-    type: 'ss',
-    server: url.hostname,
-    port: parseInt(url.port),
-    cipher: method || 'aes-256-gcm',
-    password: password || ''
-  }
-}
-
-/** 解析 VMess 节点 */
-export function parseVmess(line: string): Proxy {
-  const config = JSON.parse(Buffer.from(line.slice(8), 'base64').toString())
-
-  const proxy: Proxy = {
-    name: config.ps || `${config.add}:${config.port}`,
-    type: 'vmess',
-    server: config.add,
-    port: parseInt(config.port),
-    uuid: config.id,
-    alterId: parseInt(config.aid),
-    cipher: 'auto',
-    tls: config.tls === 'tls',
-    network: config.net,
-    wsPath: config.path
-  }
-
-  if (config.host) {
-    proxy.wsHeaders = { Host: config.host }
-  }
-
-  return proxy
-}
-
-/** 解析 Trojan 节点 */
-export function parseTrojan(line: string): Proxy {
-  const url = new URL(line)
-  const params = url.searchParams
-
-  const proxy: Proxy = {
-    name: url.hash ? decodeURIComponent(url.hash.slice(1)) : `${url.hostname}:${url.port}`,
-    type: 'trojan',
-    server: url.hostname,
-    port: parseInt(url.port),
-    password: url.username,
-    sni: params.get('sni') || url.hostname,
-    'skip-cert-verify': params.get('allowInsecure') === '1'
-  }
-
-  const transportType = params.get('type')
-  if (transportType === 'grpc') {
-    proxy.network = 'grpc'
-    proxy['grpc-opts'] = { 'grpc-service-name': params.get('serviceName') || '' }
-    if (params.get('mode') === 'gun') {
-      proxy['grpc-opts']['grpc-mode'] = 'gun'
-    }
-  } else if (transportType === 'ws') {
-    proxy.network = 'ws'
-    proxy['ws-opts'] = {
-      path: params.get('path') || '/',
-      headers: params.get('host') ? { Host: params.get('host')! } : {}
-    }
-  }
-
-  return proxy
 }

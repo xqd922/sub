@@ -143,11 +143,3 @@ export class SingleNodeParser {
     }
   }
 }
-
-// 兼容性导出 - 保持向后兼容
-export const parseShadowsocks = SSProtocol.parse
-export const parseVmess = VMessProtocol.parse
-export const parseTrojan = TrojanProtocol.parse
-export const parseVless = VLessProtocol.parse
-export const parseHysteria2 = Hysteria2Protocol.parse
-export const generateShadowsocksURL = SSProtocol.generateURL
