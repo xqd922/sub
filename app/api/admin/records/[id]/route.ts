@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { RecordService } from '@/lib/kv'
 import { validateAdminAuth } from '@/lib/auth'
+import { logger } from '@/lib/core/logger'
 
 export const runtime = 'edge'
 
@@ -25,7 +26,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
     return NextResponse.json(record)
   } catch (error) {
-    console.error('获取记录失败:', error)
+    logger.error('获取记录失败:', error)
     return NextResponse.json({ error: '获取记录失败' }, { status: 500 })
   }
 }
@@ -54,7 +55,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     return NextResponse.json(record)
   } catch (error) {
-    console.error('更新记录失败:', error)
+    logger.error('更新记录失败:', error)
     return NextResponse.json({ error: '更新记录失败' }, { status: 500 })
   }
 }
@@ -76,7 +77,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('删除记录失败:', error)
+    logger.error('删除记录失败:', error)
     return NextResponse.json({ error: '删除记录失败' }, { status: 500 })
   }
 }

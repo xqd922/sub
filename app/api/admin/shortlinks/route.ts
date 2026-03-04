@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ShortLinkService } from '@/lib/kv'
 import { validateAdminAuth } from '@/lib/auth'
+import { logger } from '@/lib/core/logger'
 
 export const runtime = 'edge'
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     const shortLinks = await ShortLinkService.getAll()
     return NextResponse.json({ shortLinks, total: shortLinks.length })
   } catch (error) {
-    console.error('获取短链接失败:', error)
+    logger.error('获取短链接失败:', error)
     return NextResponse.json({ error: '获取短链接失败' }, { status: 500 })
   }
 }
