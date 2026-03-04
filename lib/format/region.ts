@@ -134,6 +134,18 @@ for (const [code, data] of Object.entries(REGIONS)) {
   }
 }
 
+/** 预排序的中文关键词（按长度降序，避免短词误匹配） */
+const SORTED_CHINESE_KEYS = Object.keys(CHINESE_TO_ISO).sort((a, b) => b.length - a.length)
+
+/** 预排序的英文关键词（按长度降序） */
+const SORTED_ENGLISH_KEYS = Object.keys(ENGLISH_TO_ISO).sort((a, b) => b.length - a.length)
+
+/** 预编译的英文关键词正则（避免每次调用 new RegExp） */
+const ENGLISH_KEY_REGEXES: Map<string, RegExp> = new Map()
+for (const key of SORTED_ENGLISH_KEYS) {
+  ENGLISH_KEY_REGEXES.set(key, new RegExp(`(^|[^A-Za-z])${key}([^A-Za-z]|$)`, 'i'))
+}
+
 /**
  * 特殊旗帜覆盖映射
  * 用于覆盖某些地区的默认旗帜
@@ -196,9 +208,8 @@ export function detectRegion(nodeName: string): RegionInfo | null {
     }
   }
 
-  // 2. 检测中文关键词（按长度降序，避免短词误匹配）
-  const chineseKeys = Object.keys(CHINESE_TO_ISO).sort((a, b) => b.length - a.length)
-  for (const key of chineseKeys) {
+  // 2. 检测中文关键词（已预排序）
+  for (const key of SORTED_CHINESE_KEYS) {
     if (nodeName.includes(key)) {
       const code = CHINESE_TO_ISO[key]
       return {
@@ -209,11 +220,9 @@ export function detectRegion(nodeName: string): RegionInfo | null {
     }
   }
 
-  // 3. 检测英文缩写（需要边界匹配，避免 "US" 匹配到 "RUS"）
-  const englishKeys = Object.keys(ENGLISH_TO_ISO).sort((a, b) => b.length - a.length)
-  for (const key of englishKeys) {
-    // 使用单词边界匹配
-    const regex = new RegExp(`(^|[^A-Za-z])${key}([^A-Za-z]|$)`, 'i')
+  // 3. 检测英文缩写（使用预编译正则，避免 "US" 匹配到 "RUS"）
+  for (const key of SORTED_ENGLISH_KEYS) {
+    const regex = ENGLISH_KEY_REGEXES.get(key)!
     if (regex.test(nodeName)) {
       const code = ENGLISH_TO_ISO[key]
       return {
