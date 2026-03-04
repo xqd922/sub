@@ -55,8 +55,8 @@ export class ConfigService {
   /**
    * 生成 Sing-box JSON 配置
    */
-  static generateSingboxConfig(proxies: Proxy[], shouldFormatNames: boolean): string {
-    const config = buildSingboxConfig(proxies, shouldFormatNames)
+  static generateSingboxConfig(proxies: Proxy[]): string {
+    const config = buildSingboxConfig(proxies)
     return JSON.stringify(config, null, 2)
   }
 
@@ -65,6 +65,13 @@ export class ConfigService {
    */
   static generateV2rayNGConfig(proxies: Proxy[]): string {
     return generateBase64Subscription(proxies)
+  }
+
+  /**
+   * HTML 转义，防止 XSS
+   */
+  private static escapeHtml(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   }
 
   /**
@@ -83,11 +90,11 @@ export class ConfigService {
       <body>
         <div class="container">
           <h2>Clash 配置</h2>
-          <pre>${yamlConfig}</pre>
+          <pre>${this.escapeHtml(yamlConfig)}</pre>
         </div>
         <div class="container">
           <h2>sing-box 配置</h2>
-          <pre>${jsonConfig}</pre>
+          <pre>${this.escapeHtml(jsonConfig)}</pre>
         </div>
       </body>
       </html>
@@ -146,7 +153,6 @@ export class ConfigService {
         if (value.startsWith('http://') || value.startsWith('https://')) {
           try {
             const url = new URL(value)
-            url.hostname = url.hostname
             return url.toString()
           } catch {
             return encodeURIComponent(value)

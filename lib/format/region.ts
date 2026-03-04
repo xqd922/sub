@@ -314,32 +314,3 @@ for (const cityData of CITIES) {
   }
 }
 
-// ============ 兼容旧 API（保持向后兼容）============
-
-/** @deprecated 使用 detectRegion 代替 */
-export const REGION_MAP = new Proxy({} as Record<string, RegionInfo>, {
-  get(_target, prop: string) {
-    // 尝试各种方式获取地区信息
-    const region = detectRegion(prop)
-    if (region) {
-      return {
-        flag: region.flag,
-        name: region.code,
-        en: region.name
-      }
-    }
-    return undefined
-  },
-  has(_target, prop: string) {
-    return detectRegion(prop) !== null
-  },
-  ownKeys() {
-    return Object.keys(CHINESE_TO_ISO).concat(Object.keys(ENGLISH_TO_ISO))
-  },
-  getOwnPropertyDescriptor() {
-    return { enumerable: true, configurable: true }
-  }
-})
-
-/** @deprecated 使用 detectRegion 返回的 code 代替 */
-export type RegionCode = string

@@ -83,7 +83,6 @@ export class CoreService {
         isSingBox,
         isV2rayNG,
         isBrowser,
-        shouldFormat,
         isAirportSubscription
       )
 
@@ -125,13 +124,12 @@ export class CoreService {
     isSingBox: boolean,
     isV2rayNG: boolean,
     isBrowser: boolean,
-    shouldFormatNames: boolean,
     isAirportSubscription: boolean
   ): NextResponse {
 
     if (isSingBox) {
       // Sing-box JSON 配置
-      const jsonConfig = ConfigService.generateSingboxConfig(formattedProxies, shouldFormatNames)
+      const jsonConfig = ConfigService.generateSingboxConfig(formattedProxies)
       const headers = ConfigService.generateResponseHeaders(subscription, true, false)
       return new NextResponse(jsonConfig, { headers })
     }
@@ -153,7 +151,7 @@ export class CoreService {
     if (isBrowser) {
       // 浏览器预览，生成两种配置
       const yamlConfig = ConfigService.generateClashConfig(formattedProxies, isAirportSubscription)
-      const jsonConfig = ConfigService.generateSingboxConfig(formattedProxies, shouldFormatNames)
+      const jsonConfig = ConfigService.generateSingboxConfig(formattedProxies)
       const headers = ConfigService.generateResponseHeaders(subscription, false, true)
       const html = ConfigService.generatePreviewHtml(yamlConfig, jsonConfig)
       return new NextResponse(html, { headers })
