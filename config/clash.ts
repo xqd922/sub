@@ -133,14 +133,6 @@ export const defaultConfig: ClashConfig = {
   'proxies': [],
   'proxy-groups': [],
   'rule-providers': {
-    'AWAvenue-Ads': {
-      'type': 'http',
-      'behavior': 'domain',
-      'format': 'mrs',
-      'url': 'https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.mrs',
-      'path': './rule_providers/AWAvenue-Ads.mrs',
-      'interval': 86400
-    },
     'private': {
       'type': 'http',
       'behavior': 'domain',
@@ -250,9 +242,6 @@ export const defaultConfig: ClashConfig = {
     // 私有网络 - 优先直连
     'RULE-SET,private,DIRECT',
     'RULE-SET,private-ip,DIRECT,no-resolve',
-
-    // 广告过滤
-    'RULE-SET,AWAvenue-Ads,REJECT',
 
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
