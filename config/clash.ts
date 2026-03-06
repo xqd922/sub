@@ -125,7 +125,6 @@ export const defaultConfig: ClashConfig = {
     'use-hosts': true,
     'fake-ip-filter': [
       'rule-set:private',
-      'rule-set:private-ip',
       '+.market.xiaomi.com',
       'lancache.steamcontent.com',
       '+.edu.cn'
