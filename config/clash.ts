@@ -90,7 +90,7 @@ export const defaultConfig: ClashConfig = {
   'find-process-mode': 'always',
   'external-controller': '0.0.0.0:9090',
   'external-ui': 'ui',
-  'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
+  'external-ui-url': 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.zip',
   'secret': '',
   'profile': {
     'store-selected': true,
