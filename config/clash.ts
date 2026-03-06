@@ -87,7 +87,7 @@ export const defaultConfig: ClashConfig = {
   'ipv6': true,
   'unified-delay': true,
   'tcp-concurrent': true,
-  'find-process-mode': 'off',
+  'find-process-mode': 'always',
   'external-controller': '0.0.0.0:9090',
   'external-ui': 'ui',
   'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
@@ -124,6 +124,8 @@ export const defaultConfig: ClashConfig = {
     },
     'use-hosts': true,
     'fake-ip-filter': [
+      'rule-set:private',
+      'rule-set:private-ip',
       '+.market.xiaomi.com',
       'lancache.steamcontent.com',
       '+.edu.cn'
