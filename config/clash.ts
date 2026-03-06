@@ -246,12 +246,12 @@ export const defaultConfig: ClashConfig = {
     }
   },
   'rules': [
-    // 广告过滤
-    'RULE-SET,AWAvenue-Ads,REJECT',
-
     // 私有网络 - 优先直连
     'RULE-SET,private,DIRECT',
     'RULE-SET,private-ip,DIRECT,no-resolve',
+
+    // 广告过滤
+    'RULE-SET,AWAvenue-Ads,REJECT',
 
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
