@@ -87,8 +87,10 @@ export const defaultConfig: ClashConfig = {
   'ipv6': true,
   'unified-delay': true,
   'tcp-concurrent': true,
+  'keep-alive-idle': 300,
+  'keep-alive-interval': 75,
   'find-process-mode': 'strict',
-  'external-controller': '0.0.0.0:9090',
+  'external-controller': '[::]:9090',
   'external-ui': 'ui',
   'external-ui-url': 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.zip',
   'secret': '',
@@ -112,7 +114,7 @@ export const defaultConfig: ClashConfig = {
     'enable': true,
     'ipv6': true,
     'cache-algorithm': 'arc',
-    'listen': '0.0.0.0:1053',
+    'listen': '[::]:1053',
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'proxy-server-nameserver': ['https://doh.pub/dns-query'],
@@ -123,12 +125,18 @@ export const defaultConfig: ClashConfig = {
       'rule-set:gfw': ['https://dns.google/dns-query#Manual']
     },
     'use-hosts': true,
+    'direct-nameserver': ['system'],
     'fake-ip-filter': [
       'rule-set:private',
       '+.market.xiaomi.com',
       'lancache.steamcontent.com',
       '+.edu.cn'
     ]
+  },
+  'hosts': {
+    'dns.alidns.com': ['223.5.5.5', '223.6.6.6'],
+    'doh.pub': ['1.12.12.21', '120.53.53.53'],
+    'dns.google': ['8.8.8.8', '8.8.4.4']
   },
   'proxies': [],
   'proxy-groups': [],
@@ -263,6 +271,7 @@ export const defaultConfig: ClashConfig = {
     'RULE-SET,telegram-ip,Manual,no-resolve',
     'RULE-SET,github,Manual',
     'RULE-SET,twitter,Manual',
+    'AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,youtube)),REJECT',
     'RULE-SET,youtube,Manual',
     'RULE-SET,google,Manual',
     'RULE-SET,gfw,Manual',

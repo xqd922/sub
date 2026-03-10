@@ -97,6 +97,7 @@ export interface DnsConfig {
   'fake-ip-filter'?: string[]
   'cache-algorithm'?: string
   'nameserver-policy'?: Record<string, string | string[]>
+  'direct-nameserver'?: string[]
   'fallback-filter'?: {
     geoip: boolean
     'geoip-code'?: string
@@ -117,6 +118,8 @@ export interface ClashConfig {
   ipv6?: boolean
   'unified-delay'?: boolean
   'tcp-concurrent'?: boolean
+  'keep-alive-idle'?: number
+  'keep-alive-interval'?: number
   'find-process-mode'?: string
   'external-controller'?: string
   'external-ui'?: string
@@ -131,6 +134,7 @@ export interface ClashConfig {
   'proxy-groups': ProxyGroup[]
   rules: string[]
   'rule-providers'?: Record<string, RuleProvider>
+  'hosts'?: Record<string, string[]>
   sniffer?: {
     enable?: boolean
     sniff?: {
