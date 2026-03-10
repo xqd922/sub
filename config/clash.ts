@@ -47,7 +47,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     {
       name: 'AI',
       type: 'select',
-      proxies: ['Manual', 'Auto', 'DIRECT', ...proxyNames]
+      proxies: ['Manual', ...proxyNames]
     }
   ]
 
@@ -87,7 +87,7 @@ export const defaultConfig: ClashConfig = {
   'ipv6': true,
   'unified-delay': true,
   'tcp-concurrent': true,
-  'find-process-mode': 'always',
+  'find-process-mode': 'strict',
   'external-controller': '0.0.0.0:9090',
   'external-ui': 'ui',
   'external-ui-url': 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.zip',
@@ -100,7 +100,7 @@ export const defaultConfig: ClashConfig = {
     'enable': true,
     'force-dns-mapping': true,
     'parse-pure-ip': true,
-    'override-destination': false,
+    'override-destination': true,
     'sniff': {
       'HTTP': { 'ports': [80, '8080-8880'], 'override-destination': true },
       'TLS': { 'ports': [443, 8443] },
