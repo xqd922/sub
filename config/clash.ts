@@ -157,6 +157,14 @@ export const defaultConfig: ClashConfig = {
       'path': './rule_providers/private_ip.mrs',
       'interval': 86400
     },
+    'ads': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ads-all.mrs',
+      'path': './rule_providers/ads.mrs',
+      'interval': 86400
+    },
     'ai': {
       'type': 'http',
       'behavior': 'domain',
@@ -250,6 +258,7 @@ export const defaultConfig: ClashConfig = {
     // 私有网络 - 优先直连
     'RULE-SET,private,DIRECT',
     'RULE-SET,private-ip,DIRECT,no-resolve',
+    'RULE-SET,ads,REJECT',
 
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
