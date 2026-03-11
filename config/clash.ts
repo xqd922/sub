@@ -258,12 +258,15 @@ export const defaultConfig: ClashConfig = {
     // 私有网络 - 优先直连
     'RULE-SET,private,DIRECT',
     'RULE-SET,private-ip,DIRECT,no-resolve',
+
+    // 起点读书全部直连
+    'PROCESS-NAME,com.qidian.QDReader,DIRECT',
+
     'RULE-SET,ads,REJECT',
 
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
     'DOMAIN-SUFFIX,qwen.ai,DIRECT',
-    'DOMAIN-KEYWORD,zijieapi,REJECT',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
