@@ -266,6 +266,7 @@ export const defaultConfig: ClashConfig = {
 
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
+    'DOMAIN,speedtest-half.gegeselect.hk,DIRECT',
     'DOMAIN-SUFFIX,qwen.ai,DIRECT',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',

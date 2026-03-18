@@ -141,6 +141,10 @@ export function generateSingboxConfig(proxies: Proxy[]) {
           outbound: "Manual"
         },
         {
+          domain: ["speedtest-half.gegeselect.hk"],
+          outbound: "direct"
+        },
+        {
           domain_suffix: [
             "apple-cdn.net",
             "sharepoint.com"
