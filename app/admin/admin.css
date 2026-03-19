@@ -480,6 +480,93 @@
 }
 
 /* ============================================
+   Detail Modal (Portal, mounted on body)
+   ============================================ */
+.detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.detail-card {
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: var(--apple-radius-xl, 20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: 32px;
+  margin: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.detail-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 24px;
+}
+
+.detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #86868b;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #1d1d1f;
+}
+
+.detail-url-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.detail-url {
+  flex: 1;
+  font-size: 13px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.06);
+  padding: 8px 12px;
+  border-radius: 8px;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+/* ============================================
    Animations
    ============================================ */
 @keyframes slideIn {

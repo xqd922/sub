@@ -181,6 +181,35 @@ export class ShortLinkService {
   }
 
   /**
+   * 更新短链接
+   */
+  static async update(id: string, updates: Partial<Pick<ShortLink, 'name'>>): Promise<ShortLink | null> {
+    const kv = await getKV()
+    if (!kv) return null
+
+    try {
+      const shortLink = await this.get(id)
+      if (!shortLink) return null
+
+      const updated: ShortLink = {
+        ...shortLink,
+        ...updates
+      }
+
+      await kv.put(
+        `${KV_PREFIX.SHORT}${id}`,
+        JSON.stringify(updated),
+        { expirationTtl: 86400 * 365 }
+      )
+
+      return updated
+    } catch (error) {
+      console.error('[ShortLink] 更新失败:', error)
+      return null
+    }
+  }
+
+  /**
    * 删除短链接
    */
   static async delete(id: string): Promise<boolean> {

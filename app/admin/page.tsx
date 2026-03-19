@@ -10,6 +10,7 @@ import { AdminLayout } from './components/AdminLayout'
 import { StatsCards } from './components/StatsCards'
 import { UnifiedTable } from './components/UnifiedTable'
 import { DeleteConfirmModal } from './components/DeleteConfirmModal'
+import { DetailModal } from './components/DetailModal'
 import { ToastContainer } from './components/ToastContainer'
 import './admin.css'
 
@@ -74,6 +75,17 @@ export default function AdminPage() {
     name: ''
   })
   const [deleting, setDeleting] = useState(false)
+
+  const [detailItem, setDetailItem] = useState<{
+    id: string
+    name: string
+    type: 'convert' | 'shortlink'
+    url: string
+    hits: number
+    lastAccess: number
+    clientType?: string
+    nodeCount?: number
+  } | null>(null)
 
   // 处理登录
   const handleLogin = async (username: string, password: string) => {
@@ -213,6 +225,30 @@ export default function AdminPage() {
               openDeleteModal('shortlink', id, link.name)
             }
           }}
+          onEditRecord={(id, name) => {
+            const record = records.find(r => r.id === id)
+            if (record) {
+              setDetailItem({
+                id, name, type: 'convert',
+                url: record.originalUrl,
+                hits: record.hits,
+                lastAccess: record.lastAccess,
+                clientType: record.clientType,
+                nodeCount: record.nodeCount
+              })
+            }
+          }}
+          onEditShortLink={(id, name) => {
+            const link = shortLinks.find(l => l.id === id)
+            if (link) {
+              setDetailItem({
+                id, name, type: 'shortlink',
+                url: link.targetUrl,
+                hits: link.hits,
+                lastAccess: link.lastAccess
+              })
+            }
+          }}
           onCopy={handleCopy}
           searchTerm={searchTerm}
         />
@@ -226,6 +262,14 @@ export default function AdminPage() {
         loading={deleting}
         title={`删除${deleteModal.type === 'record' ? '订阅' : '短链接'}`}
         message={`确定要删除"${deleteModal.name}"吗？${deleteModal.type === 'record' ? '删除后该订阅链接将无法使用。' : ''}`}
+      />
+
+      {/* 详情弹窗 */}
+      <DetailModal
+        isOpen={detailItem !== null}
+        onClose={() => setDetailItem(null)}
+        onCopy={handleCopy}
+        item={detailItem}
       />
 
       {/* Toast 通知 */}

@@ -20,6 +20,8 @@ interface UnifiedTableProps {
   loading: boolean
   onDeleteRecord: (id: string) => void
   onDeleteShortLink: (id: string) => void
+  onEditRecord: (id: string, name: string) => void
+  onEditShortLink: (id: string, name: string) => void
   onCopy: (text: string) => void
   searchTerm: string
 }
@@ -30,6 +32,8 @@ export function UnifiedTable({
   loading,
   onDeleteRecord,
   onDeleteShortLink,
+  onEditRecord,
+  onEditShortLink,
   onCopy,
   searchTerm
 }: UnifiedTableProps) {
@@ -163,6 +167,14 @@ export function UnifiedTable({
     }
   }
 
+  const handleEdit = (item: UnifiedItem) => {
+    if (item.type === 'convert') {
+      onEditRecord(item.id, item.name)
+    } else {
+      onEditShortLink(item.id, item.name)
+    }
+  }
+
   return (
     <div className="table-card">
       {/* 类型筛选 */}
@@ -272,6 +284,13 @@ export function UnifiedTable({
                           onPress={() => onCopy(link)}
                         >
                           复制
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => handleEdit(item)}
+                        >
+                          详情
                         </Button>
                         <Button
                           size="sm"
