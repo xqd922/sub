@@ -7,6 +7,13 @@ import { Proxy } from '../core/types'
 import { detectRegion, CITY_MAP, MULTI_CITY_COUNTRIES } from './region'
 
 /**
+ * 检测节点名称中是否包含 IPv6 标识
+ */
+function isIPv6Node(name: string): boolean {
+  return /ipv6|ip6|v6|双栈/i.test(name)
+}
+
+/**
  * 从节点名称中提取倍率
  */
 function extractMultiplier(name: string): number | undefined {
@@ -51,8 +58,9 @@ function formatProxyName(
   const { flag, code: countryCode, name: regionName } = region
   const isMultiCityCountry = countryCode in MULTI_CITY_COUNTRIES
 
-  // 提取倍率
+  // 提取倍率和 IPv6 标识
   const multiplier = extractMultiplier(proxy.name)
+  const ipv6 = isIPv6Node(proxy.name)
 
   let displayName: string
   let counterKey: string
@@ -82,12 +90,13 @@ function formatProxyName(
   counters[counterKey] = counters[counterKey] || 0
   const num = String(++counters[counterKey]).padStart(2, '0')
 
-  // 拼接最终名称（倍率非1时显示）
+  // 拼接后缀标记
+  const ipv6Suffix = ipv6 ? ' [IPv6]' : ''
   const multiplierSuffix = multiplier && multiplier !== 1 ? ` [${multiplier}x]` : ''
 
   return {
     ...proxy,
-    name: `${displayName} ${num}${multiplierSuffix}`
+    name: `${displayName} ${num}${ipv6Suffix}${multiplierSuffix}`
   }
 }
 
