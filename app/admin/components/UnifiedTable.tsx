@@ -155,7 +155,7 @@ export function UnifiedTable({
 
   const getLink = (item: UnifiedItem) => {
     return item.type === 'convert'
-      ? `${window.location.origin}/sub/${item.id}`
+      ? `${window.location.origin}/sub?url=${encodeURIComponent(item.url)}`
       : `${window.location.origin}/s/${item.id}`
   }
 

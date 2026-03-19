@@ -21,7 +21,7 @@ export function DetailModal({ isOpen, onClose, onCopy, item }: DetailModalProps)
   if (!isOpen || !item) return null
 
   const link = item.type === 'convert'
-    ? `${window.location.origin}/sub/${item.id}`
+    ? `${window.location.origin}/sub?url=${encodeURIComponent(item.url)}`
     : `${window.location.origin}/s/${item.id}`
 
   const formatDate = (ts: number) => new Date(ts).toLocaleString('zh-CN')
