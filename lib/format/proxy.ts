@@ -91,12 +91,14 @@ function formatProxyName(
   const num = String(++counters[counterKey]).padStart(2, '0')
 
   // 拼接后缀标记
-  const ipv6Suffix = ipv6 ? ' [IPv6]' : ''
-  const multiplierSuffix = multiplier && multiplier !== 1 ? ` [${multiplier}x]` : ''
+  const tags: string[] = []
+  if (ipv6) tags.push('IPv6')
+  if (multiplier && multiplier !== 1) tags.push(`${multiplier}x`)
+  const suffix = tags.length > 0 ? ` [${tags.join('·')}]` : ''
 
   return {
     ...proxy,
-    name: `${displayName} ${num}${ipv6Suffix}${multiplierSuffix}`
+    name: `${displayName} ${num}${suffix}`
   }
 }
 

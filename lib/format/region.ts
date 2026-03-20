@@ -255,6 +255,8 @@ export const MULTI_CITY_COUNTRIES: Record<string, { short: string; full: string 
   'GB': { short: 'UK', full: 'United Kingdom' },
   'RU': { short: 'Russia', full: 'Russia' },
   'AU': { short: 'Australia', full: 'Australia' },
+  'KR': { short: 'Korea', full: 'Korea' },
+  'JP': { short: 'Japan', full: 'Japan' },
 }
 
 /** 城市配置数据 */
@@ -299,6 +301,11 @@ const CITIES: CityData[] = [
   // 日本城市
   { country: 'JP', city: 'Tokyo', aliases: ['东京'] },
   { country: 'JP', city: 'Osaka', aliases: ['大阪'] },
+
+  // 韩国城市
+  { country: 'KR', city: 'Seoul', aliases: ['首尔'] },
+  { country: 'KR', city: 'Chuncheon', aliases: ['春川'] },
+  { country: 'KR', city: 'Busan', aliases: ['釜山'] },
 ]
 
 /** 城市映射表（自动生成） */
