@@ -262,6 +262,23 @@ export const defaultConfig: ClashConfig = {
     // 起点读书全部直连
     'PROCESS-NAME,com.qidian.QDReader,DIRECT',
 
+    // 银行 & 支付 - 直连
+    'PROCESS-NAME,com.icbc,DIRECT',
+    'PROCESS-NAME,com.chinamworld.main,DIRECT',
+    'PROCESS-NAME,com.android.bankabc,DIRECT',
+    'PROCESS-NAME,com.chinamobile.nbc,DIRECT',
+    'PROCESS-NAME,cmb.pb,DIRECT',
+    'PROCESS-NAME,com.bankcomm.Bankcomm,DIRECT',
+    'PROCESS-NAME,com.eg.android.AlipayGphone,DIRECT',
+    'PROCESS-NAME,com.tencent.mm,DIRECT',
+    'PROCESS-NAME,com.unionpay,DIRECT',
+
+    // 运营商 - 直连
+    'PROCESS-NAME,com.greenpoint.android.mc10086.activity,DIRECT',
+    'PROCESS-NAME,com.sinovatech.unicom.ui,DIRECT',
+    'PROCESS-NAME,com.ct.client,DIRECT',
+    'PROCESS-NAME,com.ai.obc.cbn.app,DIRECT',
+
     'RULE-SET,ads,REJECT',
 
     'DOMAIN,1001.pp.ua,DIRECT',
