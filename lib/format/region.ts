@@ -7,7 +7,7 @@
  * 4. ISO 码转国旗 emoji（无依赖算法）
  */
 
-import { flag as getFlag, code as getCode } from 'country-emoji'
+import { flag as getFlag, code as getCode, name as getName } from 'country-emoji'
 
 /** 地区信息 */
 export interface RegionInfo {
@@ -32,7 +32,7 @@ const REGIONS: Record<string, RegionData> = {
   'TW': { name: 'Taiwan', chinese: ['台湾', '台'], aliases: ['TWN'] },
   'MO': { name: 'Macao', chinese: ['澳门'] },
   'JP': { name: 'Japan', chinese: ['日本'], aliases: ['JPN'] },
-  'KR': { name: 'Korea', chinese: ['韩国', '南韩'], aliases: ['KOR'] },
+  'KR': { name: 'South Korea', chinese: ['韩国', '南韩'], aliases: ['KOR'] },
 
   // 东南亚
   'SG': { name: 'Singapore', chinese: ['新加坡', '狮城', '坡'], aliases: ['SGP'] },
@@ -48,7 +48,7 @@ const REGIONS: Record<string, RegionData> = {
   'PK': { name: 'Pakistan', chinese: ['巴基斯坦'], aliases: ['PAK'] },
 
   // 欧洲
-  'GB': { name: 'UK', chinese: ['英国', '英'], aliases: ['GBR', 'UK'] },
+  'GB': { name: 'United Kingdom', chinese: ['英国', '英'], aliases: ['GBR', 'UK'] },
   'DE': { name: 'Germany', chinese: ['德国', '德'], aliases: ['DEU'] },
   'FR': { name: 'France', chinese: ['法国', '法'], aliases: ['FRA'] },
   'IT': { name: 'Italy', chinese: ['意大利', '意'], aliases: ['ITA'] },
@@ -68,13 +68,13 @@ const REGIONS: Record<string, RegionData> = {
   'BG': { name: 'Bulgaria', chinese: ['保加利亚'], aliases: ['BGR'] },
   'MD': { name: 'Moldova', chinese: ['摩尔多瓦'], aliases: ['MDA'] },
   'RO': { name: 'Romania', chinese: ['罗马尼亚'], aliases: ['ROU'] },
-  'CZ': { name: 'Czechia', chinese: ['捷克'], aliases: ['CZE'] },
+  'CZ': { name: 'Czech Republic', chinese: ['捷克'], aliases: ['CZE'] },
   'PT': { name: 'Portugal', chinese: ['葡萄牙'], aliases: ['PRT'] },
   'BE': { name: 'Belgium', chinese: ['比利时'], aliases: ['BEL'] },
   'GR': { name: 'Greece', chinese: ['希腊'], aliases: ['GRC'] },
 
   // 北美
-  'US': { name: 'USA', chinese: ['美国', '美'], aliases: ['USA'] },
+  'US': { name: 'United States', chinese: ['美国', '美'], aliases: ['USA'] },
   'CA': { name: 'Canada', chinese: ['加拿大'], aliases: ['CAN'] },
   'MX': { name: 'Mexico', chinese: ['墨西哥'], aliases: ['MEX'] },
 
@@ -94,7 +94,7 @@ const REGIONS: Record<string, RegionData> = {
   'TR': { name: 'Turkey', chinese: ['土耳其'], aliases: ['TUR'] },
   'KZ': { name: 'Kazakhstan', chinese: ['哈萨克斯坦', '哈萨克', '哈国'], aliases: ['KAZ'] },
   'IL': { name: 'Israel', chinese: ['以色列'], aliases: ['ISR'] },
-  'AE': { name: 'UAE', chinese: ['阿联酋'], aliases: ['UAE'] },
+  'AE': { name: 'United Arab Emirates', chinese: ['阿联酋'], aliases: ['UAE'] },
   'SA': { name: 'Saudi Arabia', chinese: ['沙特', '沙特阿拉伯'], aliases: ['SAU'] },
   'IQ': { name: 'Iraq', chinese: ['伊拉克'], aliases: ['IRQ'] },
 
@@ -203,7 +203,7 @@ export function detectRegion(nodeName: string): RegionInfo | null {
       return {
         flag: flag,
         code: code,
-        name: ISO_TO_NAME[code] || code
+        name: ISO_TO_NAME[code] || getName(existingFlag) || code
       }
     }
   }
@@ -241,7 +241,7 @@ export function detectRegion(nodeName: string): RegionInfo | null {
       return {
         flag: flag,
         code: code,
-        name: ISO_TO_NAME[code] || code
+        name: ISO_TO_NAME[code] || getName(flag) || code
       }
     }
   }

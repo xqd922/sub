@@ -69,19 +69,8 @@ function formatProxyName(
     // 短格式：直接使用国家代码 → 🇭🇰 HK 01
     displayName = `${flag} ${countryCode}`
     counterKey = `short-${countryCode}`
-  } else if (cityMatch && isMultiCityCountry) {
-    // 多城市国家 + 检测到城市 → 🇺🇸 USA Seattle 01
-    const cityInfo = CITY_MAP[cityMatch]
-    const countryShort = MULTI_CITY_COUNTRIES[countryCode].short
-    displayName = `${flag} ${countryShort} ${cityInfo.city}`
-    counterKey = `${countryCode}-${cityInfo.city}`
-  } else if (isMultiCityCountry) {
-    // 多城市国家 + 未检测到城市 → 🇺🇸 United States 01
-    const countryFull = MULTI_CITY_COUNTRIES[countryCode].full
-    displayName = `${flag} ${countryFull}`
-    counterKey = countryCode
   } else {
-    // 单城市国家 → 🇯🇵 Japan 01
+    // 所有国家统一格式 → 🇯🇵 Japan 01
     displayName = `${flag} ${regionName}`
     counterKey = regionName
   }
