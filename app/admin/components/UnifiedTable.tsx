@@ -1,5 +1,5 @@
 ﻿import { Button, Empty, Popconfirm, Space, Table, Tag, Tooltip, Typography } from '@arco-design/web-react'
-import { IconCopy, IconDelete, IconEye } from '@arco-design/web-react/icon'
+import { IconCopy, IconDelete, IconEye, IconLink } from '@arco-design/web-react/icon'
 import type { ColumnProps } from '@arco-design/web-react/es/Table'
 import type { TypeFilter, UnifiedItem } from '../types'
 import { buildShareLink, formatAdminDate, formatCompactUrl } from '../utils/items'
@@ -56,29 +56,30 @@ export function UnifiedTable({
 
   const columns: ColumnProps<UnifiedItem>[] = [
     {
-      title: '资源名称',
+      title: '资源',
       dataIndex: 'name',
-      width: 230,
+      width: 280,
+      fixed: 'left',
       sorter: (a, b) => a.name.localeCompare(b.name, 'zh-CN'),
       render: (_, item) => (
-        <Space direction="vertical" size={2} className="table-primary-cell">
-          <Space size={8}>
+        <div className="resource-cell">
+          <div className="resource-title-line">
             <Tag color={item.type === 'convert' ? 'arcoblue' : 'purple'}>
               {item.type === 'convert' ? '订阅' : '短链'}
             </Tag>
-            <Text bold ellipsis={{ showTooltip: true }} style={{ maxWidth: 150 }}>
+            <Text bold ellipsis={{ showTooltip: true }} className="resource-name">
               {item.name}
             </Text>
-          </Space>
+          </div>
           <Text type="secondary" className="table-subtext">
             {item.type === 'convert' ? `${item.nodeCount ?? 0} 个节点 · ${item.clientType || 'unknown'}` : item.id}
           </Text>
-        </Space>
+        </div>
       )
     },
     {
       title: '状态',
-      width: 100,
+      width: 96,
       render: (_, item) => {
         const status = getItemStatus(item)
         return <Tag color={status.color}>{status.label}</Tag>
@@ -87,29 +88,41 @@ export function UnifiedTable({
     {
       title: '原始地址',
       dataIndex: 'url',
+      width: 330,
       ellipsis: true,
       render: (_, item) => (
         <Tooltip content={item.url} mini>
-          <Text className="mono-link">{formatCompactUrl(item.url)}</Text>
+          <Text className="mono-link url-preview" ellipsis>
+            {formatCompactUrl(item.url)}
+          </Text>
         </Tooltip>
       )
     },
     {
       title: '访问链接',
-      width: 170,
+      width: 150,
       render: (_, item) => {
         const { origin, link } = getItemLink(item)
+        const displayLink = origin ? link.replace(origin, '') : link
         return (
-          <Button type="text" size="small" onClick={() => onCopy(link)}>
-            {origin ? link.replace(origin, '') : link}
-          </Button>
+          <Tooltip content={displayLink} mini>
+            <Button
+              type="outline"
+              size="small"
+              icon={<IconLink />}
+              className="link-action-btn"
+              onClick={() => onCopy(link)}
+            >
+              复制链接
+            </Button>
+          </Tooltip>
         )
       }
     },
     {
       title: '访问量',
       dataIndex: 'hits',
-      width: 100,
+      width: 110,
       align: 'right',
       sorter: (a, b) => a.hits - b.hits,
       render: (hits) => <Text className="number-cell">{Number(hits).toLocaleString()}</Text>
@@ -117,25 +130,25 @@ export function UnifiedTable({
     {
       title: '最后访问',
       dataIndex: 'lastAccess',
-      width: 180,
+      width: 190,
       sorter: (a, b) => a.lastAccess - b.lastAccess,
       defaultSortOrder: 'descend',
-      render: (_, item) => <Text type="secondary">{formatAdminDate(item.lastAccess)}</Text>
+      render: (_, item) => <Text type="secondary" className="date-cell">{formatAdminDate(item.lastAccess)}</Text>
     },
     {
       title: '操作',
-      width: 210,
+      width: 180,
       fixed: 'right',
       render: (_, item) => {
         const { link } = getItemLink(item)
         return (
-          <Space size={4}>
-            <Button size="small" type="text" icon={<IconCopy />} onClick={() => onCopy(link)}>
-              复制
-            </Button>
-            <Button size="small" type="text" icon={<IconEye />} onClick={() => onShowDetail(item)}>
-              详情
-            </Button>
+          <Space size={2} className="table-actions">
+            <Tooltip content="复制访问链接" mini>
+              <Button size="small" type="text" icon={<IconCopy />} onClick={() => onCopy(link)} />
+            </Tooltip>
+            <Tooltip content="查看详情" mini>
+              <Button size="small" type="text" icon={<IconEye />} onClick={() => onShowDetail(item)} />
+            </Tooltip>
             <Popconfirm
               title={`删除${item.type === 'convert' ? '订阅' : '短链接'}`}
               content={`确定删除「${item.name}」吗？`}
@@ -144,9 +157,9 @@ export function UnifiedTable({
               okButtonProps={{ status: 'danger' }}
               onOk={() => onDelete(item)}
             >
-              <Button size="small" type="text" status="danger" icon={<IconDelete />}>
-                删除
-              </Button>
+              <Tooltip content="删除" mini>
+                <Button size="small" type="text" status="danger" icon={<IconDelete />} />
+              </Tooltip>
             </Popconfirm>
           </Space>
         )
@@ -172,7 +185,7 @@ export function UnifiedTable({
         border={false}
         hover
         tableLayoutFixed
-        scroll={{ x: 1180 }}
+        scroll={{ x: 1336 }}
         noDataElement={<Empty description={searchTerm ? '未找到匹配项' : '暂无管理数据'} />}
         pagination={{
           sizeCanChange: true,

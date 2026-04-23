@@ -465,3 +465,46 @@
     padding: 26px;
   }
 }
+
+.resource-cell {
+  min-width: 0;
+}
+
+.resource-title-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.resource-name {
+  display: inline-block;
+  max-width: 190px;
+}
+
+.url-preview {
+  display: inline-block;
+  max-width: 300px;
+}
+
+.link-action-btn {
+  width: 104px;
+}
+
+.date-cell {
+  white-space: nowrap;
+}
+
+.table-actions {
+  justify-content: flex-start;
+  min-width: 120px;
+}
+
+.resource-table-card .arco-table-td,
+.resource-table-card .arco-table-th {
+  white-space: nowrap;
+}
+
+.resource-table-card .arco-table-cell {
+  min-width: 0;
+}
