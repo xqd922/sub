@@ -1,8 +1,8 @@
-﻿/* ByteDance-inspired enterprise console for SubOps admin */
+﻿/* Arco Design Lab aligned admin theme: 清晰 / 一致 / 韵律 / 开放 */
 .admin-root {
-  --admin-bg: #f5f7fb;
+  --admin-bg: #f7f8fa;
   --admin-surface: #ffffff;
-  --admin-border: #e5e8ef;
+  --admin-border: #e5e6eb;
   --admin-text: #1d2129;
   --admin-muted: #86909c;
   --admin-blue: #165dff;
@@ -10,12 +10,11 @@
   --admin-green: #00b42a;
   --admin-orange: #ff7d00;
   --admin-red: #f53f3f;
-  --admin-shadow: 0 10px 30px rgba(29, 33, 41, 0.06);
+  --admin-radius: 6px;
+  --admin-shadow: 0 4px 10px rgba(29, 33, 41, 0.04);
   min-height: 100vh;
   color: var(--admin-text);
-  background:
-    radial-gradient(circle at 12% 0%, rgba(22, 93, 255, 0.08), transparent 26%),
-    linear-gradient(180deg, #f8fbff 0%, var(--admin-bg) 42%, #f3f6fb 100%);
+  background: var(--admin-bg);
 }
 
 .admin-shell {
@@ -24,15 +23,14 @@
 
 .admin-sider {
   border-right: 1px solid var(--admin-border);
-  background: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(18px);
+  background: var(--admin-surface) !important;
 }
 
 .admin-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 72px;
+  height: 64px;
   padding: 0 20px;
   border-bottom: 1px solid var(--admin-border);
 }
@@ -40,20 +38,19 @@
 .admin-brand-mark,
 .admin-login-brand {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 8px;
   color: #fff;
   font-weight: 700;
-  background: linear-gradient(135deg, #165dff 0%, #14c9c9 100%);
-  box-shadow: 0 8px 20px rgba(22, 93, 255, 0.24);
+  background: var(--admin-blue);
 }
 
 .admin-brand-title {
   font-size: 16px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .admin-brand-subtitle,
@@ -68,18 +65,30 @@
 }
 
 .admin-menu {
-  padding: 12px;
+  padding: 8px;
   border-right: none !important;
 }
 
 .admin-menu .arco-menu-item {
-  margin-bottom: 6px;
-  border-radius: 10px;
+  height: 40px;
+  margin-bottom: 2px;
+  border-radius: var(--admin-radius);
+  color: #4e5969;
+}
+
+.admin-menu .arco-menu-item .arco-icon {
+  color: #4e5969;
+  font-size: 16px;
 }
 
 .admin-menu .arco-menu-selected {
   color: var(--admin-blue) !important;
-  background: rgba(22, 93, 255, 0.08) !important;
+  background: #e8f3ff !important;
+  font-weight: 600;
+}
+
+.admin-menu .arco-menu-selected .arco-icon {
+  color: var(--admin-blue);
 }
 
 .admin-main-layout {
@@ -91,35 +100,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px !important;
-  padding: 0 28px !important;
+  height: 64px !important;
+  padding: 0 24px !important;
   border-bottom: 1px solid var(--admin-border);
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(18px);
+  background: var(--admin-surface) !important;
 }
 
 .admin-eyebrow {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 .admin-title {
   margin: 0;
   color: var(--admin-text);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.02em;
 }
 
 .status-pill {
-  border-radius: 999px;
+  border-radius: 4px;
 }
 
 .admin-content {
-  padding: 24px 28px 40px;
+  padding: 20px 24px 32px;
 }
 
 .admin-section-stack,
@@ -137,8 +144,8 @@
 .admin-toolbar-card,
 .resource-table-card {
   border: 1px solid var(--admin-border) !important;
-  border-radius: 16px !important;
-  background: rgba(255, 255, 255, 0.92) !important;
+  border-radius: var(--admin-radius) !important;
+  background: var(--admin-surface) !important;
   box-shadow: var(--admin-shadow);
 }
 
@@ -161,8 +168,7 @@
 .metric-value .arco-statistic-value {
   color: var(--admin-text);
   font-size: 30px;
-  font-weight: 760;
-  letter-spacing: -0.04em;
+  font-weight: 700;
 }
 
 .ops-card .arco-card-header,
@@ -180,16 +186,16 @@
 
 .distribution-track {
   width: 110px;
-  height: 8px;
+  height: 6px;
   overflow: hidden;
-  border-radius: 999px;
-  background: #eef2f8;
+  border-radius: 99px;
+  background: #f2f3f5;
 }
 
 .distribution-bar {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--admin-blue), var(--admin-cyan));
+  background: var(--admin-blue);
 }
 
 .activity-timeline {
@@ -216,7 +222,7 @@
 }
 
 .resource-table-card .arco-table-container {
-  border-radius: 12px;
+  border-radius: var(--admin-radius);
 }
 
 .resource-table-card .arco-table-th {
@@ -260,8 +266,8 @@
   margin: 0 !important;
   padding: 12px;
   border: 1px solid var(--admin-border);
-  border-radius: 10px;
-  background: #f7f9fc;
+  border-radius: var(--admin-radius);
+  background: #f7f8fa;
   word-break: break-all;
 }
 
@@ -281,12 +287,15 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(232, 243, 255, 0.9) 0%, rgba(247, 248, 250, 0) 38%),
+    var(--admin-bg);
 }
 
 .admin-login-card {
   width: min(420px, 100%);
-  border-radius: 20px !important;
-  box-shadow: 0 24px 70px rgba(22, 93, 255, 0.14);
+  border-radius: var(--admin-radius) !important;
+  box-shadow: 0 8px 24px rgba(29, 33, 41, 0.08);
 }
 
 .admin-login-card .arco-card-body {
@@ -295,9 +304,9 @@
 
 .admin-login-brand {
   margin: 0 auto 18px;
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   font-size: 18px;
 }
 
@@ -305,7 +314,7 @@
   margin: 0 0 8px;
   text-align: center;
   font-size: 26px;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .login-subtitle {
@@ -326,11 +335,11 @@
 @media (max-width: 991px) {
   .admin-topbar {
     height: auto !important;
-    min-height: 72px;
+    min-height: 64px;
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
-    padding: 16px 20px !important;
+    padding: 14px 20px !important;
   }
 
   .admin-content {
@@ -344,7 +353,7 @@
 
 @media (max-width: 640px) {
   .admin-title {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .admin-login-card .arco-card-body {

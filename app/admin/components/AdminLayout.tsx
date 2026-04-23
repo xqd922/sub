@@ -1,12 +1,14 @@
 ﻿import { Button, Layout, Menu, Space, Tag, Typography } from '@arco-design/web-react'
 import {
-  IconApps,
+  IconCheckCircle,
+  IconCloud,
   IconDashboard,
   IconLink,
   IconPoweroff,
+  IconSafe,
   IconSettings,
-  IconStorage,
-  IconThunderbolt
+  IconSubscribe,
+  IconSync
 } from '@arco-design/web-react/icon'
 import type { AdminSection } from '../types'
 
@@ -23,9 +25,9 @@ interface AdminLayoutProps {
 
 const menuItems: Array<{ key: AdminSection; label: string; icon: React.ReactNode }> = [
   { key: 'overview', label: '总览', icon: <IconDashboard /> },
-  { key: 'subscriptions', label: '订阅记录', icon: <IconStorage /> },
+  { key: 'subscriptions', label: '订阅记录', icon: <IconSubscribe /> },
   { key: 'shortlinks', label: '短链接', icon: <IconLink /> },
-  { key: 'diagnostics', label: '运行诊断', icon: <IconThunderbolt /> },
+  { key: 'diagnostics', label: '运行诊断', icon: <IconSafe /> },
   { key: 'settings', label: '设置', icon: <IconSettings /> }
 ]
 
@@ -38,12 +40,12 @@ export function AdminLayout({
 }: AdminLayoutProps) {
   return (
     <Layout className="admin-shell admin-root">
-      <Sider className="admin-sider" width={248} breakpoint="lg" collapsible>
+      <Sider className="admin-sider" width={232} breakpoint="lg" collapsible>
         <div className="admin-brand">
           <div className="admin-brand-mark">S</div>
           <div>
             <div className="admin-brand-title">SubOps</div>
-            <Text className="admin-brand-subtitle">Subscription Console</Text>
+            <Text className="admin-brand-subtitle">订阅转换管理</Text>
           </div>
         </div>
 
@@ -64,15 +66,15 @@ export function AdminLayout({
       <Layout className="admin-main-layout">
         <Header className="admin-topbar">
           <div>
-            <Text className="admin-eyebrow">EDGE CONTROL PLANE</Text>
+            <Text className="admin-eyebrow">ARCO CONTROL PLANE</Text>
             <h1 className="admin-title">订阅服务管理控制台</h1>
           </div>
 
           <Space size={12} wrap>
-            <Tag color="green" className="status-pill">KV Online</Tag>
-            <Tag color="arcoblue" className="status-pill">Edge Runtime</Tag>
-            <Tag color={autoRefresh ? 'cyan' : 'gray'} className="status-pill">
-              Auto Refresh {autoRefresh ? 'ON' : 'OFF'}
+            <Tag icon={<IconCloud />} color="arcoblue" className="status-pill">KV Online</Tag>
+            <Tag icon={<IconCheckCircle />} color="green" className="status-pill">Edge Runtime</Tag>
+            <Tag icon={<IconSync />} color={autoRefresh ? 'cyan' : 'gray'} className="status-pill">
+              {autoRefresh ? '自动刷新' : '手动刷新'}
             </Tag>
             <Button icon={<IconPoweroff />} type="secondary" status="danger" onClick={onLogout}>
               退出登录
