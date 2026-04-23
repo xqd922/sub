@@ -78,24 +78,89 @@ export class ConfigService {
    * 生成浏览器预览页面
    */
   static generatePreviewHtml(yamlConfig: string, jsonConfig: string): string {
+    const escapedYaml = this.escapeHtml(yamlConfig)
+    const escapedJson = this.escapeHtml(jsonConfig)
+
     return `
       <!DOCTYPE html>
-      <html>
+      <html lang="zh-CN">
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>配置预览</title>
+        <title>SubOps 配置预览</title>
         <style>${previewStyles}</style>
       </head>
       <body>
-        <div class="container">
-          <h2>Clash 配置</h2>
-          <pre>${this.escapeHtml(yamlConfig)}</pre>
+        <div class="page-shell">
+          <header class="preview-topbar">
+            <div class="brand">
+              <div class="brand-mark">S</div>
+              <div>
+                <div class="brand-title">SubOps</div>
+                <div class="brand-subtitle">配置预览</div>
+              </div>
+            </div>
+            <div class="status-group">
+              <span class="status-pill">Browser Preview</span>
+              <span class="status-pill green">Clash Ready</span>
+              <span class="status-pill cyan">sing-box Ready</span>
+            </div>
+          </header>
+
+          <section class="hero-card">
+            <span class="eyebrow">ARCO CONFIG PREVIEW</span>
+            <h1>订阅配置预览</h1>
+            <p>浏览器访问会同时展示 Clash YAML 与 sing-box JSON。客户端订阅时仍会根据 User-Agent 自动返回对应格式。</p>
+          </section>
+
+          <main class="config-grid">
+            <section class="config-panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <h2>Clash 配置</h2>
+                  <span class="panel-meta">YAML · ${yamlConfig.length.toLocaleString()} chars</span>
+                </div>
+                <button class="copy-button" type="button" data-target="clash-config">复制 Clash</button>
+              </div>
+              <div class="code-wrap">
+                <pre id="clash-config">${escapedYaml}</pre>
+              </div>
+            </section>
+
+            <section class="config-panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <h2>sing-box 配置</h2>
+                  <span class="panel-meta">JSON · ${jsonConfig.length.toLocaleString()} chars</span>
+                </div>
+                <button class="copy-button" type="button" data-target="singbox-config">复制 sing-box</button>
+              </div>
+              <div class="code-wrap">
+                <pre id="singbox-config">${escapedJson}</pre>
+              </div>
+            </section>
+          </main>
+
+          <div class="tip-card">
+            提示：如果你在 Clash、Mihomo、sing-box 等客户端中订阅，请直接使用原始转换链接，系统会自动返回客户端需要的配置格式。
+          </div>
         </div>
-        <div class="container">
-          <h2>sing-box 配置</h2>
-          <pre>${this.escapeHtml(jsonConfig)}</pre>
-        </div>
+        <script>
+          document.querySelectorAll('.copy-button').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const target = document.getElementById(button.dataset.target);
+              if (!target) return;
+              try {
+                await navigator.clipboard.writeText(target.textContent || '');
+                const original = button.textContent;
+                button.textContent = '已复制';
+                setTimeout(() => { button.textContent = original; }, 1400);
+              } catch {
+                button.textContent = '复制失败';
+              }
+            });
+          });
+        </script>
       </body>
       </html>
     `
