@@ -1,5 +1,7 @@
-﻿import { useState } from 'react'
-import { TextField, Input, Label, Button, Alert } from '@heroui/react'
+﻿import { Alert, Button, Card, Form, Input, Typography } from '@arco-design/web-react'
+import { useState } from 'react'
+
+const { Text } = Typography
 
 interface LoginFormProps {
   onLogin: (username: string, password: string) => Promise<void>
@@ -16,57 +18,51 @@ export function LoginForm({ onLogin, loading, error }: LoginFormProps) {
   }
 
   return (
-    <div className="admin-root login-container">
-      <div className="login-card">
-        <h1 className="login-title">订阅管理</h1>
-        <p className="login-subtitle">请登录以继续</p>
+    <div className="admin-login-screen admin-root">
+      <Card className="admin-login-card" bordered>
+        <div className="admin-login-brand">S</div>
+        <h1 className="login-title">SubOps Console</h1>
+        <Text className="login-subtitle">登录后管理订阅转换、短链和运行状态</Text>
 
-        <div className="login-form">
-          {error && (
-            <Alert status="danger">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>{error}</Alert.Title>
-              </Alert.Content>
-            </Alert>
-          )}
+        {error && (
+          <Alert className="login-alert" type="error" content={error} />
+        )}
 
-          <TextField
-            value={username}
-            onChange={setUsername}
-            isDisabled={loading}
-            autoComplete="username"
-          >
-            <Label>用户名</Label>
-            <Input placeholder="输入用户名" />
-          </TextField>
+        <Form layout="vertical" className="login-form">
+          <Form.Item label="用户名" required>
+            <Input
+              value={username}
+              disabled={loading}
+              autoComplete="username"
+              placeholder="输入用户名"
+              onChange={setUsername}
+            />
+          </Form.Item>
 
-          <TextField
-            value={password}
-            onChange={setPassword}
-            isDisabled={loading}
-            autoComplete="current-password"
-            type="password"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && username && password && !loading) {
-                handleSubmit()
-              }
-            }}
-          >
-            <Label>密码</Label>
-            <Input placeholder="输入密码" />
-          </TextField>
+          <Form.Item label="密码" required>
+            <Input.Password
+              value={password}
+              disabled={loading}
+              autoComplete="current-password"
+              placeholder="输入密码"
+              onChange={setPassword}
+              onPressEnter={() => {
+                if (username && password && !loading) void handleSubmit()
+              }}
+            />
+          </Form.Item>
 
           <Button
-            variant="primary"
-            fullWidth
-            onPress={handleSubmit}
-            isDisabled={!username || !password || loading}
+            long
+            type="primary"
+            loading={loading}
+            disabled={!username || !password}
+            onClick={() => void handleSubmit()}
           >
-            {loading ? '登录中...' : '登录'}
+            登录
           </Button>
-        </div>
-      </div>
+        </Form>
+      </Card>
     </div>
   )
 }

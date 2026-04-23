@@ -46,11 +46,8 @@ export interface DeleteTarget {
   item: UnifiedItem | null
 }
 
-export interface Toast {
-  type: 'success' | 'error' | 'warning' | 'info'
-  message: string
-  id?: string
-}
+
+export type AdminSection = 'overview' | 'subscriptions' | 'shortlinks' | 'diagnostics' | 'settings'
 
 export type TypeFilter = 'all' | UnifiedItem['type']
 
@@ -62,3 +59,4 @@ export interface SortDescriptor {
   column: SortColumn
   direction: SortDirection
 }
+

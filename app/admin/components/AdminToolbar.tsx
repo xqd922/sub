@@ -1,4 +1,8 @@
-﻿import { Button, SearchField } from '@heroui/react'
+﻿import { Button, Card, Grid, Input, Select, Space, Switch, Typography } from '@arco-design/web-react'
+import { IconRefresh, IconSearch } from '@arco-design/web-react/icon'
+
+const { Row, Col } = Grid
+const { Text } = Typography
 
 interface AdminToolbarProps {
   searchValue: string
@@ -18,35 +22,40 @@ export function AdminToolbar({
   onRefresh
 }: AdminToolbarProps) {
   return (
-    <div className="actions-bar">
-      <SearchField
-        value={searchValue}
-        onChange={onSearchChange}
-        className="flex-1 min-w-[240px]"
-      >
-        <SearchField.Group>
-          <SearchField.SearchIcon />
-          <SearchField.Input placeholder="搜索名称或链接..." />
-          <SearchField.ClearButton />
-        </SearchField.Group>
-      </SearchField>
+    <Card className="admin-toolbar-card" bordered>
+      <Row gutter={[12, 12]} align="center">
+        <Col xs={24} md={12} lg={14}>
+          <Input
+            allowClear
+            value={searchValue}
+            prefix={<IconSearch />}
+            placeholder="搜索订阅名称、短链或原始 URL"
+            onChange={onSearchChange}
+          />
+        </Col>
 
-      <label className="auto-refresh-toggle">
-        <input
-          type="checkbox"
-          checked={autoRefresh}
-          onChange={(event) => onAutoRefreshChange(event.target.checked)}
-        />
-        <span>自动刷新</span>
-      </label>
+        <Col xs={24} md={12} lg={10}>
+          <Space className="toolbar-actions" size={12} wrap>
+            <Select value="all" disabled style={{ width: 132 }}>
+              <Select.Option value="all">全部资源</Select.Option>
+            </Select>
 
-      <Button
-        variant="secondary"
-        onPress={() => void onRefresh()}
-        isDisabled={loading}
-      >
-        {loading ? '刷新中...' : '刷新数据'}
-      </Button>
-    </div>
+            <Space size={8}>
+              <Switch checked={autoRefresh} onChange={onAutoRefreshChange} />
+              <Text className="toolbar-muted">自动刷新</Text>
+            </Space>
+
+            <Button
+              type="primary"
+              icon={<IconRefresh />}
+              loading={loading}
+              onClick={() => void onRefresh()}
+            >
+              刷新数据
+            </Button>
+          </Space>
+        </Col>
+      </Row>
+    </Card>
   )
 }

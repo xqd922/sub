@@ -1,7 +1,9 @@
-﻿import { createPortal } from 'react-dom'
-import { Button } from '@heroui/react'
+﻿import { Button, Descriptions, Drawer, Space, Tag, Typography } from '@arco-design/web-react'
+import { IconCopy, IconLink } from '@arco-design/web-react/icon'
 import type { UnifiedItem } from '../types'
 import { buildShareLink, formatAdminDate } from '../utils/items'
+
+const { Paragraph, Text } = Typography
 
 interface DetailModalProps {
   isOpen: boolean
@@ -11,73 +13,71 @@ interface DetailModalProps {
 }
 
 export function DetailModal({ isOpen, onClose, onCopy, item }: DetailModalProps) {
-  if (!isOpen || !item) return null
+  if (!item) return null
 
   const origin = typeof window === 'undefined' ? '' : window.location.origin
   const link = buildShareLink(item, origin)
 
-  return createPortal(
-    <div className="detail-overlay" onClick={onClose}>
-      <div className="detail-card" onClick={(event) => event.stopPropagation()}>
-        <h3 className="detail-title">{item.name}</h3>
-        <div className="detail-list">
-          <div className="detail-row">
-            <span className="detail-label">类型</span>
-            <span className="detail-value">{item.type === 'convert' ? '订阅转换' : '短链接'}</span>
-          </div>
+  const detailData = [
+    {
+      label: '资源类型',
+      value: <Tag color={item.type === 'convert' ? 'arcoblue' : 'purple'}>{item.type === 'convert' ? '订阅转换' : '短链接'}</Tag>
+    },
+    ...(item.type === 'convert' ? [
+      { label: '客户端', value: item.clientType || 'unknown' },
+      { label: '节点数', value: item.nodeCount ?? 0 }
+    ] : []),
+    { label: '访问次数', value: item.hits.toLocaleString() },
+    { label: '最后访问', value: formatAdminDate(item.lastAccess) }
+  ]
 
-          {item.type === 'convert' && item.clientType && (
-            <div className="detail-row">
-              <span className="detail-label">客户端</span>
-              <span className="detail-value">{item.clientType}</span>
-            </div>
-          )}
-
-          {item.type === 'convert' && item.nodeCount !== undefined && (
-            <div className="detail-row">
-              <span className="detail-label">节点数</span>
-              <span className="detail-value">{item.nodeCount}</span>
-            </div>
-          )}
-
-          <div className="detail-row">
-            <span className="detail-label">访问次数</span>
-            <span className="detail-value">{item.hits}</span>
-          </div>
-
-          <div className="detail-row">
-            <span className="detail-label">最后访问</span>
-            <span className="detail-value">{formatAdminDate(item.lastAccess)}</span>
-          </div>
-
-          <div className="detail-row">
-            <span className="detail-label">原始链接</span>
-            <div className="detail-url-box">
-              <span className="detail-url">{item.url}</span>
-              <Button size="sm" variant="secondary" onPress={() => onCopy(item.url)}>
-                复制
-              </Button>
-            </div>
-          </div>
-
-          <div className="detail-row">
-            <span className="detail-label">{item.type === 'convert' ? '转换链接' : '短链接'}</span>
-            <div className="detail-url-box">
-              <span className="detail-url">{link}</span>
-              <Button size="sm" variant="secondary" onPress={() => onCopy(link)}>
-                复制
-              </Button>
-            </div>
-          </div>
+  return (
+    <Drawer
+      className="admin-detail-drawer"
+      width={520}
+      visible={isOpen}
+      title="资源详情"
+      footer={null}
+      onCancel={onClose}
+    >
+      <Space direction="vertical" size={20} className="drawer-content">
+        <div>
+          <Text type="secondary">资源名称</Text>
+          <h2 className="drawer-title">{item.name}</h2>
         </div>
 
-        <div className="detail-footer">
-          <Button variant="secondary" onPress={onClose}>
-            关闭
+        <Descriptions
+          column={1}
+          border
+          data={detailData}
+          labelStyle={{ width: 110 }}
+        />
+
+        <div className="drawer-link-section">
+          <Text type="secondary">原始链接</Text>
+          <Paragraph className="drawer-link-box" copyable={{ text: item.url }}>
+            {item.url}
+          </Paragraph>
+          <Button icon={<IconCopy />} onClick={() => onCopy(item.url)}>
+            复制原始链接
           </Button>
         </div>
-      </div>
-    </div>,
-    document.body
+
+        <div className="drawer-link-section">
+          <Text type="secondary">访问链接</Text>
+          <Paragraph className="drawer-link-box" copyable={{ text: link }}>
+            {link}
+          </Paragraph>
+          <Space>
+            <Button type="primary" icon={<IconCopy />} onClick={() => onCopy(link)}>
+              复制访问链接
+            </Button>
+            <Button icon={<IconLink />} onClick={() => window.open(link, '_blank', 'noopener,noreferrer')}>
+              打开
+            </Button>
+          </Space>
+        </div>
+      </Space>
+    </Drawer>
   )
 }

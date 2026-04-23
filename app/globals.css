@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "@heroui/styles";
+﻿@import "tailwindcss";
+@import "@arco-design/web-react/dist/css/arco.css";
 
 @layer base {
   html {
@@ -59,3 +59,4 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+

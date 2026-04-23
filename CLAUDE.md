@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **所有 API 路由必须声明** `export const runtime = 'edge'`（Cloudflare Pages 兼容）
 - **Edge Runtime 限制**：不可使用 Node.js 专有 API（fs、path 等）
 - **导入路径**：使用 `@/` 根目录别名
-- **UI 框架**：HeroUI (v3 beta) + Tailwind CSS v4
+- **UI 框架**：Arco Design React + Tailwind CSS v4
 - **React StrictMode 已禁用**（`next.config.ts` 中 `reactStrictMode: false`）
 
 ## 项目概述
@@ -118,3 +118,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 主要部署目标为 **Cloudflare Pages**，使用 `@cloudflare/next-on-pages` 适配器。
 构建命令：`bun run build && bun run pages:build`，输出目录：`.vercel/output/static`。
 也支持 Vercel 直接部署。
+
