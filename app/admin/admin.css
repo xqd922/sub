@@ -277,6 +277,66 @@
   line-height: 1.7;
 }
 
+.health-card .arco-card-body {
+  min-height: 172px;
+}
+
+.health-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.health-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--admin-blue);
+  background: #e8f3ff;
+  font-size: 18px;
+}
+
+.health-card h3 {
+  margin: 0 0 8px;
+  color: var(--admin-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.health-card p {
+  margin: 0;
+  color: var(--admin-muted);
+  line-height: 1.7;
+}
+
+.settings-code-block {
+  margin: 0 0 12px !important;
+  padding: 14px 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  color: #1d2129;
+  background: #f7f8fa;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  line-height: 1.8;
+}
+
+.security-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #4e5969;
+  line-height: 1.7;
+}
+
+.security-tip .arco-icon {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--admin-blue);
+}
+
 .admin-error-banner {
   margin-bottom: 16px;
 }

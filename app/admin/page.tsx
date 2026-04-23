@@ -25,6 +25,8 @@ import { AdminToolbar } from './components/AdminToolbar'
 import { StatsCards } from './components/StatsCards'
 import { UnifiedTable } from './components/UnifiedTable'
 import { DetailModal } from './components/DetailModal'
+import { DiagnosticsPanel } from './components/DiagnosticsPanel'
+import { SettingsPanel } from './components/SettingsPanel'
 import './admin.css'
 
 const { Row, Col } = Grid
@@ -199,39 +201,22 @@ export default function AdminPage() {
     </Space>
   )
 
-  const renderDiagnostics = () => (
-    <Row gutter={[16, 16]}>
-      <Col xs={24} lg={8}>
-        <Card className="ops-card" title="KV 存储" bordered>
-          <Tag color="green">Connected</Tag>
-          <p className="diagnostic-copy">当前记录和短链通过 KV 层读取，管理接口响应正常。</p>
-        </Card>
-      </Col>
-      <Col xs={24} lg={8}>
-        <Card className="ops-card" title="Edge Runtime" bordered>
-          <Tag color="arcoblue">Enabled</Tag>
-          <p className="diagnostic-copy">管理 API 和订阅转换接口保持 Edge Runtime 兼容。</p>
-        </Card>
-      </Col>
-      <Col xs={24} lg={8}>
-        <Card className="ops-card" title="刷新策略" bordered>
-          <Tag color={autoRefresh ? 'cyan' : 'gray'}>{autoRefresh ? 'Auto' : 'Manual'}</Tag>
-          <p className="diagnostic-copy">自动刷新周期为 30 秒，适合低频运营监控。</p>
-        </Card>
-      </Col>
-    </Row>
-  )
-
   const renderContent = () => {
     if (activeSection === 'overview') return renderOverview()
-    if (activeSection === 'diagnostics') return renderDiagnostics()
-    if (activeSection === 'settings') {
+    if (activeSection === 'diagnostics') {
       return (
-        <Card className="ops-card" title="设置" bordered>
-          <Text type="secondary">当前版本先保留运行配置展示，后续可加入管理密码、主题和清理策略。</Text>
-        </Card>
+        <DiagnosticsPanel
+          stats={stats}
+          recordsCount={records.length}
+          shortLinksCount={shortLinks.length}
+          recentItems={recentItems}
+          autoRefresh={autoRefresh}
+          dataLoading={dataLoading}
+          dataError={dataError}
+        />
       )
     }
+    if (activeSection === 'settings') return <SettingsPanel autoRefresh={autoRefresh} token={token} />
 
     return (
       <Space direction="vertical" size={16} className="admin-section-stack">
