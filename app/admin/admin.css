@@ -22,8 +22,15 @@
 }
 
 .admin-sider {
+  position: relative;
   border-right: 1px solid var(--admin-border);
   background: var(--admin-surface) !important;
+}
+
+.admin-sider .arco-layout-sider-children {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
 }
 
 .admin-brand {
@@ -47,6 +54,15 @@
   background: var(--admin-blue);
 }
 
+.admin-sider-collapsed .admin-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.admin-sider-collapsed .admin-brand-copy {
+  display: none;
+}
+
 .admin-brand-title {
   font-size: 16px;
   font-weight: 700;
@@ -65,8 +81,13 @@
 }
 
 .admin-menu {
+  flex: 1;
   padding: 8px;
   border-right: none !important;
+}
+
+.admin-sider-collapsed .admin-menu {
+  padding: 8px 6px;
 }
 
 .admin-menu .arco-menu-item {
@@ -89,6 +110,38 @@
 
 .admin-menu .arco-menu-selected .arco-icon {
   color: var(--admin-blue);
+}
+
+.sider-collapse-zone {
+  padding: 10px 12px 14px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.sider-collapse-button {
+  justify-content: flex-start;
+  width: 100%;
+  height: 38px;
+  border-radius: var(--admin-radius);
+  color: #4e5969 !important;
+  font-weight: 500;
+}
+
+.sider-collapse-button:hover {
+  color: var(--admin-blue) !important;
+  background: #f2f3f5 !important;
+}
+
+.sider-collapse-button .arco-icon {
+  font-size: 18px;
+}
+
+.admin-sider-collapsed .sider-collapse-zone {
+  padding: 10px 8px 14px;
+}
+
+.admin-sider-collapsed .sider-collapse-button {
+  justify-content: center;
+  padding: 0;
 }
 
 .admin-main-layout {
