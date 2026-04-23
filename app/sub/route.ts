@@ -1,4 +1,4 @@
-import { CoreService } from '@/features'
+﻿import { CoreService } from '@/features'
 
 export const runtime = 'edge'
 

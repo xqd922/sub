@@ -1,4 +1,4 @@
-import { Proxy, YamlSubscription } from '@/lib/core/types'
+﻿import { Proxy, YamlSubscription } from '@/lib/core/types'
 import { SingleNodeParser } from '@/lib/parse/node'
 import { fetchNodesFromRemote } from '@/lib/parse/remote'
 import { formatProxies as formatProxiesImpl } from '@/lib/format/proxy'

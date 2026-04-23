@@ -1,4 +1,4 @@
-import { KVClient } from './client'
+﻿import { KVClient } from './client'
 import { ConvertRecord, StatsData } from './types'
 
 /**

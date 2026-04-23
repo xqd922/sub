@@ -1,4 +1,4 @@
-export interface ProxyConfig {
+﻿export interface ProxyConfig {
   proxies: Proxy[]
   [key: string]: unknown
 }

@@ -1,4 +1,4 @@
-import { Proxy, SingboxProxyConfig } from '../../core/types'
+﻿import { Proxy, SingboxProxyConfig } from '../../core/types'
 import { parsePort } from '../../core/utils'
 
 /**

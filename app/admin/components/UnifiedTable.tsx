@@ -1,205 +1,123 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { Button, Chip, Skeleton } from '@heroui/react'
-import type { ConvertRecord, ShortLink, SortDescriptor } from '../types'
+import type { SortDescriptor, TypeFilter, UnifiedItem } from '../types'
+import { buildShareLink, formatAdminDate, formatCompactUrl } from '../utils/items'
 import { EmptyState } from './EmptyState'
 
-interface UnifiedItem {
-  id: string
-  name: string
-  type: 'convert' | 'shortlink'
-  url: string
-  hits: number
-  lastAccess: number
-  clientType?: string
-  nodeCount?: number
+interface UnifiedTableProps {
+  items: UnifiedItem[]
+  loading: boolean
+  recordsCount: number
+  shortLinksCount: number
+  searchTerm: string
+  onCopy: (text: string) => void
+  onDelete: (item: UnifiedItem) => void
+  onShowDetail: (item: UnifiedItem) => void
 }
 
-interface UnifiedTableProps {
-  records: ConvertRecord[]
-  shortLinks: ShortLink[]
-  loading: boolean
-  onDeleteRecord: (id: string) => void
-  onDeleteShortLink: (id: string) => void
-  onEditRecord: (id: string, name: string) => void
-  onEditShortLink: (id: string, name: string) => void
-  onCopy: (text: string) => void
-  searchTerm: string
+const ROWS_PER_PAGE = 15
+
+const typeLabels: Record<TypeFilter, string> = {
+  all: '全部',
+  convert: '订阅',
+  shortlink: '短链'
 }
 
 export function UnifiedTable({
-  records,
-  shortLinks,
+  items,
   loading,
-  onDeleteRecord,
-  onDeleteShortLink,
-  onEditRecord,
-  onEditShortLink,
+  recordsCount,
+  shortLinksCount,
+  searchTerm,
   onCopy,
-  searchTerm
+  onDelete,
+  onShowDetail
 }: UnifiedTableProps) {
   const [page, setPage] = useState(1)
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'lastAccess',
     direction: 'descending'
   })
-  const [typeFilter, setTypeFilter] = useState<'all' | 'convert' | 'shortlink'>('all')
 
-  const rowsPerPage = 15
+  const normalizedSearch = searchTerm.trim().toLowerCase()
 
-  // 合并数据
-  const allItems: UnifiedItem[] = useMemo(() => {
-    const convertItems: UnifiedItem[] = records.map(r => ({
-      id: r.id,
-      name: r.name,
-      type: 'convert' as const,
-      url: r.originalUrl,
-      hits: r.hits,
-      lastAccess: r.lastAccess,
-      clientType: r.clientType,
-      nodeCount: r.nodeCount
-    }))
-
-    const shortLinkItems: UnifiedItem[] = shortLinks.map(s => ({
-      id: s.id,
-      name: s.name,
-      type: 'shortlink' as const,
-      url: s.targetUrl,
-      hits: s.hits,
-      lastAccess: s.lastAccess
-    }))
-
-    return [...convertItems, ...shortLinkItems]
-  }, [records, shortLinks])
-
-  // 搜索变化时重置分页
-  const prevSearchTerm = useRef(searchTerm)
-  useEffect(() => {
-    if (prevSearchTerm.current !== searchTerm) {
-      setPage(1)
-      prevSearchTerm.current = searchTerm
-    }
-  }, [searchTerm])
-
-  // 过滤和排序
   const filteredItems = useMemo(() => {
-    let filtered = allItems.filter(item => {
-      // 类型筛选
-      if (typeFilter !== 'all' && item.type !== typeFilter) return false
-      // 搜索筛选
-      return item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.url.toLowerCase().includes(searchTerm.toLowerCase())
-    })
+    return [...items]
+      .filter((item) => {
+        if (typeFilter !== 'all' && item.type !== typeFilter) return false
+        if (!normalizedSearch) return true
 
-    filtered.sort((a, b) => {
-      const column = sortDescriptor.column as keyof UnifiedItem
-      let first = a[column]
-      let second = b[column]
+        return item.name.toLowerCase().includes(normalizedSearch) ||
+          item.url.toLowerCase().includes(normalizedSearch)
+      })
+      .sort((a, b) => {
+        const first = a[sortDescriptor.column]
+        const second = b[sortDescriptor.column]
 
-      if (first === undefined) first = ''
-      if (second === undefined) second = ''
+        const cmp = typeof first === 'string'
+          ? first.localeCompare(String(second), 'zh-CN')
+          : first - Number(second)
 
-      if (typeof first === 'string') first = first.toLowerCase()
-      if (typeof second === 'string') second = second.toLowerCase()
+        return sortDescriptor.direction === 'descending' ? -cmp : cmp
+      })
+  }, [items, normalizedSearch, sortDescriptor, typeFilter])
 
-      const cmp = first < second ? -1 : first > second ? 1 : 0
-      return sortDescriptor.direction === 'descending' ? -cmp : cmp
-    })
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ROWS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * ROWS_PER_PAGE
+    return filteredItems.slice(start, start + ROWS_PER_PAGE)
+  }, [currentPage, filteredItems])
 
-    return filtered
-  }, [allItems, searchTerm, sortDescriptor, typeFilter])
-
-  // 类型筛选变化时重置分页
-  const prevTypeFilter = useRef(typeFilter)
   useEffect(() => {
-    if (prevTypeFilter.current !== typeFilter) {
-      setPage(1)
-      prevTypeFilter.current = typeFilter
+    setPage(1)
+  }, [normalizedSearch, typeFilter])
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
     }
-  }, [typeFilter])
+  }, [page, totalPages])
 
-  // 分页
-  const pages = Math.ceil(filteredItems.length / rowsPerPage)
-  const items = useMemo(() => {
-    const start = (page - 1) * rowsPerPage
-    const end = start + rowsPerPage
-    return filteredItems.slice(start, end)
-  }, [page, filteredItems])
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString('zh-CN')
-  }
-
-  const formatUrl = (url: string) => {
-    try {
-      const u = new URL(url)
-      const path = u.pathname.length > 15 ? u.pathname.slice(0, 15) + '...' : u.pathname
-      return `${u.hostname}${path}`
-    } catch {
-      return url.length > 30 ? url.slice(0, 30) + '...' : url
-    }
-  }
-
-  const handleSort = (column: string) => {
-    setSortDescriptor(prev => ({
+  const handleSort = (column: SortDescriptor['column']) => {
+    setSortDescriptor((current) => ({
       column,
-      direction: prev.column === column && prev.direction === 'ascending'
+      direction: current.column === column && current.direction === 'ascending'
         ? 'descending'
         : 'ascending'
     }))
   }
 
-  const getSortIndicator = (column: string) => {
+  const getSortIndicator = (column: SortDescriptor['column']) => {
     if (sortDescriptor.column !== column) return null
     return sortDescriptor.direction === 'ascending' ? '↑' : '↓'
   }
 
-  const getLink = (item: UnifiedItem) => {
-    return item.type === 'convert'
-      ? `${window.location.origin}/sub?url=${encodeURIComponent(item.url)}`
-      : `${window.location.origin}/s/${item.id}`
+  const getFilterCount = (filter: TypeFilter) => {
+    if (filter === 'convert') return recordsCount
+    if (filter === 'shortlink') return shortLinksCount
+    return items.length
   }
 
-  const handleDelete = (item: UnifiedItem) => {
-    if (item.type === 'convert') {
-      onDeleteRecord(item.id)
-    } else {
-      onDeleteShortLink(item.id)
-    }
-  }
-
-  const handleEdit = (item: UnifiedItem) => {
-    if (item.type === 'convert') {
-      onEditRecord(item.id, item.name)
-    } else {
-      onEditShortLink(item.id, item.name)
-    }
-  }
+  const renderFilterButton = (filter: TypeFilter) => (
+    <button
+      key={filter}
+      type="button"
+      className={`filter-btn ${typeFilter === filter ? 'active' : ''}`}
+      onClick={() => setTypeFilter(filter)}
+    >
+      {typeLabels[filter]} ({getFilterCount(filter)})
+    </button>
+  )
 
   return (
     <div className="table-card">
-      {/* 类型筛选 */}
       <div className="type-filter">
-        <button
-          className={`filter-btn ${typeFilter === 'all' ? 'active' : ''}`}
-          onClick={() => setTypeFilter('all')}
-        >
-          全部 ({allItems.length})
-        </button>
-        <button
-          className={`filter-btn ${typeFilter === 'convert' ? 'active' : ''}`}
-          onClick={() => setTypeFilter('convert')}
-        >
-          订阅 ({records.length})
-        </button>
-        <button
-          className={`filter-btn ${typeFilter === 'shortlink' ? 'active' : ''}`}
-          onClick={() => setTypeFilter('shortlink')}
-        >
-          短链 ({shortLinks.length})
-        </button>
+        {(['all', 'convert', 'shortlink'] as TypeFilter[]).map(renderFilterButton)}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -211,7 +129,7 @@ export function UnifiedTable({
                 <span className="sort-indicator">{getSortIndicator('name')}</span>
               </th>
               <th>原始链接</th>
-              <th>短链接</th>
+              <th>访问链接</th>
               <th
                 className={sortDescriptor.column === 'hits' ? 'sorted' : ''}
                 onClick={() => handleSort('hits')}
@@ -231,8 +149,8 @@ export function UnifiedTable({
           </thead>
           <tbody>
             {loading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <tr key={`skeleton-${i}`}>
+              Array.from({ length: 3 }).map((_, index) => (
+                <tr key={`skeleton-${index}`}>
                   <td><Skeleton className="h-4 w-32 rounded-lg" /></td>
                   <td><Skeleton className="h-4 w-40 rounded-lg" /></td>
                   <td><Skeleton className="h-4 w-24 rounded-lg" /></td>
@@ -246,12 +164,13 @@ export function UnifiedTable({
                   </td>
                 </tr>
               ))
-            ) : items.length > 0 ? (
-              items.map((item) => {
-                const itemKey = `${item.type}-${item.id}`
-                const link = getLink(item)
+            ) : pagedItems.length > 0 ? (
+              pagedItems.map((item) => {
+                const origin = typeof window === 'undefined' ? '' : window.location.origin
+                const link = buildShareLink(item, origin)
+
                 return (
-                  <tr key={itemKey}>
+                  <tr key={`${item.type}-${item.id}`}>
                     <td className="cell-name">
                       <div className="flex items-center gap-2">
                         <Chip
@@ -266,37 +185,25 @@ export function UnifiedTable({
                     </td>
                     <td>
                       <span className="cell-url" title={item.url}>
-                        {formatUrl(item.url)}
+                        {formatCompactUrl(item.url)}
                       </span>
                     </td>
                     <td>
                       <span className="short-link" onClick={() => onCopy(link)}>
-                        {link.replace(window.location.origin, '')}
+                        {origin ? link.replace(origin, '') : link}
                       </span>
                     </td>
                     <td className="cell-number">{item.hits}</td>
-                    <td className="cell-date">{formatDate(item.lastAccess)}</td>
+                    <td className="cell-date">{formatAdminDate(item.lastAccess)}</td>
                     <td>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onPress={() => onCopy(link)}
-                        >
+                      <div className="row-actions">
+                        <Button size="sm" variant="secondary" onPress={() => onCopy(link)}>
                           复制
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onPress={() => handleEdit(item)}
-                        >
+                        <Button size="sm" variant="secondary" onPress={() => onShowDetail(item)}>
                           详情
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="danger-soft"
-                          onPress={() => handleDelete(item)}
-                        >
+                        <Button size="sm" variant="danger-soft" onPress={() => onDelete(item)}>
                           删除
                         </Button>
                       </div>
@@ -318,24 +225,24 @@ export function UnifiedTable({
         </table>
       </div>
 
-      {pages > 1 && (
+      {totalPages > 1 && (
         <div className="pagination">
           <Button
             size="sm"
             variant="ghost"
-            isDisabled={page === 1}
-            onPress={() => setPage(p => Math.max(1, p - 1))}
+            isDisabled={currentPage === 1}
+            onPress={() => setPage((value) => Math.max(1, value - 1))}
           >
             上一页
           </Button>
           <span className="pagination-info">
-            第 {page} / {pages} 页
+            第 {currentPage} / {totalPages} 页
           </span>
           <Button
             size="sm"
             variant="ghost"
-            isDisabled={page === pages}
-            onPress={() => setPage(p => Math.min(pages, p + 1))}
+            isDisabled={currentPage === totalPages}
+            onPress={() => setPage((value) => Math.min(totalPages, value + 1))}
           >
             下一页
           </Button>
@@ -344,7 +251,7 @@ export function UnifiedTable({
 
       <div className="record-count">
         共 {filteredItems.length} 条数据
-        {searchTerm && ` (筛选自 ${allItems.length} 条)`}
+        {searchTerm && ` (筛选自 ${items.length} 条)`}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 
 /**
  * 生成 session token（基于用户名和密码的固定 hash）

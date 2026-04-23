@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { Proxy } from '@/lib/core/types'
 import { SubService, SubscriptionInfo } from './processor'
 import { ConfigService } from './builder'

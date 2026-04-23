@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { generateSessionToken } from '@/lib/auth'
 
 export const runtime = 'edge'

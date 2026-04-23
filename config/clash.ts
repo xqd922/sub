@@ -1,4 +1,4 @@
-import { ClashConfig, Proxy, ProxyGroup } from '@/lib/core/types'
+﻿import { ClashConfig, Proxy, ProxyGroup } from '@/lib/core/types'
 
 // 生成代理组配置
 export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true): ProxyGroup[] {

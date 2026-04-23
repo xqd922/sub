@@ -1,34 +1,24 @@
-import { createPortal } from 'react-dom'
+﻿import { createPortal } from 'react-dom'
 import { Button } from '@heroui/react'
+import type { UnifiedItem } from '../types'
+import { buildShareLink, formatAdminDate } from '../utils/items'
 
 interface DetailModalProps {
   isOpen: boolean
   onClose: () => void
   onCopy: (text: string) => void
-  item: {
-    id: string
-    name: string
-    type: 'convert' | 'shortlink'
-    url: string
-    hits: number
-    lastAccess: number
-    clientType?: string
-    nodeCount?: number
-  } | null
+  item: UnifiedItem | null
 }
 
 export function DetailModal({ isOpen, onClose, onCopy, item }: DetailModalProps) {
   if (!isOpen || !item) return null
 
-  const link = item.type === 'convert'
-    ? `${window.location.origin}/sub?url=${encodeURIComponent(item.url)}`
-    : `${window.location.origin}/s/${item.id}`
-
-  const formatDate = (ts: number) => new Date(ts).toLocaleString('zh-CN')
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  const link = buildShareLink(item, origin)
 
   return createPortal(
     <div className="detail-overlay" onClick={onClose}>
-      <div className="detail-card" onClick={(e) => e.stopPropagation()}>
+      <div className="detail-card" onClick={(event) => event.stopPropagation()}>
         <h3 className="detail-title">{item.name}</h3>
         <div className="detail-list">
           <div className="detail-row">
@@ -57,7 +47,7 @@ export function DetailModal({ isOpen, onClose, onCopy, item }: DetailModalProps)
 
           <div className="detail-row">
             <span className="detail-label">最后访问</span>
-            <span className="detail-value">{formatDate(item.lastAccess)}</span>
+            <span className="detail-value">{formatAdminDate(item.lastAccess)}</span>
           </div>
 
           <div className="detail-row">

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { ShortService } from '@/features'
 import { logger } from '@/lib/core/logger'
 

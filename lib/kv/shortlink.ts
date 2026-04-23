@@ -1,4 +1,4 @@
-import { ShortLink, KV_PREFIX } from './types'
+﻿import { ShortLink, KV_PREFIX } from './types'
 import { getLocalKV, isLocalDev } from './local'
 
 /**

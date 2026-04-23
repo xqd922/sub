@@ -1,18 +1,27 @@
-'use client'
+﻿'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { SearchField, Button } from '@heroui/react'
+import { useCallback, useMemo, useState } from 'react'
+import type { DeleteTarget, UnifiedItem } from './types'
 import { useAuth } from './hooks/useAuth'
 import { useAdminData } from './hooks/useAdminData'
 import { useToast } from './hooks/useToast'
+import { useDebouncedValue } from './hooks/useDebouncedValue'
+import { useAutoRefresh } from './hooks/useAutoRefresh'
+import { buildAdminItems } from './utils/items'
 import { LoginForm } from './components/LoginForm'
 import { AdminLayout } from './components/AdminLayout'
+import { AdminToolbar } from './components/AdminToolbar'
 import { StatsCards } from './components/StatsCards'
 import { UnifiedTable } from './components/UnifiedTable'
 import { DeleteConfirmModal } from './components/DeleteConfirmModal'
 import { DetailModal } from './components/DetailModal'
 import { ToastContainer } from './components/ToastContainer'
 import './admin.css'
+
+const emptyDeleteTarget: DeleteTarget = {
+  isOpen: false,
+  item: null
+}
 
 export default function AdminPage() {
   const { isAuthed, token, loading: authLoading, error: authError, login, logout } = useAuth()
@@ -21,6 +30,7 @@ export default function AdminPage() {
     shortLinks,
     stats,
     loading: dataLoading,
+    error: dataError,
     refetch,
     deleteRecord,
     deleteShortLink
@@ -28,124 +38,71 @@ export default function AdminPage() {
   const { toasts, showToast, hideToast } = useToast()
 
   const [searchInput, setSearchInput] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [autoRefresh, setAutoRefresh] = useState(true)  // 默认开启自动刷新
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // 搜索防抖
-  useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-    debounceRef.current = setTimeout(() => {
-      setSearchTerm(searchInput)
-    }, 300)
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
-    }
-  }, [searchInput])
-
-  // 自动刷新
-  useEffect(() => {
-    if (autoRefresh && isAuthed) {
-      autoRefreshRef.current = setInterval(() => {
-        refetch()
-      }, 30000) // 30秒刷新一次
-    }
-    return () => {
-      if (autoRefreshRef.current) {
-        clearInterval(autoRefreshRef.current)
-        autoRefreshRef.current = null
-      }
-    }
-  }, [autoRefresh, isAuthed, refetch])
-
-  const [deleteModal, setDeleteModal] = useState<{
-    isOpen: boolean
-    type: 'record' | 'shortlink'
-    id: string
-    name: string
-  }>({
-    isOpen: false,
-    type: 'record',
-    id: '',
-    name: ''
-  })
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(emptyDeleteTarget)
   const [deleting, setDeleting] = useState(false)
+  const [detailItem, setDetailItem] = useState<UnifiedItem | null>(null)
 
-  const [detailItem, setDetailItem] = useState<{
-    id: string
-    name: string
-    type: 'convert' | 'shortlink'
-    url: string
-    hits: number
-    lastAccess: number
-    clientType?: string
-    nodeCount?: number
-  } | null>(null)
+  const searchTerm = useDebouncedValue(searchInput)
+  const tableItems = useMemo(() => buildAdminItems(records, shortLinks), [records, shortLinks])
 
-  // 处理登录
-  const handleLogin = async (username: string, password: string) => {
-    await login(username, password)
-  }
+  useAutoRefresh({
+    enabled: autoRefresh,
+    active: isAuthed,
+    onRefresh: refetch
+  })
 
-  // 处理登出
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout()
     setSearchInput('')
-    setSearchTerm('')
-  }
+    setDeleteTarget(emptyDeleteTarget)
+    setDetailItem(null)
+  }, [logout])
 
-  // 打开删除确认弹窗
-  const openDeleteModal = (type: 'record' | 'shortlink', id: string, name: string) => {
-    setDeleteModal({ isOpen: true, type, id, name })
-  }
-
-  // 关闭删除确认弹窗
-  const closeDeleteModal = () => {
-    setDeleteModal({ isOpen: false, type: 'record', id: '', name: '' })
-  }
-
-  // 确认删除
-  const handleDelete = async () => {
-    setDeleting(true)
-    try {
-      const success = deleteModal.type === 'record'
-        ? await deleteRecord(deleteModal.id)
-        : await deleteShortLink(deleteModal.id)
-
-      if (success) {
-        showToast('success', '删除成功')
-        closeDeleteModal()
-      } else {
-        showToast('error', '删除失败')
-      }
-    } catch (err) {
-      console.error('删除失败:', err)
-      showToast('error', '删除失败')
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  // 复制到剪贴板
-  const handleCopy = async (text: string) => {
+  const handleCopy = useCallback(async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
       showToast('success', '已复制到剪贴板')
     } catch {
       showToast('error', '复制失败')
     }
-  }
+  }, [showToast])
 
-  // 初始加载状态（验证 token 中）
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget.item) return
+
+    setDeleting(true)
+    try {
+      const success = deleteTarget.item.type === 'convert'
+        ? await deleteRecord(deleteTarget.item.id)
+        : await deleteShortLink(deleteTarget.item.id)
+
+      if (success) {
+        showToast('success', '删除成功')
+        setDeleteTarget(emptyDeleteTarget)
+      } else {
+        showToast('error', '删除失败')
+      }
+    } catch (error) {
+      console.error('删除失败:', error)
+      showToast('error', '删除失败')
+    } finally {
+      setDeleting(false)
+    }
+  }, [deleteRecord, deleteShortLink, deleteTarget.item, showToast])
+
+  const deleteTitle = deleteTarget.item
+    ? `删除${deleteTarget.item.type === 'convert' ? '订阅' : '短链接'}`
+    : '删除'
+
+  const deleteMessage = deleteTarget.item
+    ? `确定要删除"${deleteTarget.item.name}"吗？${deleteTarget.item.type === 'convert' ? '删除后该订阅链接将无法使用。' : ''}`
+    : ''
+
   if (authLoading && !isAuthed) {
     return (
       <div className="admin-root login-container">
-        <div className="login-card" style={{ textAlign: 'center' }}>
+        <div className="login-card auth-check-card">
           <h1 className="login-title">订阅管理</h1>
           <p className="login-subtitle">正在验证登录状态...</p>
         </div>
@@ -153,118 +110,60 @@ export default function AdminPage() {
     )
   }
 
-  // 登录界面
   if (!isAuthed) {
     return (
       <>
-        <LoginForm
-          onLogin={handleLogin}
-          loading={authLoading}
-          error={authError}
-        />
+        <LoginForm onLogin={login} loading={authLoading} error={authError} />
         <ToastContainer toasts={toasts} onClose={hideToast} />
       </>
     )
   }
 
-  // 管理界面
   return (
     <>
       <AdminLayout onLogout={handleLogout}>
-        {/* 统计卡片 */}
         <StatsCards
           stats={stats}
           loading={dataLoading}
           shortLinksCount={shortLinks.length}
         />
 
-        {/* 操作栏 */}
-        <div className="actions-bar">
-          <SearchField
-            value={searchInput}
-            onChange={setSearchInput}
-            className="flex-1 min-w-[240px]"
-          >
-            <SearchField.Group>
-              <SearchField.SearchIcon />
-              <SearchField.Input placeholder="搜索名称或链接..." />
-              <SearchField.ClearButton />
-            </SearchField.Group>
-          </SearchField>
-          <label className="auto-refresh-toggle">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-            />
-            <span>自动刷新</span>
-          </label>
-          <Button
-            variant="secondary"
-            onPress={refetch}
-            isDisabled={dataLoading}
-          >
-            {dataLoading ? '刷新中...' : '刷新数据'}
-          </Button>
-        </div>
-
-        {/* 统一数据表格 */}
-        <UnifiedTable
-          records={records}
-          shortLinks={shortLinks}
+        <AdminToolbar
+          searchValue={searchInput}
+          autoRefresh={autoRefresh}
           loading={dataLoading}
-          onDeleteRecord={(id) => {
-            const record = records.find(r => r.id === id)
-            if (record) {
-              openDeleteModal('record', id, record.name)
-            }
-          }}
-          onDeleteShortLink={(id) => {
-            const link = shortLinks.find(l => l.id === id)
-            if (link) {
-              openDeleteModal('shortlink', id, link.name)
-            }
-          }}
-          onEditRecord={(id, name) => {
-            const record = records.find(r => r.id === id)
-            if (record) {
-              setDetailItem({
-                id, name, type: 'convert',
-                url: record.originalUrl,
-                hits: record.hits,
-                lastAccess: record.lastAccess,
-                clientType: record.clientType,
-                nodeCount: record.nodeCount
-              })
-            }
-          }}
-          onEditShortLink={(id, name) => {
-            const link = shortLinks.find(l => l.id === id)
-            if (link) {
-              setDetailItem({
-                id, name, type: 'shortlink',
-                url: link.targetUrl,
-                hits: link.hits,
-                lastAccess: link.lastAccess
-              })
-            }
-          }}
-          onCopy={handleCopy}
+          onSearchChange={setSearchInput}
+          onAutoRefreshChange={setAutoRefresh}
+          onRefresh={refetch}
+        />
+
+        {dataError && (
+          <div className="admin-error-banner" role="alert">
+            {dataError}
+          </div>
+        )}
+
+        <UnifiedTable
+          items={tableItems}
+          recordsCount={records.length}
+          shortLinksCount={shortLinks.length}
+          loading={dataLoading}
           searchTerm={searchTerm}
+          onDelete={(item) => setDeleteTarget({ isOpen: true, item })}
+          onShowDetail={setDetailItem}
+          onCopy={handleCopy}
         />
       </AdminLayout>
 
-      {/* 删除确认弹窗 */}
       <DeleteConfirmModal
-        isOpen={deleteModal.isOpen}
-        onClose={closeDeleteModal}
-        onConfirm={handleDelete}
+        isOpen={deleteTarget.isOpen}
+        onClose={() => setDeleteTarget(emptyDeleteTarget)}
+        onConfirm={handleDeleteConfirm}
         loading={deleting}
-        title={`删除${deleteModal.type === 'record' ? '订阅' : '短链接'}`}
-        message={`确定要删除"${deleteModal.name}"吗？${deleteModal.type === 'record' ? '删除后该订阅链接将无法使用。' : ''}`}
+        title={deleteTitle}
+        message={deleteMessage}
       />
 
-      {/* 详情弹窗 */}
       <DetailModal
         isOpen={detailItem !== null}
         onClose={() => setDetailItem(null)}
@@ -272,7 +171,6 @@ export default function AdminPage() {
         item={detailItem}
       />
 
-      {/* Toast 通知 */}
       <ToastContainer toasts={toasts} onClose={hideToast} />
     </>
   )

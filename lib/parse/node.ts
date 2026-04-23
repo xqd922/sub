@@ -1,4 +1,4 @@
-import { Proxy } from '../core/types'
+﻿import { Proxy } from '../core/types'
 import { logger } from '../core/logger'
 import {
   SSProtocol,

@@ -1,4 +1,4 @@
-import yaml from 'js-yaml'
+﻿import yaml from 'js-yaml'
 import { Proxy } from '@/lib/core/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { generateSingboxConfig as buildSingboxConfig } from '@/config/singbox'

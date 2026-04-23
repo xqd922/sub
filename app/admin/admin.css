@@ -1,4 +1,4 @@
-/* Apple-style Admin Dashboard */
+﻿/* Apple-style Admin Dashboard */
 
 /* ============================================
    Design System Variables
@@ -616,4 +616,53 @@
 
 .admin-root ::-webkit-scrollbar-thumb:hover {
   background: var(--apple-gray-2);
+}
+
+.auth-check-card {
+  text-align: center;
+}
+
+.admin-error-banner {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 59, 48, 0.24);
+  border-radius: var(--apple-radius-md);
+  background: rgba(255, 59, 48, 0.08);
+  color: var(--apple-red);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .actions-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .auto-refresh-toggle {
+    min-height: 36px;
+  }
+
+  .type-filter {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .filter-btn {
+    white-space: nowrap;
+  }
+
+  .row-actions {
+    min-width: 190px;
+  }
 }

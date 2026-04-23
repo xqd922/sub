@@ -1,4 +1,4 @@
-// 管理面板类型定义
+﻿// 管理面板类型定义
 
 export interface ConvertRecord {
   id: string
@@ -30,17 +30,35 @@ export interface Stats {
   todayNewRecords?: number
 }
 
+export interface UnifiedItem {
+  id: string
+  name: string
+  type: 'convert' | 'shortlink'
+  url: string
+  hits: number
+  lastAccess: number
+  clientType?: string
+  nodeCount?: number
+}
+
+export interface DeleteTarget {
+  isOpen: boolean
+  item: UnifiedItem | null
+}
+
 export interface Toast {
   type: 'success' | 'error' | 'warning' | 'info'
   message: string
   id?: string
 }
 
-export type TabType = 'records' | 'shortlinks' | 'analytics'
+export type TypeFilter = 'all' | UnifiedItem['type']
 
 export type SortDirection = 'ascending' | 'descending'
 
+export type SortColumn = 'name' | 'hits' | 'lastAccess'
+
 export interface SortDescriptor {
-  column: string
+  column: SortColumn
   direction: SortDirection
 }

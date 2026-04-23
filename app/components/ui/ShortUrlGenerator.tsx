@@ -1,4 +1,4 @@
-interface ShortUrlGeneratorProps {
+﻿interface ShortUrlGeneratorProps {
   hasConvertedUrl: boolean
   shortUrl: string
   loading: boolean

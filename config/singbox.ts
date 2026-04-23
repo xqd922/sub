@@ -1,4 +1,4 @@
-import { Proxy } from '@/lib/core/types'
+﻿import { Proxy } from '@/lib/core/types'
 import { SingleNodeParser } from '@/lib/parse/node'
 
 export function generateSingboxConfig(proxies: Proxy[]) {

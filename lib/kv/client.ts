@@ -1,4 +1,4 @@
-import { ConvertRecord, RecordIndex, DailyStats, KV_PREFIX } from './types'
+﻿import { ConvertRecord, RecordIndex, DailyStats, KV_PREFIX } from './types'
 import { getLocalKV, isLocalDev } from './local'
 
 /**

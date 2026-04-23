@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { AppError, ErrorSeverity, ErrorCode } from '@/lib/error/errors'
