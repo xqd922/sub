@@ -1,4 +1,9 @@
-﻿interface UrlInputProps {
+import { Input, Typography } from '@arco-design/web-react'
+
+const { Text } = Typography
+const TextArea = Input.TextArea
+
+interface UrlInputProps {
   value: string
   onChange: (value: string) => void
   error?: string
@@ -6,19 +11,20 @@
 
 export default function UrlInput({ value, onChange, error }: UrlInputProps) {
   return (
-    <div className="space-y-2">
-      <input
-        type="text"
+    <div className="url-input-group">
+      <div className="field-label-row">
+        <Text className="field-label">订阅原始地址</Text>
+        <Text className="field-hint">支持订阅 URL、单节点链接或 Gist 原始地址</Text>
+      </div>
+      <TextArea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="在此输入你的订阅链接"
-        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/50 dark:bg-black/50 backdrop-blur-sm border-0 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+        onChange={onChange}
+        placeholder="粘贴你的订阅链接，例如 https://example.com/sub 或 vmess://..."
+        className="public-url-input"
+        autoSize={{ minRows: 4, maxRows: 7 }}
+        status={error ? 'error' : undefined}
       />
-      {error && (
-        <div className="text-[10px] sm:text-xs text-red-500/90 text-center">
-          {error}
-        </div>
-      )}
+      {error && <Text className="field-error">{error}</Text>}
     </div>
   )
 }

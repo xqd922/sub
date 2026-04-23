@@ -1,4 +1,9 @@
-﻿interface ShortUrlGeneratorProps {
+import { Button, Typography } from '@arco-design/web-react'
+import { IconCopy, IconLink } from '@arco-design/web-react/icon'
+
+const { Text, Paragraph } = Typography
+
+interface ShortUrlGeneratorProps {
   hasConvertedUrl: boolean
   shortUrl: string
   loading: boolean
@@ -6,44 +11,43 @@
   onCopy: () => void
 }
 
-export default function ShortUrlGenerator({ 
-  hasConvertedUrl, 
-  shortUrl, 
-  loading, 
-  onGenerate, 
-  onCopy 
+export default function ShortUrlGenerator({
+  hasConvertedUrl,
+  shortUrl,
+  loading,
+  onGenerate,
+  onCopy
 }: ShortUrlGeneratorProps) {
   if (!hasConvertedUrl) return null
 
   if (!shortUrl) {
     return (
-      <div className="flex justify-between items-center px-1">
-        <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
-        <button
-          onClick={onGenerate}
-          disabled={loading}
-          className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors disabled:opacity-50"
-        >
-          {loading ? '生成中...' : '生成短链接'}
-        </button>
+      <div className="shortlink-action-card">
+        <div>
+          <Text className="shortlink-title">短链接</Text>
+          <p>生成更短的分享地址，便于在移动端或聊天工具中使用。</p>
+        </div>
+        <Button type="secondary" loading={loading} onClick={onGenerate}>
+          {loading ? '生成中' : '生成短链接'}
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between items-center px-1">
-        <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
-        <button
-          onClick={onCopy}
-          className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 transition-colors"
-        >
+    <div className="result-card">
+      <div className="result-card-head">
+        <div className="result-title">
+          <IconLink />
+          <Text>短链接</Text>
+        </div>
+        <Button size="mini" type="text" icon={<IconCopy />} onClick={onCopy}>
           复制
-        </button>
+        </Button>
       </div>
-      <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
+      <Paragraph className="result-link-box">
         {shortUrl}
-      </div>
+      </Paragraph>
     </div>
   )
 }
