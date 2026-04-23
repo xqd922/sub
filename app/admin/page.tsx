@@ -108,12 +108,20 @@ export default function AdminPage() {
   if (authLoading && !isAuthed) {
     return (
       <ConfigProvider locale={zhCN} size="default">
-        <div className="admin-login-screen admin-root">
-          <Card className="admin-login-card auth-check-card" bordered>
-            <div className="admin-login-brand">S</div>
-            <h1 className="login-title">SubOps Console</h1>
-            <Text className="login-subtitle">正在验证登录状态...</Text>
-          </Card>
+        <div className="admin-login-split admin-root">
+          <section className="login-hero-panel">
+            <div className="login-hero-content">
+              <div className="login-hero-icon">S</div>
+              <h1>Welcome to SubOps</h1>
+              <p>一个用于管理订阅转换、短链接和 Edge 运行状态的控制台。</p>
+            </div>
+          </section>
+          <section className="login-form-panel">
+            <div className="login-form-wrap auth-check-card">
+              <h2 className="login-heading">Login to Admin</h2>
+              <Text className="login-subtitle">正在验证登录状态...</Text>
+            </div>
+          </section>
         </div>
       </ConfigProvider>
     )
