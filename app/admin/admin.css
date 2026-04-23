@@ -44,14 +44,9 @@
 
 .admin-brand-mark,
 .admin-login-brand {
-  display: grid;
+  --mark-cutout: var(--admin-surface);
   width: 32px;
   height: 32px;
-  place-items: center;
-  border-radius: 8px;
-  color: #fff;
-  font-weight: 700;
-  background: var(--admin-blue);
 }
 
 .admin-sider-collapsed .admin-brand {
@@ -442,16 +437,10 @@
 }
 
 .login-hero-icon {
-  display: grid;
+  --mark-cutout: #eaf7f8;
   width: 46px;
   height: 46px;
   margin-bottom: 32px;
-  place-items: center;
-  color: #fff;
-  border-radius: 12px;
-  background: var(--admin-blue);
-  font-size: 24px;
-  box-shadow: 0 8px 18px rgba(22, 93, 255, 0.18);
 }
 
 .login-hero-content h1 {

@@ -94,7 +94,7 @@ export class ConfigService {
         <div class="page-shell">
           <header class="preview-topbar">
             <div class="brand">
-              <div class="brand-mark">S</div>
+              <div class="brand-mark" aria-hidden="true"></div>
               <div>
                 <div class="brand-title">SubOps</div>
                 <div class="brand-subtitle">配置预览</div>

@@ -27,6 +27,7 @@ import { UnifiedTable } from './components/UnifiedTable'
 import { DetailModal } from './components/DetailModal'
 import { DiagnosticsPanel } from './components/DiagnosticsPanel'
 import { SettingsPanel } from './components/SettingsPanel'
+import { BrandMark } from '../components/BrandMark'
 import './admin.css'
 
 const { Row, Col } = Grid
@@ -113,7 +114,7 @@ export default function AdminPage() {
         <div className="admin-login-split admin-root">
           <section className="login-hero-panel">
             <div className="login-hero-content">
-              <div className="login-hero-icon">S</div>
+              <BrandMark className="login-hero-icon" />
               <h1>Welcome to SubOps</h1>
               <p>一个用于管理订阅转换、短链接和 Edge 运行状态的控制台。</p>
             </div>

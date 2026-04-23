@@ -60,3 +60,30 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.subops-mark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: transparent;
+}
+
+.subops-mark::before {
+  position: absolute;
+  inset: 3%;
+  content: "";
+  border-radius: 46% 54% 58% 42% / 50% 39% 61% 50%;
+  background:
+    radial-gradient(circle at 73% 22%, rgba(20, 201, 201, 0.82), transparent 36%),
+    linear-gradient(135deg, rgba(22, 93, 255, 0.94) 0%, rgba(20, 201, 201, 0.92) 100%);
+  filter: drop-shadow(0 6px 14px rgba(22, 93, 255, 0.14));
+}
+
+.subops-mark-ring {
+  position: absolute;
+  inset: 28% 23% 26% 26%;
+  border-radius: 47% 53% 56% 44% / 50% 42% 58% 50%;
+  background: var(--mark-cutout, #ffffff);
+  transform: rotate(-7deg);
+}
+

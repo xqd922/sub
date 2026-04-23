@@ -13,6 +13,7 @@ import {
   IconSubscribe,
   IconSync
 } from '@arco-design/web-react/icon'
+import { BrandMark } from '../../components/BrandMark'
 import type { AdminSection } from '../types'
 
 const { Header, Sider, Content } = Layout
@@ -56,7 +57,7 @@ export function AdminLayout({
         onCollapse={(nextCollapsed) => setCollapsed(nextCollapsed)}
       >
         <div className="admin-brand">
-          <div className="admin-brand-mark">S</div>
+          <BrandMark className="admin-brand-mark" />
           <div className="admin-brand-copy">
             <div className="admin-brand-title">SubOps</div>
             <Text className="admin-brand-subtitle">订阅转换管理</Text>

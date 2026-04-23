@@ -15,6 +15,7 @@ import { useShortUrl } from '../hooks/useShortUrl'
 import UrlInput from './ui/UrlInput'
 import ResultItem from './ui/ResultItem'
 import ShortUrlGenerator from './ui/ShortUrlGenerator'
+import { BrandMark } from './BrandMark'
 import './home.css'
 
 const { Row, Col } = Grid
@@ -78,7 +79,7 @@ export default function HomeContent() {
       <main className="public-root">
         <header className="public-topbar">
           <div className="public-brand">
-            <div className="public-brand-mark">S</div>
+            <BrandMark className="public-brand-mark" />
             <div>
               <div className="public-brand-title">SubOps</div>
               <Text className="public-brand-subtitle">订阅转换入口</Text>

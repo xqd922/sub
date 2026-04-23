@@ -1,6 +1,6 @@
 ﻿import { Alert, Button, Checkbox, Form, Input, Typography } from '@arco-design/web-react'
-import { IconSubscribe } from '@arco-design/web-react/icon'
 import { useState } from 'react'
+import { BrandMark } from '../../components/BrandMark'
 
 const { Text } = Typography
 
@@ -23,9 +23,7 @@ export function LoginForm({ onLogin, loading, error }: LoginFormProps) {
     <div className="admin-login-split admin-root">
       <section className="login-hero-panel">
         <div className="login-hero-content">
-          <div className="login-hero-icon">
-            <IconSubscribe />
-          </div>
+          <BrandMark className="login-hero-icon" />
           <h1>Welcome to SubOps</h1>
           <p>
             一个用于管理订阅转换、短链接和 Edge 运行状态的控制台。

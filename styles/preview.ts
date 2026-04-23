@@ -48,15 +48,32 @@ export const previewStyles = `
   }
 
   .brand-mark {
+    position: relative;
     display: grid;
     width: 36px;
     height: 36px;
     place-items: center;
-    border-radius: 10px;
-    color: #fff;
-    background: var(--blue);
-    font-weight: 700;
-    box-shadow: 0 8px 18px rgba(22, 93, 255, 0.16);
+    background: transparent;
+  }
+
+  .brand-mark::before {
+    position: absolute;
+    inset: 3%;
+    content: "";
+    border-radius: 46% 54% 58% 42% / 50% 39% 61% 50%;
+    background:
+      radial-gradient(circle at 73% 22%, rgba(20, 201, 201, 0.82), transparent 36%),
+      linear-gradient(135deg, rgba(22, 93, 255, 0.94) 0%, rgba(20, 201, 201, 0.92) 100%);
+    filter: drop-shadow(0 6px 14px rgba(22, 93, 255, 0.14));
+  }
+
+  .brand-mark::after {
+    position: absolute;
+    inset: 28% 23% 26% 26%;
+    content: "";
+    border-radius: 47% 53% 56% 44% / 50% 42% 58% 50%;
+    background: #ffffff;
+    transform: rotate(-7deg);
   }
 
   .brand-title {
