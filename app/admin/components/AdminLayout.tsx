@@ -1,12 +1,9 @@
-﻿import { useState } from 'react'
 import { Button, Layout, Menu, Space, Tag, Typography } from '@arco-design/web-react'
 import {
   IconCheckCircle,
   IconCloud,
   IconDashboard,
   IconLink,
-  IconMenuFold,
-  IconMenuUnfold,
   IconPoweroff,
   IconSafe,
   IconSettings,
@@ -42,20 +39,9 @@ export function AdminLayout({
   onNavigate,
   onLogout
 }: AdminLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false)
-
   return (
     <Layout className="admin-shell admin-root">
-      <Sider
-        className={`admin-sider ${collapsed ? 'admin-sider-collapsed' : ''}`}
-        width={232}
-        collapsedWidth={72}
-        collapsed={collapsed}
-        breakpoint="lg"
-        collapsible
-        trigger={null}
-        onCollapse={(nextCollapsed) => setCollapsed(nextCollapsed)}
-      >
+      <Sider className="admin-sider" width={232}>
         <div className="admin-brand">
           <BrandMark className="admin-brand-mark" />
           <div className="admin-brand-copy">
@@ -66,7 +52,6 @@ export function AdminLayout({
 
         <Menu
           className="admin-menu"
-          collapse={collapsed}
           selectedKeys={[activeSection]}
           onClickMenuItem={(key) => onNavigate(key as AdminSection)}
         >
@@ -77,18 +62,6 @@ export function AdminLayout({
             </Menu.Item>
           ))}
         </Menu>
-
-        <div className="sider-collapse-zone">
-          <Button
-            className="sider-collapse-button"
-            type="text"
-            icon={collapsed ? <IconMenuUnfold /> : <IconMenuFold />}
-            onClick={() => setCollapsed((current) => !current)}
-            aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
-          >
-            {!collapsed && '收起侧栏'}
-          </Button>
-        </div>
       </Sider>
 
       <Layout className="admin-main-layout">
