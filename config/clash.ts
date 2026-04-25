@@ -85,7 +85,7 @@ export const defaultConfig: ClashConfig = {
   'mode': 'Rule',
   'log-level': 'info',
   'ipv6': true,
-  'unified-delay': true,
+  'unified-delay': false,
   'tcp-concurrent': true,
   'keep-alive-idle': 300,
   'keep-alive-interval': 75,
