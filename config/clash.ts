@@ -82,7 +82,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
 export const defaultConfig: ClashConfig = {
   'mixed-port': 7890,
   'allow-lan': true,
-  'mode': 'Rule',
+  'mode': 'rule',
   'log-level': 'info',
   'ipv6': true,
   'unified-delay': false,
@@ -92,7 +92,7 @@ export const defaultConfig: ClashConfig = {
   'find-process-mode': 'strict',
   'external-controller': '[::]:9090',
   'external-ui': 'ui',
-  'external-ui-url': 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.zip',
+  'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
   'secret': '',
   'profile': {
     'store-selected': true,
@@ -233,7 +233,7 @@ export const defaultConfig: ClashConfig = {
       'type': 'http',
       'behavior': 'domain',
       'format': 'mrs',
-      'url': 'https://raw.githubusercontent.com/YiXuanZX/rules/main/cn-additional-list.mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs',
       'path': './rule_providers/cn.mrs',
       'interval': 86400
     },
