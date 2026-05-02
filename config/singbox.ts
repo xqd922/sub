@@ -133,6 +133,12 @@ export function generateSingboxConfig(proxies: Proxy[]) {
           action: "reject"
         },
         {
+          network: "udp",
+          port: 443,
+          action: "reject",
+          method: "default"
+        },
+        {
           clash_mode: "Direct",
           outbound: "direct"
         },
