@@ -17,8 +17,8 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       servers: [
         {
           tag: "remote",
-          type: "udp",
-          server: "127.0.0.53",
+          type: "https",
+          server: "8.8.8.8",
           detour: "Manual"
         },
         {
