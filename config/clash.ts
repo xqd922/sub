@@ -292,7 +292,7 @@ export const defaultConfig: ClashConfig = {
     'PROCESS-NAME,com.tencent.wetype,DIRECT',
 
     'RULE-SET,ads,REJECT',
-
+    'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
