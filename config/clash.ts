@@ -279,6 +279,18 @@ export const defaultConfig: ClashConfig = {
     'PROCESS-NAME,com.ct.client,DIRECT',
     'PROCESS-NAME,com.ai.obc.cbn.app,DIRECT',
 
+    // 购物 - 直连
+    'PROCESS-NAME,com.xunmeng.pinduoduo,DIRECT',
+    'PROCESS-NAME,com.jingdong.app.mall,DIRECT',
+    'PROCESS-NAME,com.taobao.taobao,DIRECT',
+    'PROCESS-NAME,com.tmall.wireless,DIRECT',
+    'PROCESS-NAME,com.taobao.idlefish,DIRECT',
+    'PROCESS-NAME,com.sankuai.meituan,DIRECT',
+    'PROCESS-NAME,com.achievo.vipshop,DIRECT',
+
+    // 输入法 - 直连
+    'PROCESS-NAME,com.tencent.wetype,DIRECT',
+
     'RULE-SET,ads,REJECT',
 
     'DOMAIN,1001.pp.ua,DIRECT',
