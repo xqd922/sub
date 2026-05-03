@@ -125,10 +125,6 @@ export function generateSingboxConfig(proxies: Proxy[]) {
           action: "hijack-dns"
         },
         {
-          action: "resolve",
-          strategy: "prefer_ipv4"
-        },
-        {
           rule_set: ["AdGuardSDNSFilter"],
           action: "reject"
         },
