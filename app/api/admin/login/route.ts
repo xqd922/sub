@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
-import { generateSessionToken } from '@/lib/auth'
+import { generateSessionToken } from '@/src/infrastructure/auth'
 
-export const runtime = 'edge'
 
 /**
  * POST /api/admin/login - 管理员登录

@@ -1,6 +1,5 @@
-﻿import { CoreService } from '@/features'
+﻿import { CoreService } from '@/src/application'
 
-export const runtime = 'edge'
 
 /**
  * 处理 GET 请求 - 订阅转换主入口

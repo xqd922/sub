@@ -1,9 +1,8 @@
 ﻿import { NextResponse } from 'next/server'
-import { RecordService } from '@/lib/kv'
-import { requireAuth } from '@/lib/auth'
-import { logger } from '@/lib/core/logger'
+import { RecordService } from '@/src/infrastructure/storage/kv'
+import { requireAuth } from '@/src/infrastructure/auth'
+import { logger } from '@/src/infrastructure/logger'
 
-export const runtime = 'edge'
 
 interface RouteParams {
   params: Promise<{ id: string }>

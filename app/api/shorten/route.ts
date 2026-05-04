@@ -1,8 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
-import { ShortService } from '@/features'
-import { logger } from '@/lib/core/logger'
+import { ShortService } from '@/src/application'
+import { logger } from '@/src/infrastructure/logger'
 
-export const runtime = 'edge'
 
 export async function POST(request: Request) {
   const startTime = Date.now()

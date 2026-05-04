@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from "next";
 import "./globals.css";
-import { GlobalErrorBoundary } from "./components/ErrorBoundary";
+import { GlobalErrorBoundary } from "@/src/ui/shared/ErrorBoundary";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {

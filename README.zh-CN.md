@@ -2,14 +2,14 @@
 
 <div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.0.8-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.2-000000?style=flat-square&logo=bun&logoColor=white)](https://bun.sh/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 **一个现代化的全栈代理订阅转换服务，支持智能客户端检测和多格式输出。**
 
-[在线演示](https://sub.xqd.pp.ua/) • [技术文档](./CLAUDE.md) • [报告问题](https://github.com/xqd922/sub/issues) • [功能建议](https://github.com/xqd922/sub/issues)
+[在线演示](https://sub-v2.xqd.pp.ua/) • [技术文档](./CLAUDE.md) • [报告问题](https://github.com/xqd922/sub/issues) • [功能建议](https://github.com/xqd922/sub/issues)
 
 [English](./README.md) | 简体中文
 
@@ -33,14 +33,14 @@
 
 ## 项目简介
 
-订阅转换器是一个基于 Next.js 16 构建的高性能代理订阅转换服务，旨在无缝转换不同代理客户端格式（Clash、Sing-box 等）的订阅链接，具有自动客户端检测和智能格式化功能。
+订阅转换器是一个基于 Next.js 15 构建的高性能代理订阅转换服务，旨在无缝转换不同代理客户端格式（Clash、Sing-box 等）的订阅链接，具有自动客户端检测和智能格式化功能。
 
 ### 核心亮点
 
-- **Next.js 16 + Turbopack** - 极速的开发和构建性能
+- **Next.js 15 + Turbopack** - 极速的开发和构建性能
 - **智能客户端检测** - 自动识别客户端类型并返回对应格式
 - **协议全支持** - 支持 SS、VMess、Trojan、VLESS、Hysteria2 和 SOCKS 协议
-- **边缘运行时** - 部署在 Cloudflare Pages，全球边缘节点分发
+- **Workers 运行时** - 通过 OpenNext 部署到 Cloudflare Workers，全球边缘节点分发
 - **响应式设计** - 基于 Tailwind CSS 构建的现代化 UI
 - **短链接服务** - 内置短链接生成器，便于分享
 - **类型安全** - 完整的 TypeScript 类型定义
@@ -70,7 +70,7 @@
 
 ### 技术特性
 
-- **边缘运行时** - 所有 API 路由使用 Edge Runtime，兼容 Cloudflare Pages
+- **Workers 运行时** - API 路由通过 OpenNext 运行在 Cloudflare Workers
 - **智能 User-Agent 策略** - 在真实客户端 User-Agent 之间轮换，提高兼容性
 - **错误处理** - 完善的错误追踪和结构化日志
 - **性能监控** - 内置请求统计和处理时间追踪
@@ -83,49 +83,22 @@
 
 ```
 subscription-converter/
-├── app/                      # Next.js App Router
-│   ├── api/                  # API 路由（Edge Runtime）
-│   │   ├── shorten/          # 短链接服务
-│   │   └── sub/              # 订阅转换端点
-│   ├── components/           # React 组件
-│   ├── page.tsx              # 首页
-│   └── layout.tsx            # 根布局
-├── features/                 # 业务逻辑模块
-│   ├── convert/              # 订阅转换
-│   │   ├── handler.ts        # 请求处理器（CoreService）
-│   │   ├── processor.ts      # 订阅处理器（SubService）
-│   │   └── builder.ts        # 配置构建器（ConfigService）
-│   ├── shorten/              # URL 缩短
-│   │   └── shortener.ts      # 短链接服务
-│   └── metrics/              # 网络与监控
-│       └── network.ts        # 网络请求服务
-├── lib/                      # 工具库
-│   ├── core/                 # 核心基础设施
-│   │   ├── types.ts          # 类型定义
-│   │   ├── utils.ts          # 工具函数
-│   │   └── logger.ts         # 日志系统
-│   ├── parse/                # 解析器
-│   │   ├── node.ts           # 节点解析器
-│   │   ├── subscription.ts   # 订阅解析器
-│   │   ├── remote.ts         # 远程节点获取器
-│   │   └── protocols/        # 协议解析器
-│   │       ├── shadowsocks.ts
-│   │       ├── vmess.ts
-│   │       ├── trojan.ts
-│   │       ├── vless.ts
-│   │       ├── hysteria2.ts
-│   │       └── socks.ts
-│   ├── format/               # 格式化器
-│   │   ├── node.ts           # 节点格式化
-│   │   └── region.ts         # 地区映射
-│   └── error/                # 错误处理
-│       ├── errors.ts         # 错误定义
-│       └── reporter.ts       # 错误报告
-├── config/                   # 配置生成器
-│   ├── clash.ts              # Clash 配置生成器
-│   └── singbox.ts            # Sing-box 配置生成器
-└── styles/                   # 样式
-    └── preview.css           # 预览页面样式
+├── app/                      # Next.js 路由入口（页面/API 适配层）
+│   ├── api/                  # API 路由（Cloudflare Workers）
+│   ├── admin/                # 管理后台入口
+│   ├── s/[id]/               # 短链接跳转入口
+│   ├── sub/                  # 订阅转换入口
+│   └── page.tsx              # 公共工作台入口
+├── src/
+│   ├── application/          # 用例编排：转换、配置生成、短链接
+│   ├── domain/               # 领域规则：协议、订阅、节点、地区、去重
+│   ├── infrastructure/       # Cloudflare KV、鉴权、网络、日志、错误处理
+│   ├── presentation/         # Clash/Sing-box 输出和 HTML 预览
+│   ├── shared/               # 通用工具
+│   └── ui/                   # 公共工作台、管理后台、共享 UI
+├── docs/                     # 产品和架构说明
+├── public/                   # 静态资源
+└── wrangler.toml             # Cloudflare Workers 部署配置
 ```
 
 ### 请求流程
@@ -196,6 +169,7 @@ bun dev:fast
 # 开发
 bun dev                 # 启动 Turbopack 开发服务器
 bun dev:fast           # 快速模式（跳过 lint 和类型检查）
+bun dev:cf             # OpenNext + Wrangler 本地模拟 Cloudflare Workers
 
 # 生产
 bun run build          # 构建生产版本
@@ -205,8 +179,9 @@ bun start              # 启动生产服务器
 bun run lint           # 运行 ESLint
 
 # 部署
-bun run pages:build    # 构建 Cloudflare Pages 版本
-bun run pages:deploy   # 构建并部署到 Cloudflare Pages
+bun run cf:build       # 构建 Cloudflare Workers 版本
+bun run deploy:cf      # 构建并部署到 Cloudflare Workers
+bun run pages:build    # cf:build 的兼容别名
 ```
 
 ---
@@ -228,27 +203,27 @@ bun run pages:deploy   # 构建并部署到 Cloudflare Pages
 ```bash
 # Clash 客户端（返回 YAML）
 curl -H "User-Agent: clash.meta/v1.19.13" \
-  "https://sub.xqd.pp.ua/sub?url=你的订阅URL"
+  "https://sub-v2.xqd.pp.ua/sub?url=你的订阅URL"
 
 # Sing-box 客户端（返回 JSON）
 curl -H "User-Agent: sing-box/1.0.0" \
-  "https://sub.xqd.pp.ua/sub?url=你的订阅URL"
+  "https://sub-v2.xqd.pp.ua/sub?url=你的订阅URL"
 
 # 浏览器访问（返回 HTML 预览）
-curl "https://sub.xqd.pp.ua/sub?url=你的订阅URL"
+curl "https://sub-v2.xqd.pp.ua/sub?url=你的订阅URL"
 ```
 
 #### 输入格式
 
 ```bash
 # 标准订阅 URL
-https://sub.xqd.pp.ua/sub?url=https://example.com/subscription
+https://sub-v2.xqd.pp.ua/sub?url=https://example.com/subscription
 
 # 单个代理节点
-https://sub.xqd.pp.ua/sub?url=ss://base64编码字符串#节点名称
+https://sub-v2.xqd.pp.ua/sub?url=ss://base64编码字符串#节点名称
 
 # GitHub Gist
-https://sub.xqd.pp.ua/sub?url=https://gist.githubusercontent.com/user/id/raw/file
+https://sub-v2.xqd.pp.ua/sub?url=https://gist.githubusercontent.com/user/id/raw/file
 
 # 多个节点（在 Gist 中用空格或换行分隔）
 ss://节点1
@@ -359,7 +334,7 @@ rules:
 
 ```json
 {
-  "url": "https://sub.xqd.pp.ua/sub?url=..."
+  "url": "https://sub-v2.xqd.pp.ua/sub?url=..."
 }
 ```
 
@@ -367,8 +342,8 @@ rules:
 
 ```json
 {
-  "shortUrl": "https://sub.xqd.pp.ua/s/abc123",
-  "originalUrl": "https://sub.xqd.pp.ua/sub?url=..."
+  "shortUrl": "https://sub-v2.xqd.pp.ua/s/abc123",
+  "originalUrl": "https://sub-v2.xqd.pp.ua/sub?url=..."
 }
 ```
 
@@ -376,18 +351,18 @@ rules:
 
 ## 部署指南
 
-### Cloudflare Pages（推荐）
+### Cloudflare Workers（推荐）
 
-本项目针对 Cloudflare Pages 的 Edge Runtime 进行了优化。
+本项目针对 Cloudflare Workers + OpenNext 进行了优化。
 
 #### 自动部署
 
 1. Fork 本仓库
-2. 将 GitHub 账户连接到 Cloudflare Pages
+2. 将 GitHub 账户连接到 Cloudflare Workers
 3. 选择仓库并配置：
    - **框架预设**：Next.js
-   - **构建命令**：`bun run build && bun run pages:build`
-   - **构建输出目录**：`.vercel/output/static`
+   - **构建命令**：`bun run cf:build`
+   - **部署命令**：`bun run deploy:cf`
    - **环境变量**：
      - `NODE_VERSION=18`
      - `BUN_VERSION=latest`
@@ -395,12 +370,11 @@ rules:
 #### 手动部署
 
 ```bash
-# 构建 Cloudflare Pages 版本
-bun run build
-bun run pages:build
+# 构建 Cloudflare Workers 版本
+bun run cf:build
 
-# 使用 Wrangler 部署（可选）
-bunx wrangler pages deploy .vercel/output/static
+# 使用 Wrangler 部署
+bun run deploy:cf
 ```
 
 ### Vercel
@@ -509,7 +483,7 @@ bun run lint
 ## 致谢
 
 - [Next.js](https://nextjs.org/) - 生产级 React 框架
-- [Cloudflare Pages](https://pages.cloudflare.com/) - 全球边缘网络
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) - 全球边缘运行时
 - [Bun](https://bun.sh/) - 快速的 JavaScript 运行时和工具包
 - [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
 - [js-yaml](https://github.com/nodeca/js-yaml) - JavaScript YAML 解析器

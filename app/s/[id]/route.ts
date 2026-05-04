@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
-import { ShortLinkService } from '@/lib/kv'
+import { ShortLinkService } from '@/src/infrastructure/storage/kv'
 
-export const runtime = 'edge'
 
 interface RouteParams {
   params: Promise<{ id: string }>

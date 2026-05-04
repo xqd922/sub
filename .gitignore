@@ -29,7 +29,10 @@ bun-debug.log*
 
 # cloudflare
 .wrangler/
-wrangler.toml
+.wrangler-bundle/
+.open-next/
+*.out.log
+*.err.log
 
 # typescript
 *.tsbuildinfo
@@ -37,3 +40,6 @@ next-env.d.ts
 
 # claude code
 .claude/settings.local.json
+
+# local agent learning logs
+.learnings/

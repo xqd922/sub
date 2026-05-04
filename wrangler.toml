@@ -1,0 +1,26 @@
+﻿name = "sub-v2"
+compatibility_date = "2026-01-14"
+compatibility_flags = ["nodejs_compat"]
+main = ".open-next/worker.js"
+workers_dev = true
+routes = [
+  { pattern = "sub-v2.xqd.pp.ua", custom_domain = true }
+]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+SITE_URL = "https://sub-v2.xqd.pp.ua"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "sub-v2"
+
+[[kv_namespaces]]
+binding = "LINKS_KV"
+id = "2c1fee28253f40a08fff70891d06a8e8"
+
+[observability]
+enabled = true

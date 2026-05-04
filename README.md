@@ -1,15 +1,15 @@
-# Subscription Converter
+﻿# Subscription Converter
 
 <div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.0.8-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.2-000000?style=flat-square&logo=bun&logoColor=white)](https://bun.sh/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 **A modern, full-stack subscription conversion service with intelligent client detection and multi-format output support.**
 
-[Live Demo](https://sub.xqd.pp.ua/) • [Documentation](./CLAUDE.md) • [Report Bug](https://github.com/xqd922/sub/issues) • [Request Feature](https://github.com/xqd922/sub/issues)
+[Live Demo](https://sub-v2.xqd.pp.ua/) • [Documentation](./CLAUDE.md) • [Report Bug](https://github.com/xqd922/sub/issues) • [Request Feature](https://github.com/xqd922/sub/issues)
 
 English | [简体中文](./README.zh-CN.md)
 
@@ -33,14 +33,14 @@ English | [简体中文](./README.zh-CN.md)
 
 ## Overview
 
-Subscription Converter is a high-performance proxy subscription conversion service built with Next.js 16, designed to seamlessly convert subscription links between different proxy client formats (Clash, Sing-box, etc.) with automatic client detection and intelligent formatting.
+Subscription Converter is a high-performance proxy subscription conversion service built with Next.js 15, designed to seamlessly convert subscription links between different proxy client formats (Clash, Sing-box, etc.) with automatic client detection and intelligent formatting.
 
 ### Key Highlights
 
-- **Next.js 16 with Turbopack** - Lightning-fast development and build performance
+- **Next.js 15 with Turbopack** - Lightning-fast development and build performance
 - **Intelligent Client Detection** - Automatically detects client type via User-Agent and returns appropriate format
 - **Protocol Support** - Supports SS, VMess, Trojan, VLESS, Hysteria2, and SOCKS protocols
-- **Edge Runtime** - Deployed on Cloudflare Pages for global edge distribution
+- **Workers Runtime** - Deployed to Cloudflare Workers with OpenNext for global edge distribution
 - **Responsive Design** - Modern UI built with Tailwind CSS
 - **Short URL Service** - Built-in URL shortener for easy sharing
 - **Type Safety** - Full TypeScript implementation with comprehensive type definitions
@@ -70,7 +70,7 @@ Subscription Converter is a high-performance proxy subscription conversion servi
 
 ### Technical Features
 
-- **Edge Runtime** - All API routes use Edge Runtime for Cloudflare Pages compatibility
+- **Workers Runtime** - API routes run on Cloudflare Workers through OpenNext
 - **Smart User-Agent Strategy** - Rotates between real client User-Agents for better compatibility
 - **Error Handling** - Comprehensive error tracking with structured logging
 - **Performance Monitoring** - Built-in request statistics and processing time tracking
@@ -83,49 +83,22 @@ Subscription Converter is a high-performance proxy subscription conversion servi
 
 ```
 subscription-converter/
-├── app/                      # Next.js App Router
-│   ├── api/                  # API Routes (Edge Runtime)
-│   │   ├── shorten/          # Short URL service
-│   │   └── sub/              # Subscription conversion endpoint
-│   ├── components/           # React components
-│   ├── page.tsx              # Homepage
-│   └── layout.tsx            # Root layout
-├── features/                 # Business logic modules
-│   ├── convert/              # Subscription conversion
-│   │   ├── handler.ts        # Request handler (CoreService)
-│   │   ├── processor.ts      # Subscription processor (SubService)
-│   │   └── builder.ts        # Config builder (ConfigService)
-│   ├── shorten/              # URL shortening
-│   │   └── shortener.ts      # Short URL service
-│   └── metrics/              # Network & monitoring
-│       └── network.ts        # Network request service
-├── lib/                      # Utility libraries
-│   ├── core/                 # Core infrastructure
-│   │   ├── types.ts          # Type definitions
-│   │   ├── utils.ts          # Utility functions
-│   │   └── logger.ts         # Logging system
-│   ├── parse/                # Parsers
-│   │   ├── node.ts           # Node parser
-│   │   ├── subscription.ts   # Subscription parser
-│   │   ├── remote.ts         # Remote node fetcher
-│   │   └── protocols/        # Protocol parsers
-│   │       ├── shadowsocks.ts
-│   │       ├── vmess.ts
-│   │       ├── trojan.ts
-│   │       ├── vless.ts
-│   │       ├── hysteria2.ts
-│   │       └── socks.ts
-│   ├── format/               # Formatters
-│   │   ├── node.ts           # Node formatting
-│   │   └── region.ts         # Region mapping
-│   └── error/                # Error handling
-│       ├── errors.ts         # Error definitions
-│       └── reporter.ts       # Error reporting
-├── config/                   # Configuration generators
-│   ├── clash.ts              # Clash config generator
-│   └── singbox.ts            # Sing-box config generator
-└── styles/                   # Styling
-    └── preview.css           # Preview page styles
+├── app/                      # Next.js route entrypoints
+│   ├── api/                  # API routes (Cloudflare Workers)
+│   ├── admin/                # Admin console route
+│   ├── s/[id]/               # Short-link redirect route
+│   ├── sub/                  # Subscription conversion route
+│   └── page.tsx              # Public workspace route
+├── src/
+│   ├── application/          # Use-case orchestration
+│   ├── domain/               # Protocol, subscription, proxy, region, and dedupe rules
+│   ├── infrastructure/       # Cloudflare KV, auth, network, logging, error handling
+│   ├── presentation/         # Clash/Sing-box output and HTML preview
+│   ├── shared/               # Shared utilities
+│   └── ui/                   # Public workspace, admin console, shared UI
+├── docs/                     # Product and architecture notes
+├── public/                   # Static assets
+└── wrangler.toml             # Cloudflare Workers deployment config
 ```
 
 ### Request Flow
@@ -196,6 +169,7 @@ The application will be available at `http://localhost:3000`.
 # Development
 bun dev                 # Start development server with Turbopack
 bun dev:fast           # Fast mode (skip lint & type check)
+bun dev:cf             # Local Cloudflare Workers simulation with OpenNext and Wrangler
 
 # Production
 bun run build          # Build for production
@@ -205,8 +179,9 @@ bun start              # Start production server
 bun run lint           # Run ESLint
 
 # Deployment
-bun run pages:build    # Build for Cloudflare Pages
-bun run pages:deploy   # Build & deploy to Cloudflare Pages
+bun run cf:build       # Build for Cloudflare Workers
+bun run deploy:cf      # Build & deploy to Cloudflare Workers
+bun run pages:build    # Compatibility alias for cf:build
 ```
 
 ---
@@ -228,27 +203,27 @@ bun run pages:deploy   # Build & deploy to Cloudflare Pages
 ```bash
 # For Clash clients (returns YAML)
 curl -H "User-Agent: clash.meta/v1.19.13" \
-  "https://sub.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
+  "https://sub-v2.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
 
 # For Sing-box clients (returns JSON)
 curl -H "User-Agent: sing-box/1.0.0" \
-  "https://sub.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
+  "https://sub-v2.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
 
 # For browser access (returns HTML preview)
-curl "https://sub.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
+curl "https://sub-v2.xqd.pp.ua/sub?url=YOUR_SUBSCRIPTION_URL"
 ```
 
 #### Input Formats
 
 ```bash
 # Standard subscription URL
-https://sub.xqd.pp.ua/sub?url=https://example.com/subscription
+https://sub-v2.xqd.pp.ua/sub?url=https://example.com/subscription
 
 # Single proxy node
-https://sub.xqd.pp.ua/sub?url=ss://base64encodedstring#node-name
+https://sub-v2.xqd.pp.ua/sub?url=ss://base64encodedstring#node-name
 
 # GitHub Gist
-https://sub.xqd.pp.ua/sub?url=https://gist.githubusercontent.com/user/id/raw/file
+https://sub-v2.xqd.pp.ua/sub?url=https://gist.githubusercontent.com/user/id/raw/file
 
 # Multiple nodes (space or newline separated in Gist)
 ss://node1
@@ -359,7 +334,7 @@ Generate a shortened URL for a subscription link.
 
 ```json
 {
-  "url": "https://sub.xqd.pp.ua/sub?url=..."
+  "url": "https://sub-v2.xqd.pp.ua/sub?url=..."
 }
 ```
 
@@ -367,8 +342,8 @@ Generate a shortened URL for a subscription link.
 
 ```json
 {
-  "shortUrl": "https://sub.xqd.pp.ua/s/abc123",
-  "originalUrl": "https://sub.xqd.pp.ua/sub?url=..."
+  "shortUrl": "https://sub-v2.xqd.pp.ua/s/abc123",
+  "originalUrl": "https://sub-v2.xqd.pp.ua/sub?url=..."
 }
 ```
 
@@ -376,18 +351,18 @@ Generate a shortened URL for a subscription link.
 
 ## Deployment
 
-### Cloudflare Pages (Recommended)
+### Cloudflare Workers (Recommended)
 
-This project is optimized for Cloudflare Pages deployment with Edge Runtime.
+This project is optimized for Cloudflare Workers deployment with OpenNext.
 
 #### Automatic Deployment
 
 1. Fork this repository
-2. Connect your GitHub account to Cloudflare Pages
+2. Connect your GitHub account to Cloudflare Workers
 3. Select the repository and configure:
    - **Framework preset**: Next.js
-   - **Build command**: `bun run build && bun run pages:build`
-   - **Build output directory**: `.vercel/output/static`
+   - **Build command**: `bun run cf:build`
+   - **Deploy command**: `bun run deploy:cf`
    - **Environment variables**:
      - `NODE_VERSION=18`
      - `BUN_VERSION=latest`
@@ -395,12 +370,11 @@ This project is optimized for Cloudflare Pages deployment with Edge Runtime.
 #### Manual Deployment
 
 ```bash
-# Build for Cloudflare Pages
-bun run build
-bun run pages:build
+# Build for Cloudflare Workers
+bun run cf:build
 
-# Deploy using Wrangler (optional)
-bunx wrangler pages deploy .vercel/output/static
+# Deploy using Wrangler
+bun run deploy:cf
 ```
 
 ### Vercel
@@ -509,7 +483,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ## Acknowledgments
 
 - [Next.js](https://nextjs.org/) - The React Framework for Production
-- [Cloudflare Pages](https://pages.cloudflare.com/) - Global edge network
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) - Global edge runtime
 - [Bun](https://bun.sh/) - Fast JavaScript runtime and toolkit
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [js-yaml](https://github.com/nodeca/js-yaml) - YAML parser for JavaScript

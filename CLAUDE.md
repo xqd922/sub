@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `bun dev` - 启动开发服务器（端口 3000，Turbopack）
 - `bun dev:fast` - 极速开发模式（跳过 lint 和类型检查）
-- `bun dev:cf` - 使用 Wrangler 本地模拟 Cloudflare Pages 环境
+- `bun dev:cf` - 使用 OpenNext + Wrangler 本地模拟 Cloudflare Workers 环境
 - `bun run build` - 构建生产版本
-- `bun run build:cf` - 构建 Cloudflare Pages 版本（build + pages:build）
+- `bun run cf:build` - 构建 Cloudflare Workers 版本（OpenNext）
+- `bun run deploy:cf` - 构建并部署到 Cloudflare Workers
+- `bun run build:cf` - `cf:build` 的兼容别名
 - `bun start` - 启动生产服务器
 - `bun run lint` - ESLint 检查
 
@@ -17,8 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 关键约束
 
 - **必须使用 Bun** 作为包管理器和运行时，不使用 npm
-- **所有 API 路由必须声明** `export const runtime = 'edge'`（Cloudflare Pages 兼容）
-- **Edge Runtime 限制**：不可使用 Node.js 专有 API（fs、path 等）
+- **Cloudflare 目标运行时**：使用 OpenNext 部署到 Cloudflare Workers，路由默认使用 Next.js Node runtime
+- **Workers Runtime 限制**：避免依赖不可用的 Node.js 系统能力（本项目不使用 fs/path 读写运行时文件）
 - **导入路径**：使用 `@/` 根目录别名
 - **UI 框架**：Arco Design React + Tailwind CSS v4
 - **React StrictMode 已禁用**（`next.config.ts` 中 `reactStrictMode: false`）
@@ -39,15 +41,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   → 返回响应（YAML / JSON / Base64 / HTML 预览）
 ```
 
-### 服务层 (features/)
+### 代码分层 (src/)
 
-三个核心服务通过 `features/index.ts` 统一导出：
+`app/` 只保留 Next.js 路由入口，实际实现按产品和运行职责放在 `src/`：
 
-- **CoreService** (`convert/handler.ts`) - 请求协调器，检测客户端、调度订阅处理和配置生成、记录转换日志到 KV
-- **SubService** (`convert/processor.ts`) - 订阅处理，解析三种输入（标准订阅 URL / 单节点链接 / Gist URL），节点名格式化（国旗+地区+编号）
-- **ConfigService** (`convert/builder.ts`) - 配置生成，客户端检测逻辑在此。支持四种输出：Clash YAML、Sing-box JSON、v2rayNG Base64、浏览器 HTML 预览
-- **NetService** (`metrics/network.ts`) - 网络层，封装重试、超时、User-Agent 轮换策略
-- **ShortService** (`shorten/shortener.ts`) - 短链接生成，多 provider 降级（KV → TinyURL → Sink → Bitly）
+- **应用用例** (`src/application/`) - `CoreService`、`SubService`、`ConfigService` 和 `ShortService`，负责请求编排和业务流程。
+- **领域规则** (`src/domain/`) - 代理类型、协议解析、订阅解析、节点去重、地区识别和节点命名规则。
+- **基础设施** (`src/infrastructure/`) - Cloudflare KV、鉴权、网络请求、日志和错误上报。
+- **展示输出** (`src/presentation/`) - Clash/Sing-box 配置生成和 HTML 预览样式。
+- **界面层** (`src/ui/`) - 公共转换工作台、管理后台和共享品牌/错误边界组件。
 
 ### 客户端检测规则 (ConfigService.detectClientType)
 
@@ -56,21 +58,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 其他非浏览器 UA → Clash（返回 YAML）
 - 浏览器 → HTML 预览页面
 
-### 解析层 (lib/parse/)
+### 解析层 (`src/domain/subscription/`)
 
-- `subscription.ts` - 订阅解析（YAML 和 Base64 两种格式）
-- `node.ts` - 单节点链接解析（`SingleNodeParser` 类）
-- `remote.ts` - 从 Gist 获取远程节点
+- `subscription-parser.ts` - 订阅解析（YAML 和 Base64 两种格式）
+- `node-parser.ts` - 单节点链接解析（`SingleNodeParser` 类）
+- `remote-source.ts` - 从 Gist 获取远程节点
 - `protocols/` - 协议解析器：shadowsocks、vmess、trojan、vless、hysteria2、socks、anytls
 
-### 配置生成 (config/)
+### 配置生成 (`src/presentation/config/`)
 
 - `clash.ts` - Clash 配置，包含代理组生成逻辑（Manual/Auto/Emby/AI/HK/Min），规则提供者配置
 - `singbox.ts` - Sing-box 配置，包含 DNS、入站（tun/socks/mixed）、出站和路由规则
 
 `isAirportSubscription` 标志控制是否生成 Min（低延迟）代理组——仅对机场订阅生效。
 
-### KV 存储层 (lib/kv/)
+### KV 存储层 (`src/infrastructure/storage/kv/`)
 
 基于 Cloudflare KV 的持久化层，本地开发使用 mock：
 
@@ -83,8 +85,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 路由：`/admin`（前端）、`/api/admin/*`（API）
 - 功能：查看/删除转换记录、管理短链接、查看统计
-- 认证：Session token（SHA-256），Bearer token 验证（`lib/auth/index.ts`）
-- 组件在 `app/admin/components/`，hooks 在 `app/admin/hooks/`
+- 认证：Session token（SHA-256），Bearer token 验证（`src/infrastructure/auth/index.ts`）
+- 页面入口在 `app/admin/page.tsx`，组件和 hooks 在 `src/ui/admin/`
 
 ### 网络策略 (NetService)
 
@@ -95,7 +97,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 节点处理特性
 
-- **去重** (`lib/core/dedup.ts`)：按代理配置生成唯一键，过滤信息节点（含"官网""流量""到期"等关键词）和无效服务器（私有 IP、DNS 服务器）
+- **去重** (`src/domain/proxy/dedup.ts`)：按代理配置生成唯一键，过滤信息节点（含"官网""流量""到期"等关键词）和无效服务器（私有 IP、DNS 服务器）
 - **名称格式化**：国旗检测 + 地区识别 + 城市检测（多城市国家如美国会显示城市名）+ 倍率提取（`[2x]`、`2×`、`倍率:2`）+ 编号
 - **链式代理**：支持 `chain:`、`dialer-proxy:`（Clash）、`detour:`（Sing-box）
 
@@ -115,7 +117,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 部署
 
-主要部署目标为 **Cloudflare Pages**，使用 `@cloudflare/next-on-pages` 适配器。
-构建命令：`bun run build && bun run pages:build`，输出目录：`.vercel/output/static`。
+主要部署目标为 **Cloudflare Workers**，使用 `@opennextjs/cloudflare` 适配器。
+构建命令：`bun run cf:build`，输出目录：`.open-next/`。
+部署命令：`bun run deploy:cf`。生产环境需要配置 `ADMIN_PASSWORD`，并绑定名为 `LINKS_KV` 的 Cloudflare KV 命名空间。
 也支持 Vercel 直接部署。
 

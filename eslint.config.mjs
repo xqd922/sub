@@ -1,15 +1,23 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
+  baseDirectory: import.meta.dirname
 });
 
 const eslintConfig = [
+  {
+    ignores: [
+      ".next/**",
+      ".open-next/**",
+      ".wrangler/**",
+      ".wrangler-bundle/**",
+      "node_modules/**",
+      "coverage/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts"
+    ]
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
@@ -21,8 +29,6 @@ const eslintConfig = [
         }
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/prefer-const": "error",
-      "@typescript-eslint/no-inferrable-types": "error",
       "prefer-const": "error",
       "no-var": "error",
       "no-console": ["warn", {
@@ -31,9 +37,9 @@ const eslintConfig = [
       "no-debugger": "error",
       "no-alert": "warn",
       "eqeqeq": ["error", "always"],
-      "curly": ["error", "all"],
       "no-duplicate-imports": "error",
-      "no-unused-expressions": "error"
+      "no-unused-expressions": "error",
+      "react-hooks/set-state-in-effect": "off"
     }
   }
 ];
