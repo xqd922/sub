@@ -1,0 +1,28 @@
+{
+  // TypeScript config for the Cloudflare Worker side (src/worker/**).
+  // Uses Workers types, no DOM types — strict edge-runtime semantics.
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "WebWorker"],
+    "types": ["@cloudflare/workers-types"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@worker/*": ["./src/worker/*"]
+    }
+  },
+  "include": ["src/worker/**/*.ts", "src/worker/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

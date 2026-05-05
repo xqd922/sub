@@ -1,0 +1,43 @@
+# Cloudflare Worker configuration.
+# Deploy: `bun run deploy`
+# Local dev (with miniflare): `bun run dev`
+
+name = "sub"
+main = "src/worker/index.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat_v2"]
+workers_dev = true
+preview_urls = true
+routes = [
+  { pattern = "sub.xqd.pp.ua/*", zone_name = "xqd.pp.ua" }
+]
+
+# Static Assets binding — Vite-built SPA lives in dist/web.
+# `single-page-application` makes any unknown path fall back to /index.html
+# so the React Router (or whatever SPA shell we use) handles it client-side.
+[assets]
+directory = "./dist/web"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Observability — keep request logs for debugging.
+[observability]
+enabled = true
+
+# Public, non-secret variables. Override with `wrangler secret put` for secrets.
+[vars]
+SITE_URL = "https://sub.xqd.pp.ua"
+ADMIN_USERNAME = "admin"
+
+# KV binding for records, shortlinks and stats.
+# Replace `id` with your real namespace id from `wrangler kv namespace create LINKS_KV`.
+[[kv_namespaces]]
+binding = "LINKS_KV"
+id = "2c1fee28253f40a08fff70891d06a8e8"
+
+# Local development overrides — used by `wrangler dev`.
+[env.dev]
+name = "sub-dev"
+
+[env.dev.vars]
+SITE_URL = "http://localhost:8787"

@@ -1,0 +1,121 @@
+import type { ClashRuleProvider } from "../../core/clash";
+
+/**
+ * Shared Clash rule-provider catalogue.
+ *
+ * Paths intentionally stay relative so clients can persist them locally.
+ */
+export const RULE_PROVIDERS: Record<string, ClashRuleProvider> = {
+  private: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs",
+    path: "./rule_providers/private.mrs",
+    interval: 86_400,
+  },
+  "private-ip": {
+    type: "http",
+    behavior: "ipcidr",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs",
+    path: "./rule_providers/private_ip.mrs",
+    interval: 86_400,
+  },
+  ads: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ads-all.mrs",
+    path: "./rule_providers/ads.mrs",
+    interval: 86_400,
+  },
+  ai: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs",
+    path: "./rule_providers/ai.mrs",
+    interval: 86_400,
+  },
+  telegram: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs",
+    path: "./rule_providers/telegram.mrs",
+    interval: 86_400,
+  },
+  "telegram-ip": {
+    type: "http",
+    behavior: "ipcidr",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs",
+    path: "./rule_providers/telegram_ip.mrs",
+    interval: 86_400,
+  },
+  github: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs",
+    path: "./rule_providers/github.mrs",
+    interval: 86_400,
+  },
+  twitter: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs",
+    path: "./rule_providers/twitter.mrs",
+    interval: 86_400,
+  },
+  youtube: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs",
+    path: "./rule_providers/youtube.mrs",
+    interval: 86_400,
+  },
+  google: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs",
+    path: "./rule_providers/google.mrs",
+    interval: 86_400,
+  },
+  gfw: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/gfw.mrs",
+    path: "./rule_providers/gfw.mrs",
+    interval: 86_400,
+  },
+  cn: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs",
+    path: "./rule_providers/cn.mrs",
+    interval: 86_400,
+  },
+  "cn-ip": {
+    type: "http",
+    behavior: "ipcidr",
+    format: "mrs",
+    url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/cnip.mrs",
+    path: "./rule_providers/cn_ip.mrs",
+    interval: 86_400,
+  },
+  emby: {
+    type: "http",
+    behavior: "domain",
+    format: "mrs",
+    url: "https://raw.githubusercontent.com/xqd922/rules/main/emby/emby.mrs",
+    path: "./rule_providers/emby.mrs",
+    interval: 86_400,
+  },
+};

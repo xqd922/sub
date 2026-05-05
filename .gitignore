@@ -1,39 +1,29 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 /node_modules
 
-# testing
-/coverage
+# Build output
+/dist
+/.wrangler
+*.tsbuildinfo
 
-# next.js
-/.next/
-/out/
+# Local secrets — wrangler.toml is committed (no secrets in it),
+# but .dev.vars and .env hold actual secrets and must stay local.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
 
-# production
-/build
-
-# misc
+# Editors / OS
 .DS_Store
 *.pem
+.idea
+.vscode/settings.json
 
-# debug
+# Debug logs
 npm-debug.log*
 bun-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# cloudflare
-.wrangler/
-wrangler.toml
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# claude code
+# Claude Code
 .claude/settings.local.json
