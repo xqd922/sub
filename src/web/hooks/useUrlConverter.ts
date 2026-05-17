@@ -1,31 +1,52 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
+import { useClipboard } from "./useClipboard";
+import { useToast } from "./useToast";
 
 export function useUrlConverter() {
   const [inputUrl, setInputUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [convertedUrl, setConvertedUrl] = useState("");
+  const { copyToClipboard } = useClipboard();
+  const { showToast } = useToast();
 
-  const handleConvert = useCallback(() => {
-    const trimmed = inputUrl.trim();
-    if (!trimmed) {
+  const handleConvert = async () => {
+    if (!inputUrl) {
       setError("请输入订阅链接");
       return;
     }
 
-    try {
-      new URL(trimmed);
-    } catch {
-      setError("请输入有效的 URL");
-      return;
-    }
-
-    setLoading(true);
     setError("");
-    const nextUrl = `${window.location.origin}/sub?url=${encodeURIComponent(trimmed)}`;
-    setConvertedUrl(nextUrl);
-    window.setTimeout(() => setLoading(false), 160);
-  }, [inputUrl]);
+    setLoading(true);
+
+    try {
+      const baseUrl = window.location.origin;
+      const encodedUrl = encodeURIComponent(inputUrl);
+      const url = `${baseUrl}/sub?url=${encodedUrl}`;
+      setConvertedUrl(url);
+
+      // 静默请求一次以创建记录（使用 HEAD 请求减少数据传输）
+      fetch(`${baseUrl}/sub?url=${encodedUrl}`, {
+        method: "GET",
+        headers: { "X-Record-Only": "1" },
+      }).catch(() => {
+        // 忽略错误，不影响用户体验
+      });
+
+      const copied = await copyToClipboard(url);
+      showToast(copied ? "已复制到剪贴板" : "转换成功", copied ? "success" : "info");
+    } catch {
+      setError("转换失败，请稍后重试");
+      showToast("转换失败，请稍后重试", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    const copied = await copyToClipboard(text);
+    showToast(copied ? "已复制到剪贴板" : "复制失败", copied ? "success" : "error");
+  };
 
   return {
     inputUrl,
@@ -34,5 +55,6 @@ export function useUrlConverter() {
     error,
     convertedUrl,
     handleConvert,
+    handleCopy,
   };
 }

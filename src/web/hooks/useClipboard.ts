@@ -1,26 +1,46 @@
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 
-export function useClipboard(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
-  return useCallback(
-    async (text: string, successMessage = "已复制到剪贴板") => {
-      try {
-        if (navigator.clipboard?.writeText) {
+export function useClipboard() {
+  const [isCopying, setIsCopying] = useState(false);
+
+  const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
+    if (isCopying) return false;
+
+    setIsCopying(true);
+
+    try {
+      // 优先使用现代 API
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
           await navigator.clipboard.writeText(text);
-        } else {
-          const textarea = document.createElement("textarea");
-          textarea.value = text;
-          textarea.style.position = "fixed";
-          textarea.style.opacity = "0";
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand("copy");
-          textarea.remove();
+          return true;
+        } catch {
+          // 如果 clipboard API 失败，回退到传统方法
         }
-        onSuccess?.(successMessage);
-      } catch {
-        onError?.("复制失败，请手动复制");
       }
-    },
-    [onError, onSuccess],
-  );
+
+      // 传统方法作为回退
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.cssText = "position:fixed;top:50%;left:50%;opacity:0;";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const success = document.execCommand("copy");
+        textArea.remove();
+        return success;
+      } catch {
+        textArea.remove();
+        return false;
+      }
+    } catch {
+      return false;
+    } finally {
+      setIsCopying(false);
+    }
+  }, [isCopying]);
+
+  return { copyToClipboard, isCopying };
 }

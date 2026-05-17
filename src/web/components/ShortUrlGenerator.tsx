@@ -1,48 +1,51 @@
 import { Button, Typography } from "@arco-design/web-react";
+import { IconCopy, IconLink } from "@arco-design/web-react/icon";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface ShortUrlGeneratorProps {
-  convertedUrl: string;
+  hasConvertedUrl: boolean;
   shortUrl: string;
   loading: boolean;
-  error: string;
   onGenerate: () => void;
   onCopy: () => void;
 }
 
-export function ShortUrlGenerator({
-  convertedUrl,
+export default function ShortUrlGenerator({
+  hasConvertedUrl,
   shortUrl,
   loading,
-  error,
   onGenerate,
   onCopy,
 }: ShortUrlGeneratorProps) {
-  return (
-    <div className="shortlink-action-card">
-      <div>
-        <Text className="result-title">短链接</Text>
-        <Text className="result-description">生成更适合分享和导入客户端的短地址。</Text>
-      </div>
-      <div className="shortlink-actions">
-        <Button
-          type="primary"
-          className="public-primary-button compact"
-          loading={loading}
-          disabled={!convertedUrl}
-          onClick={onGenerate}
-        >
-          生成短链接
+  if (!hasConvertedUrl) return null;
+
+  if (!shortUrl) {
+    return (
+      <div className="shortlink-action-card">
+        <div>
+          <Text className="shortlink-title">短链接</Text>
+          <p>生成更短的分享地址，便于在移动端或聊天工具中使用。</p>
+        </div>
+        <Button type="secondary" loading={loading} onClick={onGenerate}>
+          {loading ? "生成中" : "生成短链接"}
         </Button>
-        {shortUrl && (
-          <Button className="public-secondary-button" onClick={onCopy}>
-            复制短链接
-          </Button>
-        )}
       </div>
-      {shortUrl && <code className="result-value">{shortUrl}</code>}
-      {error && <Text className="field-error">{error}</Text>}
+    );
+  }
+
+  return (
+    <div className="result-card">
+      <div className="result-card-head">
+        <div className="result-title">
+          <IconLink />
+          <Text>短链接</Text>
+        </div>
+        <Button size="mini" type="text" icon={<IconCopy />} onClick={onCopy}>
+          复制
+        </Button>
+      </div>
+      <Paragraph className="result-link-box">{shortUrl}</Paragraph>
     </div>
   );
 }

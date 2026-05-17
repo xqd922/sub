@@ -15,7 +15,6 @@ export interface ShortLink {
   id: string;
   targetUrl: string;
   name: string;
-  provider?: string;
   createdAt: number;
   hits: number;
   lastAccess: number;
@@ -26,6 +25,7 @@ export interface Stats {
   totalHits: number;
   todayHits: number;
   activeRecords: number;
+  todayNewRecords?: number;
 }
 
 export interface UnifiedItem {
@@ -38,3 +38,10 @@ export interface UnifiedItem {
   clientType?: string;
   nodeCount?: number;
 }
+
+export type AdminSection =
+  | "overview"
+  | "subscriptions"
+  | "shortlinks"
+  | "diagnostics"
+  | "settings";

@@ -1,23 +1,34 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
-export type ToastType = "success" | "error" | "info";
-
-export interface ToastState {
-  id: number;
-  message: string;
-  type: ToastType;
-}
+type ToastType = "success" | "error" | "info";
 
 export function useToast() {
-  const [toasts, setToasts] = useState<ToastState[]>([]);
+  const showToast = useCallback((message: string, type: ToastType = "success") => {
+    const toast = document.createElement("div");
 
-  const showToast = useCallback((message: string, type: ToastType = "info") => {
-    const id = Date.now();
-    setToasts((items) => [...items, { id, message, type }]);
-    window.setTimeout(() => {
-      setToasts((items) => items.filter((item) => item.id !== id));
-    }, 2600);
+    const baseClasses =
+      "fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white";
+    const typeClasses: Record<ToastType, string> = {
+      success: "bg-green-600",
+      error: "bg-red-600",
+      info: "bg-gray-800",
+    };
+
+    toast.className = `${baseClasses} ${typeClasses[type]}`;
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transition = "opacity 0.3s ease-out";
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 300);
+    }, 2000);
   }, []);
 
-  return { toasts, showToast };
+  return { showToast };
 }

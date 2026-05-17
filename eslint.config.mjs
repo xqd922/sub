@@ -21,7 +21,6 @@ const eslintConfig = [
         }
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/prefer-const": "error",
       "@typescript-eslint/no-inferrable-types": "error",
       "prefer-const": "error",
       "no-var": "error",

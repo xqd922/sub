@@ -1,28 +1,27 @@
 import { Button, Typography } from "@arco-design/web-react";
+import { IconCopy, IconLink } from "@arco-design/web-react/icon";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface ResultItemProps {
   title: string;
-  description: string;
-  value: string;
-  actionLabel?: string;
+  url: string;
   onCopy: () => void;
 }
 
-export function ResultItem({ title, description, value, actionLabel = "复制", onCopy }: ResultItemProps) {
+export default function ResultItem({ title, url, onCopy }: ResultItemProps) {
   return (
     <div className="result-card">
-      <div className="result-card-header">
-        <div>
-          <Text className="result-title">{title}</Text>
-          <Text className="result-description">{description}</Text>
+      <div className="result-card-head">
+        <div className="result-title">
+          <IconLink />
+          <Text>{title}</Text>
         </div>
-        <Button type="primary" className="public-secondary-button" onClick={onCopy}>
-          {actionLabel}
+        <Button size="mini" type="text" icon={<IconCopy />} onClick={onCopy}>
+          复制
         </Button>
       </div>
-      <code className="result-value">{value}</code>
+      <Paragraph className="result-link-box">{url}</Paragraph>
     </div>
   );
 }

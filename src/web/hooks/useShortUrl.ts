@@ -1,36 +1,50 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
+import { useClipboard } from "./useClipboard";
+import { useToast } from "./useToast";
 
 export function useShortUrl() {
   const [shortUrl, setShortUrl] = useState("");
-  const [shortLoading, setShortLoading] = useState(false);
-  const [shortError, setShortError] = useState("");
+  const [shortenLoading, setShortenLoading] = useState(false);
+  const { copyToClipboard } = useClipboard();
+  const { showToast } = useToast();
 
-  const generateShortUrl = useCallback(async (longUrl: string) => {
-    if (!longUrl) {
-      setShortError("请先生成转换链接");
-      return;
-    }
+  const generateShortUrl = async (longUrl: string) => {
+    if (!longUrl) return;
 
-    setShortLoading(true);
-    setShortError("");
-
+    setShortenLoading(true);
     try {
       const response = await fetch("/api/shorten", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ url: longUrl }),
       });
-      const data = (await response.json()) as { shortUrl?: string; error?: { message?: string } };
-      if (!response.ok || !data.shortUrl) {
-        throw new Error(data.error?.message ?? "短链接生成失败");
-      }
-      setShortUrl(data.shortUrl);
-    } catch (err) {
-      setShortError(err instanceof Error ? err.message : "短链接生成失败");
-    } finally {
-      setShortLoading(false);
-    }
-  }, []);
 
-  return { shortUrl, shortLoading, shortError, generateShortUrl };
+      if (!response.ok) {
+        throw new Error("短链接生成服务暂时不可用，请稍后重试");
+      }
+
+      const data = (await response.json()) as { shortUrl?: string };
+      if (data.shortUrl) {
+        setShortUrl(data.shortUrl);
+        const copied = await copyToClipboard(data.shortUrl);
+        showToast(
+          copied ? "短链接已生成并复制到剪贴板" : "短链接已生成",
+          "success",
+        );
+      }
+    } catch {
+      showToast("生成短链接失败", "error");
+    } finally {
+      setShortenLoading(false);
+    }
+  };
+
+  return {
+    shortUrl,
+    shortenLoading,
+    generateShortUrl,
+    setShortUrl,
+  };
 }

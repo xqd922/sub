@@ -1,33 +1,46 @@
 import { useCallback, useEffect, useState } from "react";
 
-export function useAuth() {
+interface UseAuthReturn {
+  isAuthed: boolean;
+  token: string;
+  loading: boolean;
+  error: string;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
+}
+
+export function useAuth(): UseAuthReturn {
   const [token, setToken] = useState("");
   const [isAuthed, setIsAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const verifyToken = useCallback(async (savedToken: string) => {
+  const verifyToken = useCallback(async (savedToken: string): Promise<boolean> => {
     try {
-      const response = await fetch("/api/admin/stats", {
+      const res = await fetch("/api/admin/stats", {
         headers: { Authorization: `Bearer ${savedToken}` },
       });
-      return response.ok;
+      return res.ok;
     } catch {
       return false;
     }
   }, []);
 
   useEffect(() => {
-    void (async () => {
+    const initAuth = async () => {
       const savedToken = localStorage.getItem("admin_token");
-      if (savedToken && (await verifyToken(savedToken))) {
-        setToken(savedToken);
-        setIsAuthed(true);
-      } else {
-        localStorage.removeItem("admin_token");
+      if (savedToken) {
+        const isValid = await verifyToken(savedToken);
+        if (isValid) {
+          setToken(savedToken);
+          setIsAuthed(true);
+        } else {
+          localStorage.removeItem("admin_token");
+        }
       }
       setLoading(false);
-    })();
+    };
+    initAuth();
   }, [verifyToken]);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -40,19 +53,28 @@ export function useAuth() {
     setError("");
 
     try {
-      const response = await fetch("/api/admin/login", {
+      const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const data = (await response.json()) as { token?: string; error?: { message?: string } };
-      if (!response.ok || !data.token) {
-        setError(data.error?.message ?? "登录失败");
+
+      const data = (await res.json()) as {
+        success?: boolean;
+        token?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !data.success) {
+        setError(data.error || "登录失败");
         return;
       }
-      localStorage.setItem("admin_token", data.token);
-      setToken(data.token);
+
+      const newToken = data.token || "";
+      setToken(newToken);
+      localStorage.setItem("admin_token", newToken);
       setIsAuthed(true);
+      setError("");
     } catch {
       setError("登录请求失败");
     } finally {

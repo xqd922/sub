@@ -1,7 +1,7 @@
 import { Input, Typography } from "@arco-design/web-react";
 
 const { Text } = Typography;
-const { TextArea } = Input;
+const TextArea = Input.TextArea;
 
 interface UrlInputProps {
   value: string;
@@ -9,7 +9,7 @@ interface UrlInputProps {
   error?: string;
 }
 
-export function UrlInput({ value, onChange, error }: UrlInputProps) {
+export default function UrlInput({ value, onChange, error }: UrlInputProps) {
   return (
     <div className="url-input-group">
       <div className="field-label-row">
