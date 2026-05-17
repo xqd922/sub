@@ -38,7 +38,7 @@ export function createApp(): Hono<AppEnv> {
     const body = (await c.req.json().catch(() => ({}))) as { username?: string; password?: string };
     const token = await validateAdminCredentials(c.env, body.username ?? "", body.password ?? "");
     if (!token) throw errors.authFailed();
-    return c.json({ token });
+    return c.json({ success: true, token });
   });
 
   app.use("/api/admin/*", async (c, next) => {
