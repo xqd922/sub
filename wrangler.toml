@@ -9,7 +9,7 @@ compatibility_flags = ["nodejs_compat_v2"]
 workers_dev = true
 preview_urls = true
 routes = [
-  { pattern = "sub.xqd.pp.ua/*", zone_name = "xqd.pp.ua" }
+  { pattern = "subnative.xqd.pp.ua/*", zone_name = "xqd.pp.ua" }
 ]
 
 # Static Assets binding — Vite-built SPA lives in dist/web.
@@ -26,7 +26,7 @@ enabled = true
 
 # Public, non-secret variables. Override with `wrangler secret put` for secrets.
 [vars]
-SITE_URL = "https://sub.xqd.pp.ua"
+SITE_URL = "https://subnative.xqd.pp.ua"
 ADMIN_USERNAME = "admin"
 
 # KV binding for records, shortlinks and stats.
