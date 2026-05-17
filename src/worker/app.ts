@@ -63,7 +63,16 @@ export function createApp(): Hono<AppEnv> {
   });
   app.get("/api/admin/stats", async (c) => c.json(await getStats(c.env)));
 
-  app.notFound((c) => c.env.ASSETS.fetch(c.req.raw));
+  app.notFound(async (c) => {
+    if (!c.env.ASSETS) {
+      return new Response("Assets not bound", { status: 500 });
+    }
+    try {
+      return await c.env.ASSETS.fetch(c.req.raw);
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  });
 
   return app;
 }
