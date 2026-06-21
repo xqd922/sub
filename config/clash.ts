@@ -128,6 +128,7 @@ export const defaultConfig: ClashConfig = {
     'direct-nameserver': ['system'],
     'fake-ip-filter': [
       'rule-set:private',
+      'rule-set:tencent',
       '+.market.xiaomi.com',
       'lancache.steamcontent.com',
       '+.edu.cn'
@@ -157,6 +158,14 @@ export const defaultConfig: ClashConfig = {
       'path': './rule_providers/private_ip.mrs',
       'interval': 86400
     },
+    'tencent': {
+      'type': 'http',
+      'behavior': 'domain',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/tencent.mrs',
+      'path': './rule_providers/tencent.mrs',
+      'interval': 86400
+    },
     'ads': {
       'type': 'http',
       'behavior': 'domain',
@@ -169,8 +178,16 @@ export const defaultConfig: ClashConfig = {
       'type': 'http',
       'behavior': 'domain',
       'format': 'mrs',
-      'url': 'https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs',
+      'url': 'https://raw.githubusercontent.com/666OS/rules/release/mihomo/domain/AI.mrs',
       'path': './rule_providers/ai.mrs',
+      'interval': 86400
+    },
+    'ai-ip': {
+      'type': 'http',
+      'behavior': 'ipcidr',
+      'format': 'mrs',
+      'url': 'https://raw.githubusercontent.com/666OS/rules/release/mihomo/ip/AI.mrs',
+      'path': './rule_providers/ai_ip.mrs',
       'interval': 86400
     },
     'telegram': {
@@ -292,6 +309,7 @@ export const defaultConfig: ClashConfig = {
     'PROCESS-NAME,com.tencent.wetype,DIRECT',
 
     'RULE-SET,ads,REJECT',
+    'RULE-SET,tencent,DIRECT',
 
     // UDP/443 全局拦截（除中国 IP）- 强制 HTTP/3 降级
     'AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN,no-resolve)))),REJECT',
@@ -309,8 +327,9 @@ export const defaultConfig: ClashConfig = {
     // Emby
     'RULE-SET,emby,Emby',
 
-    // AI Services - 使用 rule-providers
+    // AI Services - 使用 666OS rule-providers
     'RULE-SET,ai,AI',
+    'RULE-SET,ai-ip,AI,no-resolve',
 
     // 国际服务 - 使用 rule-providers
     'RULE-SET,telegram,Manual',
@@ -330,4 +349,4 @@ export const defaultConfig: ClashConfig = {
     'GEOIP,CN,DIRECT',
     'MATCH,Manual'
   ],
-} as const 
+} as const
