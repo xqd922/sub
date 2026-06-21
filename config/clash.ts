@@ -292,6 +292,10 @@ export const defaultConfig: ClashConfig = {
     'PROCESS-NAME,com.tencent.wetype,DIRECT',
 
     'RULE-SET,ads,REJECT',
+
+    // UDP/443 全局拦截（除中国 IP）- 强制 HTTP/3 降级
+    'AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN,no-resolve)))),REJECT',
+
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN,cdn.lilyemby.com,DIRECT',
@@ -313,7 +317,6 @@ export const defaultConfig: ClashConfig = {
     'RULE-SET,telegram-ip,Manual,no-resolve',
     'RULE-SET,github,Manual',
     'RULE-SET,twitter,Manual',
-    'AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,youtube)),REJECT',
     'RULE-SET,youtube,Manual',
     'RULE-SET,google,Manual',
     'RULE-SET,gfw,Manual',
