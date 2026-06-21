@@ -5,7 +5,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   const proxyNames = proxies.map(proxy => proxy.name);
 
   // 筛选 HK 节点
-  const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/.test(p) && !/家宽|Home/.test(p))
+  const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/i.test(p))
 
   // 筛选低延迟节点
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
@@ -129,6 +129,20 @@ export const defaultConfig: ClashConfig = {
     'fake-ip-filter': [
       'rule-set:private',
       'rule-set:tencent',
+      'short.weixin.qq.com',
+      'szshort.weixin.qq.com',
+      'szextshort.weixin.qq.com',
+      'szminorshort.weixin.qq.com',
+      'mp.weixin.qq.com',
+      '+.qpic.cn',
+      '+.qlogo.cn',
+      '+.gtimg.com',
+      '+.idqqimg.com',
+      '+.myqcloud.com',
+      '+.wechat.com',
+      '+.servicewechat.com',
+      '+.tenpay.com',
+      '+.qq.com',
       '+.market.xiaomi.com',
       'lancache.steamcontent.com',
       '+.edu.cn'
@@ -308,8 +322,8 @@ export const defaultConfig: ClashConfig = {
     // 输入法 - 直连
     'PROCESS-NAME,com.tencent.wetype,DIRECT',
 
-    'RULE-SET,ads,REJECT',
     'RULE-SET,tencent,DIRECT',
+    'RULE-SET,ads,REJECT',
 
     // UDP/443 全局拦截（除中国 IP）- 强制 HTTP/3 降级
     'AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN,no-resolve)))),REJECT',
