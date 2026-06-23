@@ -336,6 +336,7 @@ export const defaultConfig: ClashConfig = {
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
+    'DOMAIN-SUFFIX,apple-cdn.net,DIRECT',
     'DOMAIN-SUFFIX,sharepoint.com,DIRECT',
 
     // Emby
