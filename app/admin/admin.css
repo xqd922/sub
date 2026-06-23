@@ -44,9 +44,23 @@
 
 .admin-brand-mark,
 .admin-login-brand {
-  --mark-cutout: var(--admin-surface);
+  display: grid;
   width: 32px;
   height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  background: var(--admin-blue);
+}
+
+.admin-sider-collapsed .admin-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.admin-sider-collapsed .admin-brand-copy {
+  display: none;
 }
 
 .admin-brand-title {
@@ -72,6 +86,10 @@
   border-right: none !important;
 }
 
+.admin-sider-collapsed .admin-menu {
+  padding: 8px 6px;
+}
+
 .admin-menu .arco-menu-item {
   height: 40px;
   margin-bottom: 2px;
@@ -92,6 +110,38 @@
 
 .admin-menu .arco-menu-selected .arco-icon {
   color: var(--admin-blue);
+}
+
+.sider-collapse-zone {
+  padding: 10px 12px 14px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.sider-collapse-button {
+  justify-content: flex-start;
+  width: 100%;
+  height: 38px;
+  border-radius: var(--admin-radius);
+  color: #4e5969 !important;
+  font-weight: 500;
+}
+
+.sider-collapse-button:hover {
+  color: var(--admin-blue) !important;
+  background: #f2f3f5 !important;
+}
+
+.sider-collapse-button .arco-icon {
+  font-size: 18px;
+}
+
+.admin-sider-collapsed .sider-collapse-zone {
+  padding: 10px 8px 14px;
+}
+
+.admin-sider-collapsed .sider-collapse-button {
+  justify-content: center;
+  padding: 0;
 }
 
 .admin-main-layout {
@@ -392,10 +442,16 @@
 }
 
 .login-hero-icon {
-  --mark-cutout: #eaf7f8;
+  display: grid;
   width: 46px;
   height: 46px;
   margin-bottom: 32px;
+  place-items: center;
+  color: #fff;
+  border-radius: 12px;
+  background: var(--admin-blue);
+  font-size: 24px;
+  box-shadow: 0 8px 18px rgba(22, 93, 255, 0.18);
 }
 
 .login-hero-content h1 {
@@ -470,40 +526,6 @@
   text-align: center;
 }
 @media (max-width: 991px) {
-  .admin-shell {
-    display: block !important;
-  }
-
-  .admin-sider {
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    border-right: none;
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .admin-sider .arco-layout-sider-children {
-    min-height: auto;
-  }
-
-  .admin-brand {
-    padding: 0 16px;
-  }
-
-  .admin-menu {
-    padding: 8px 12px 12px;
-  }
-
-  .admin-menu .arco-menu-inner {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .admin-menu .arco-menu-item {
-    margin-bottom: 0;
-  }
-
   .admin-login-split {
     grid-template-columns: 1fr;
   }

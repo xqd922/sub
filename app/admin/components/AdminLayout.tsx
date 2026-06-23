@@ -1,16 +1,18 @@
+﻿import { useState } from 'react'
 import { Button, Layout, Menu, Space, Tag, Typography } from '@arco-design/web-react'
 import {
   IconCheckCircle,
   IconCloud,
   IconDashboard,
   IconLink,
+  IconMenuFold,
+  IconMenuUnfold,
   IconPoweroff,
   IconSafe,
   IconSettings,
   IconSubscribe,
   IconSync
 } from '@arco-design/web-react/icon'
-import { BrandMark } from '../../components/BrandMark'
 import type { AdminSection } from '../types'
 
 const { Header, Sider, Content } = Layout
@@ -39,11 +41,22 @@ export function AdminLayout({
   onNavigate,
   onLogout
 }: AdminLayoutProps) {
+  const [collapsed, setCollapsed] = useState(false)
+
   return (
     <Layout className="admin-shell admin-root">
-      <Sider className="admin-sider" width={232}>
+      <Sider
+        className={`admin-sider ${collapsed ? 'admin-sider-collapsed' : ''}`}
+        width={232}
+        collapsedWidth={72}
+        collapsed={collapsed}
+        breakpoint="lg"
+        collapsible
+        trigger={null}
+        onCollapse={(nextCollapsed) => setCollapsed(nextCollapsed)}
+      >
         <div className="admin-brand">
-          <BrandMark className="admin-brand-mark" />
+          <div className="admin-brand-mark">S</div>
           <div className="admin-brand-copy">
             <div className="admin-brand-title">SubOps</div>
             <Text className="admin-brand-subtitle">订阅转换管理</Text>
@@ -52,6 +65,7 @@ export function AdminLayout({
 
         <Menu
           className="admin-menu"
+          collapse={collapsed}
           selectedKeys={[activeSection]}
           onClickMenuItem={(key) => onNavigate(key as AdminSection)}
         >
@@ -62,6 +76,18 @@ export function AdminLayout({
             </Menu.Item>
           ))}
         </Menu>
+
+        <div className="sider-collapse-zone">
+          <Button
+            className="sider-collapse-button"
+            type="text"
+            icon={collapsed ? <IconMenuUnfold /> : <IconMenuFold />}
+            onClick={() => setCollapsed((current) => !current)}
+            aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          >
+            {!collapsed && '收起侧栏'}
+          </Button>
+        </div>
       </Sider>
 
       <Layout className="admin-main-layout">
