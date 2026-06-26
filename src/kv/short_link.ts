@@ -7,12 +7,12 @@ const SHORT_INDEX_KEY = 'index:shortlinks'
 
 async function generateShortId(url: string): Promise<string> {
   const encoder = new TextEncoder()
-  const data = encoder.encode(url + Date.now())
+  const data = encoder.encode(url)
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
-  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz'
   let result = ''
   for (let i = 0; i < 6; i++) {
     const idx = parseInt(hashHex.slice(i * 2, i * 2 + 2), 16) % chars.length
