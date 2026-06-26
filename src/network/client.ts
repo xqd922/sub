@@ -163,8 +163,8 @@ export async function fetchWithRetry(
 }
 
 export async function fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
-  const userAgent = 'ClashX/1.95.1'
-  logger.info(`订阅请求 User-Agent: ${userAgent} (客户端原始: ${clientUserAgent || 'undefined'})`)
+  const userAgent = clientUserAgent || 'ClashX/1.95.1'
+  logger.info(`订阅请求 User-Agent: ${userAgent}`)
 
   return fetchWithRetry(url, {
     retries: 3,
