@@ -162,15 +162,6 @@ export interface DeduplicateOptions {
   keepStrategy?: 'shorter' | 'first' | 'last'
 }
 
-/** 去重结果统计 */
-export interface DeduplicateStats {
-  original: number
-  infoNodes: number
-  invalidNodes: number
-  duplicates: number
-  valid: number
-}
-
 /**
  * 节点去重
  * @param proxies 原始节点列表
@@ -238,56 +229,3 @@ export function deduplicateProxies(
   return Array.from(seen.values())
 }
 
-/**
- * 获取去重统计信息（不执行去重）
- * @param proxies 节点列表
- * @returns 统计信息
- */
-export function getDeduplicateStats(proxies: Proxy[]): DeduplicateStats {
-  const seen = new Set<string>()
-  let infoNodes = 0
-  let invalidNodes = 0
-  let duplicates = 0
-
-  for (const proxy of proxies) {
-    if (!proxy) continue
-    if (isInvalidNode(proxy)) { invalidNodes++; continue }
-    if (isInfoNode(proxy)) { infoNodes++; continue }
-
-    const key = generateProxyKey(proxy)
-    if (seen.has(key)) {
-      duplicates++
-    } else {
-      seen.add(key)
-    }
-  }
-
-  return { original: proxies.length, infoNodes, invalidNodes, duplicates, valid: seen.size }
-}
-
-/**
- * 确保节点名称唯一
- * 对同名节点添加序号后缀，保持原始顺序
- * @param proxies 节点列表
- * @returns 名称唯一化后的节点列表
- */
-export function ensureUniqueNames(proxies: Proxy[]): Proxy[] {
-  const nameCount = new Map<string, number>()
-  const result: Proxy[] = []
-
-  for (const proxy of proxies) {
-    const baseName = proxy.name
-    const count = nameCount.get(baseName) || 0
-    nameCount.set(baseName, count + 1)
-
-    if (count === 0) {
-      // 第一个保持原名
-      result.push(proxy)
-    } else {
-      // 后续同名节点加序号
-      result.push({ ...proxy, name: `${baseName} (${count + 1})` })
-    }
-  }
-
-  return result
-}

@@ -1,9 +1,8 @@
 ﻿import { Proxy } from '@/lib/core/types'
-import { SingleNodeParser } from '@/lib/parse/node'
+import { proxyToSingboxOutbound } from '@/lib/parse/node'
 
 export function generateSingboxConfig(proxies: Proxy[]) {
-  // 直接使用SingleNodeParser.toSingboxOutbound生成出站配置
-  const validOutbounds = proxies.map(proxy => SingleNodeParser.toSingboxOutbound(proxy))
+  const validOutbounds = proxies.map(proxy => proxyToSingboxOutbound(proxy))
     .filter((o): o is NonNullable<typeof o> => o !== null)
 
   return {

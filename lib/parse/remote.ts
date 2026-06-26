@@ -4,12 +4,12 @@
  */
 
 import { parseSubscription } from './subscription'
-import { SingleNodeParser } from './node'
+import { parseProxyUri } from './node'
 import { Proxy } from '../core/types'
 import { logger } from '../core/logger'
-import { NetService } from '@/features'
+import { fetchRemoteNodes } from '@/features'
 import { deduplicateProxies } from '../core/dedup'
-import { formatProxies, formatProxiesShort } from '../format/proxy'
+import { formatProxies } from '../format/proxy'
 
 /** 支持的单节点协议前缀 */
 const SINGLE_NODE_PREFIXES = [
@@ -30,7 +30,7 @@ export async function fetchNodesFromRemote(url: string): Promise<{
   hasSubscriptionUrls: boolean
 }> {
   try {
-    const response = await NetService.fetchRemoteNodes(url)
+    const response = await fetchRemoteNodes(url)
 
     if (!response.ok) {
       throw new Error(`获取节点信息失败: ${response.status}`)
@@ -92,8 +92,8 @@ export async function fetchNodesFromRemote(url: string): Promise<{
       }
     }
 
-    // 格式化冲突的节点（使用短格式：🇭🇰 HK 01）
-    const formattedConflictNodes = formatProxiesShort(conflictNodes)
+    // 格式化冲突的节点
+    const formattedConflictNodes = formatProxies(conflictNodes)
     if (conflictNodes.length > 0) {
       logger.info(`自建节点名称冲突: ${conflictNodes.length} 个，已格式化为短格式`)
     }
@@ -158,7 +158,7 @@ async function parseSingleNode(line: string): Promise<Proxy | null> {
       logger.info(`节点指定前置代理 (${proxyType}): ${dialerProxy}`)
     }
 
-    const proxy = SingleNodeParser.parse(cleanLine)
+    const proxy = parseProxyUri(cleanLine)
 
     if (proxy && proxyMatch && dialerProxy) {
       const proxyType = proxyMatch[1].toLowerCase()

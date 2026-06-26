@@ -51,13 +51,40 @@ class Logger {
   }
 
   /** 调试日志 */
-  debug = this.log
+  debug(...args: unknown[]): void {
+    if (isCloudEnvironment()) {
+      console.debug(...maskSensitiveInfo(args))
+    } else {
+      console.debug(...args)
+    }
+  }
+
   /** 信息日志 */
-  info = this.log
+  info(...args: unknown[]): void {
+    if (isCloudEnvironment()) {
+      console.log(...maskSensitiveInfo(args))
+    } else {
+      console.log(...args)
+    }
+  }
+
   /** 警告日志 */
-  warn = this.log
+  warn(...args: unknown[]): void {
+    if (isCloudEnvironment()) {
+      console.warn(...maskSensitiveInfo(args))
+    } else {
+      console.warn(...args)
+    }
+  }
+
   /** 错误日志 */
-  error = this.log
+  error(...args: unknown[]): void {
+    if (isCloudEnvironment()) {
+      console.error(...maskSensitiveInfo(args))
+    } else {
+      console.error(...args)
+    }
+  }
 
   /**
    * 性能调试

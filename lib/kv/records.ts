@@ -1,10 +1,10 @@
-﻿import { KVClient } from './client'
+import * as client from './client'
 import { ConvertRecord, StatsData } from './types'
 
 /**
  * 生成记录 ID（基于 URL 的 hash）
  */
-async function generateRecordId(url: string): Promise<string> {
+export async function generateRecordId(url: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(url)
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
@@ -35,183 +35,177 @@ function extractNameFromUrl(url: string): string {
 }
 
 /**
- * 记录服务 - 管理转换记录
+ * 记录一次转换（核心方法）
  */
-export class RecordService {
+export async function logConversion(params: {
+  originalUrl: string
+  clientType: string
+  nodeCount: number
+  clientIp: string
+  subscriptionName?: string
+}): Promise<ConvertRecord | null> {
+  const { originalUrl, clientType, nodeCount, clientIp, subscriptionName } = params
 
-  /**
-   * 记录一次转换（核心方法）
-   */
-  static async logConversion(params: {
-    originalUrl: string
-    clientType: string
-    nodeCount: number
-    clientIp: string
-    subscriptionName?: string
-  }): Promise<ConvertRecord | null> {
-    const { originalUrl, clientType, nodeCount, clientIp, subscriptionName } = params
+  // 检查 KV 是否可用
+  if (!(await client.isAvailable())) {
+    return null
+  }
 
-    // 检查 KV 是否可用
-    if (!(await KVClient.isAvailable())) {
-      return null
-    }
+  try {
+    const id = await generateRecordId(originalUrl)
+    const now = Date.now()
 
-    try {
-      const id = await generateRecordId(originalUrl)
-      const now = Date.now()
+    // 检查是否已存在记录
+    const existing = await client.getRecord(id)
 
-      // 检查是否已存在记录
-      const existing = await KVClient.getRecord(id)
-
-      if (existing) {
-        // 更新已有记录（如果有新的订阅名称，也更新名称）
-        const updated: ConvertRecord = {
-          ...existing,
-          name: subscriptionName || existing.name,
-          clientType,
-          updatedAt: now,
-          lastAccess: now,
-          hits: existing.hits + 1,
-          nodeCount,
-          lastIp: clientIp
-        }
-        await KVClient.saveRecord(updated)
-
-        // 记录每日统计
-        await KVClient.incrementDailyHits(id)
-
-        return updated
-      }
-
-      // 创建新记录
-      const record: ConvertRecord = {
-        id,
-        originalUrl,
-        name: subscriptionName || extractNameFromUrl(originalUrl),
+    if (existing) {
+      // 更新已有记录（如果有新的订阅名称，也更新名称）
+      const updated: ConvertRecord = {
+        ...existing,
+        name: subscriptionName || existing.name,
         clientType,
-        createdAt: now,
         updatedAt: now,
         lastAccess: now,
-        hits: 1,
+        hits: existing.hits + 1,
         nodeCount,
         lastIp: clientIp
       }
-
-      await KVClient.saveRecord(record)
-      await KVClient.addToIndex(id)
+      await client.saveRecord(updated)
 
       // 记录每日统计
-      await KVClient.incrementDailyHits(id)
+      await client.incrementDailyHits(id)
 
-      return record
-    } catch (error) {
-      console.error('[RecordService] 记录转换失败:', error)
-      return null
-    }
-  }
-
-  /**
-   * 检查 URL 是否可用（未被删除）
-   */
-  static async isUrlEnabled(url: string): Promise<boolean> {
-    if (!(await KVClient.isAvailable())) {
-      return true // KV 不可用时默认允许
+      return updated
     }
 
-    try {
-      const id = await generateRecordId(url)
-      const record = await KVClient.getRecord(id)
-      // 如果记录不存在，允许访问（新链接）
-      // 如果记录存在且 deleted=true，拒绝访问
-      if (!record) return true
-      return !record.deleted
-    } catch {
-      return true
-    }
-  }
-
-  /**
-   * 获取所有记录（排除已删除的）
-   */
-  static async getAllRecords(): Promise<ConvertRecord[]> {
-    const allRecords = await KVClient.getAllRecords()
-    // 过滤掉已删除的记录
-    return allRecords.filter(record => !record.deleted)
-  }
-
-  /**
-   * 获取单条记录
-   */
-  static async getRecord(id: string): Promise<ConvertRecord | null> {
-    return KVClient.getRecord(id)
-  }
-
-  /**
-   * 更新记录
-   */
-  static async updateRecord(id: string, updates: Partial<ConvertRecord>): Promise<ConvertRecord | null> {
-    const record = await KVClient.getRecord(id)
-    if (!record) return null
-
-    const updated: ConvertRecord = {
-      ...record,
-      ...updates,
-      updatedAt: Date.now()
+    // 创建新记录
+    const record: ConvertRecord = {
+      id,
+      originalUrl,
+      name: subscriptionName || extractNameFromUrl(originalUrl),
+      clientType,
+      createdAt: now,
+      updatedAt: now,
+      lastAccess: now,
+      hits: 1,
+      nodeCount,
+      lastIp: clientIp
     }
 
-    await KVClient.saveRecord(updated)
-    return updated
+    await client.saveRecord(record)
+    await client.addToIndex(id)
+
+    // 记录每日统计
+    await client.incrementDailyHits(id)
+
+    return record
+  } catch (error) {
+    console.error('[RecordService] 记录转换失败:', error)
+    return null
+  }
+}
+
+/**
+ * 检查 URL 是否可用（未被删除）
+ */
+export async function isUrlEnabled(url: string): Promise<boolean> {
+  if (!(await client.isAvailable())) {
+    return true // KV 不可用时默认允许
   }
 
-  /**
-   * 删除记录（软删除，标记为已删除，链接将失效）
-   */
-  static async deleteRecord(id: string): Promise<boolean> {
-    const record = await KVClient.getRecord(id)
-    if (!record) return false
-
-    // 软删除：标记为已删除
-    const updated: ConvertRecord = {
-      ...record,
-      deleted: true,
-      updatedAt: Date.now()
-    }
-
-    await KVClient.saveRecord(updated)
-    // 从索引中移除（不再显示在列表中）
-    await KVClient.removeFromIndex(id)
+  try {
+    const id = await generateRecordId(url)
+    const record = await client.getRecord(id)
+    // 如果记录不存在，允许访问（新链接）
+    // 如果记录存在且 deleted=true，拒绝访问
+    if (!record) return true
+    return !record.deleted
+  } catch {
     return true
   }
+}
 
-  /**
-   * 获取统计数据
-   */
-  static async getStats(): Promise<StatsData> {
-    const records = await this.getAllRecords()
-    const now = Date.now()
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
+/**
+ * 获取所有记录（排除已删除的）
+ */
+export async function getRecords(): Promise<ConvertRecord[]> {
+  const allRecords = await client.getAllRecords()
+  // 过滤掉已删除的记录
+  return allRecords.filter(record => !record.deleted)
+}
 
-    let totalHits = 0
-    let activeRecords = 0
+/**
+ * 获取单条记录
+ */
+export async function getRecord(id: string): Promise<ConvertRecord | null> {
+  return client.getRecord(id)
+}
 
-    for (const record of records) {
-      totalHits += record.hits
+/**
+ * 更新记录
+ */
+export async function updateRecord(id: string, updates: Partial<ConvertRecord>): Promise<ConvertRecord | null> {
+  const record = await client.getRecord(id)
+  if (!record) return null
 
-      if (record.lastAccess > sevenDaysAgo) {
-        activeRecords++
-      }
+  const updated: ConvertRecord = {
+    ...record,
+    ...updates,
+    updatedAt: Date.now()
+  }
+
+  await client.saveRecord(updated)
+  return updated
+}
+
+/**
+ * 删除记录（软删除，标记为已删除，链接将失效）
+ */
+export async function deleteRecord(id: string): Promise<boolean> {
+  const record = await client.getRecord(id)
+  if (!record) return false
+
+  // 软删除：标记为已删除
+  const updated: ConvertRecord = {
+    ...record,
+    deleted: true,
+    updatedAt: Date.now()
+  }
+
+  await client.saveRecord(updated)
+  // 从索引中移除（不再显示在列表中）
+  await client.removeFromIndex(id)
+  return true
+}
+
+/**
+ * 获取统计数据
+ */
+export async function getStats(): Promise<StatsData> {
+  const records = await getRecords()
+  const now = Date.now()
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
+
+  let totalHits = 0
+  let activeRecords = 0
+
+  for (const record of records) {
+    totalHits += record.hits
+
+    if (record.lastAccess > sevenDaysAgo) {
+      activeRecords++
     }
+  }
 
-    // 获取真实的今日访问次数
-    const today = new Date().toISOString().slice(0, 10)
-    const dailyStats = await KVClient.getDailyStats(today)
-    const todayHits = dailyStats?.totalHits || 0
+  // 获取真实的今日访问次数
+  const today = new Date().toISOString().slice(0, 10)
+  const dailyStats = await client.getDailyStats(today)
+  const todayHits = dailyStats?.totalHits || 0
 
-    return {
-      totalRecords: records.length,
-      totalHits,
-      todayHits,
-      activeRecords
-    }
+  return {
+    totalRecords: records.length,
+    totalHits,
+    todayHits,
+    activeRecords
   }
 }

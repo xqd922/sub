@@ -105,17 +105,3 @@ export function formatProxies(
   return proxies.map(proxy => formatProxyName(proxy, useCounters, false))
 }
 
-/**
- * 批量格式化节点名称（短格式）
- * 使用国家/地区代码而非全名，如 🇭🇰 HK 01
- * @param proxies 节点列表
- * @param counters 可选的外部计数器
- * @returns 格式化后的节点列表
- */
-export function formatProxiesShort(
-  proxies: Proxy[],
-  counters?: Record<string, number>
-): Proxy[] {
-  const useCounters = counters || {}
-  return proxies.map(proxy => formatProxyName(proxy, useCounters, true))
-}

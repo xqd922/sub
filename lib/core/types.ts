@@ -178,27 +178,6 @@ export interface YamlSubscription {
   [key: string]: unknown
 }
 
-// 添加错误相关类型
-export interface SubscriptionError extends Error {
-  code: string;
-  statusCode?: number | undefined;
-  details?: unknown | undefined;
-}
-
-export class SubscriptionFetchError extends Error implements SubscriptionError {
-  code: string;
-  statusCode?: number | undefined;
-  details?: unknown | undefined;
-
-  constructor(message: string, statusCode?: number, details?: unknown) {
-    super(message);
-    this.name = 'SubscriptionFetchError';
-    this.code = 'SUB_FETCH_ERROR';
-    this.statusCode = statusCode;
-    this.details = details;
-  }
-}
-
 // Sing-box 配置类型定义
 export interface SingboxTLSConfig {
   enabled: boolean;

@@ -1,32 +1,70 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 type ToastType = 'success' | 'error' | 'info'
 
+interface Toast {
+  id: number
+  message: string
+  type: ToastType
+}
+
+type Listener = (toasts: Toast[]) => void
+
+/**
+ * Singleton toast state manager.
+ * Keeps toast state outside React so showToast() can be called imperatively
+ * from any hook or component without a provider.
+ */
+let nextId = 0
+let toasts: Toast[] = []
+const listeners = new Set<Listener>()
+
+function subscribe(listener: Listener) {
+  listeners.add(listener)
+  return () => { listeners.delete(listener) }
+}
+
+function getSnapshot(): Toast[] {
+  return toasts
+}
+
+function setState(next: Toast[]) {
+  toasts = next
+  listeners.forEach((l) => l(toasts))
+}
+
+function addToast(message: string, type: ToastType) {
+  const id = nextId++
+  setState([...toasts, { id, message, type }])
+  setTimeout(() => {
+    setState(toasts.filter((t) => t.id !== id))
+  }, 2500)
+}
+
+/**
+ * Hook that exposes showToast() and the current toast list.
+ * showToast has a stable identity (useCallback with empty deps).
+ */
 export function useToast() {
-  const showToast = useCallback((message: string, type: ToastType = 'success') => {
-    const toast = document.createElement('div')
-    
-    const baseClasses = 'fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg animate-fade-up text-white'
-    const typeClasses = {
-      success: 'bg-green-600',
-      error: 'bg-red-600', 
-      info: 'bg-gray-800'
-    }
-    
-    toast.className = `${baseClasses} ${typeClasses[type]}`
-    toast.textContent = message
-    
-    document.body.appendChild(toast)
-    
-    setTimeout(() => {
-      toast.classList.add('animate-fade-out')
-      setTimeout(() => {
-        if (document.body.contains(toast)) {
-          document.body.removeChild(toast)
-        }
-      }, 300)
-    }, 2000)
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    // Force re-render when the shared toast list changes
+    return subscribe(() => setTick((n) => n + 1))
   }, [])
 
-  return { showToast }
+  const showToast = useCallback((message: string, type: ToastType = 'success') => {
+    addToast(message, type)
+  }, [])
+
+  return { showToast, toasts, getSnapshot }
+}
+
+/**
+ * Standalone function for calling outside of React hooks.
+ * Returns the current toast snapshot so callers that only need
+ * the function (not the list) can import { showToast } directly.
+ */
+export function showToast(message: string, type: ToastType = 'success') {
+  addToast(message, type)
 }
