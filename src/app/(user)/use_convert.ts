@@ -22,7 +22,7 @@ export function useUrlConverter() {
     try {
       const baseUrl = window.location.origin
       const encodedUrl = encodeURIComponent(inputUrl)
-      const convertedUrl = `${baseUrl}/sub?url=${encodedUrl}`
+      const convertedUrl = `${baseUrl}/api/convert?url=${encodedUrl}`
       setConvertedUrl(convertedUrl)
 
       const copied = await copyToClipboard(convertedUrl)
