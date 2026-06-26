@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const url = new URL(request.url)
-    url.pathname = '/api/convert'
+    url.pathname = '/api/sub'
     url.searchParams.set('url', targetUrl)
 
     return handleRequest(new Request(url.toString(), request))
