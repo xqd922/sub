@@ -1,0 +1,156 @@
+import { describe, it, expect } from 'vitest'
+import { SSProtocol } from '@/parse/shadowsocks'
+
+/**
+ * Helper: encode method:password@server:port into SIP002 base64 format
+ * SIP002: ss://BASE64(method:password)@server:port#remark
+ */
+function buildSIP002Uri(
+  method: string,
+  password: string,
+  server: string,
+  port: number,
+  remark?: string,
+  plugin?: string
+): string {
+  const userInfo = Buffer.from(`${method}:${password}`).toString('base64').replace(/=/g, '')
+  let uri = `ss://${userInfo}@${server}:${port}`
+  if (plugin) {
+    uri += `/?plugin=${encodeURIComponent(plugin)}`
+  }
+  if (remark) {
+    uri += `#${encodeURIComponent(remark)}`
+  }
+  return uri
+}
+
+/**
+ * Helper: encode the entire "method:password@server:port" string as legacy base64
+ * Legacy: ss://BASE64(method:password@server:port)#remark
+ */
+function buildLegacyUri(
+  method: string,
+  password: string,
+  server: string,
+  port: number,
+  remark?: string
+): string {
+  const full = `${method}:${password}@${server}:${port}`
+  const encoded = Buffer.from(full).toString('base64')
+  let uri = `ss://${encoded}`
+  if (remark) {
+    uri += `#${encodeURIComponent(remark)}`
+  }
+  return uri
+}
+
+describe('SSProtocol.parse', () => {
+  // --- SIP002 format ---
+
+  it('parses a basic SIP002 URI', () => {
+    const uri = buildSIP002Uri('aes-256-gcm', 'mypassword', '1.2.3.4', 8388)
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.type).toBe('ss')
+    expect(proxy.server).toBe('1.2.3.4')
+    expect(proxy.port).toBe(8388)
+    expect(proxy.cipher).toBe('aes-256-gcm')
+    expect(proxy.password).toBe('mypassword')
+  })
+
+  it('parses SIP002 URI with a remark', () => {
+    const uri = buildSIP002Uri('chacha20-ietf-poly1305', 'pass123', '5.6.7.8', 443, 'HK-Node')
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.name).toBe('HK-Node')
+    expect(proxy.cipher).toBe('chacha20-ietf-poly1305')
+  })
+
+  it('uses server as name when no remark is provided', () => {
+    const uri = buildSIP002Uri('aes-128-gcm', 'pw', 'example.com', 1234)
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.name).toBe('example.com')
+  })
+
+  it('parses SIP002 URI with obfs plugin', () => {
+    const plugin = 'obfs-local;obfs=http;obfs-host=www.bing.com'
+    const uri = buildSIP002Uri('aes-256-gcm', 'pw', '1.2.3.4', 443, 'obfs-node', plugin)
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.plugin).toBe('obfs')
+    expect(proxy['plugin-opts']?.mode).toBe('http')
+    expect(proxy['plugin-opts']?.host).toBe('www.bing.com')
+  })
+
+  // --- Legacy base64 format ---
+
+  it('parses a legacy base64 URI', () => {
+    const uri = buildLegacyUri('aes-256-cfb', 'legacyPass', '9.8.7.6', 1080)
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.type).toBe('ss')
+    expect(proxy.server).toBe('9.8.7.6')
+    expect(proxy.port).toBe(1080)
+    expect(proxy.cipher).toBe('aes-256-cfb')
+    expect(proxy.password).toBe('legacyPass')
+  })
+
+  it('parses a legacy base64 URI with remark', () => {
+    const uri = buildLegacyUri('chacha20-ietf-poly1305', 'pass', '10.0.0.1', 8888, 'Legacy-Node')
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.name).toBe('Legacy-Node')
+  })
+
+  // --- Password edge cases ---
+
+  it('handles password containing colons', () => {
+    const method = 'aes-256-gcm'
+    const password = 'part1:part2:part3'
+    const userInfo = Buffer.from(`${method}:${password}`).toString('base64').replace(/=/g, '')
+    const uri = `ss://${userInfo}@1.2.3.4:443`
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.cipher).toBe(method)
+    expect(proxy.password).toBe(password)
+  })
+
+  // --- Remark encoding ---
+
+  it('decodes URL-encoded remark', () => {
+    const uri = buildSIP002Uri('aes-256-gcm', 'pw', '1.2.3.4', 443, '%F0%9F%87%AD%F0%9F%87%B0-HK')
+    const proxy = SSProtocol.parse(uri)
+
+    // The remark should be decoded
+    expect(proxy.name).toContain('-HK')
+  })
+
+  // --- client-fingerprint ---
+
+  it('sets client-fingerprint to chrome by default', () => {
+    const uri = buildSIP002Uri('aes-256-gcm', 'pw', '1.2.3.4', 443)
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy['client-fingerprint']).toBe('chrome')
+  })
+
+  // --- Error cases ---
+
+  it('throws on empty URI after ss:// prefix', () => {
+    expect(() => SSProtocol.parse('ss://')).toThrow()
+  })
+
+  // --- IPv6 support ---
+
+  it('parses IPv6 server address', () => {
+    const method = 'aes-256-gcm'
+    const password = 'testpw'
+    const userInfo = Buffer.from(`${method}:${password}`).toString('base64').replace(/=/g, '')
+    const uri = `ss://${userInfo}@[::1]:8388`
+    const proxy = SSProtocol.parse(uri)
+
+    expect(proxy.server).toBe('::1')
+    expect(proxy.port).toBe(8388)
+  })
+})
