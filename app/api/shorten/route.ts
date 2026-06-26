@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
-import { generateShortLink } from '@/features'
-import { logger } from '@/lib/core/logger'
+import { generate as generateShortLink } from '@/shorten/service'
+import { logger } from '@/logger'
 
 export const runtime = 'edge'
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { GlobalErrorBoundary } from "./components/ErrorBoundary";
-import ToastContainer from "./components/ui/ToastContainer";
+import { GlobalErrorBoundary } from "@/components/error_boundary";
+import ToastContainer from "@/components/ui/toast";
 
 export const metadata: Metadata = {
   title: "通用订阅转换",
