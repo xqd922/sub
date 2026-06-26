@@ -3,6 +3,9 @@
 import React from 'react'
 import { AppError, ErrorSeverity, ErrorCode } from '@/lib/error/errors'
 
+// NOTE: ErrorDisplay, ErrorToast, and InlineError are currently unused.
+// They are kept as utility components for future use.
+
 interface ErrorDisplayProps {
   error: AppError | string
   onRetry?: () => void

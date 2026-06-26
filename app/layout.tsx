@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { GlobalErrorBoundary } from "./components/ErrorBoundary";
+import ToastContainer from "./components/ui/ToastContainer";
 
 export const metadata: Metadata = {
   title: "通用订阅转换",
@@ -18,6 +19,7 @@ export default function RootLayout({
         <GlobalErrorBoundary>
           {children}
         </GlobalErrorBoundary>
+        <ToastContainer />
       </body>
     </html>
   );

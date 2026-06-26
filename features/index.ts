@@ -1,6 +1,14 @@
 ﻿// 功能模块统一导出
-export { CoreService } from './convert/handler'
-export { SubService, type SubscriptionInfo } from './convert/processor'
-export { ConfigService } from './convert/builder'
-export { NetService } from './metrics/network'
-export { ShortService } from './shorten/shortener'
+export { handleRequest } from './convert/handler'
+export { processSubscription, shouldFormatNames, formatProxies, logSubscriptionStats, type SubscriptionInfo } from './convert/processor'
+export {
+  generateClashConfig,
+  generateSingboxConfig,
+  generateV2rayNGConfig,
+  generatePreviewHtml,
+  detectClientType,
+  generateResponseHeaders,
+  logConfigStats,
+} from './convert/builder'
+export { fetchWithRetry, fetchSubscription, fetchRemoteNodes, fetchShortUrl, configure, getConfig, resetConfig, getStats, resetStats } from './metrics/network'
+export { generate as generateShortLink } from './shorten/shortener'

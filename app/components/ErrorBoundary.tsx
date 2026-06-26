@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Component, ReactNode, ErrorInfo } from 'react'
+import { Component, ReactNode, ErrorInfo } from 'react'
 import { AppError, ErrorCode, ErrorSeverity } from '@/lib/error/errors'
 import { handleError } from '@/lib/error/reporter'
 import { logger } from '@/lib/core/logger'

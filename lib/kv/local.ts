@@ -6,9 +6,19 @@
  */
 
 /**
+ * KV Store 通用接口，与 Cloudflare KVNamespace 兼容
+ */
+export interface KVStoreAdapter {
+  get(key: string, type?: 'json' | 'text'): Promise<unknown>
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
+  delete(key: string): Promise<void>
+  list(options?: { prefix?: string }): Promise<{ keys: Array<{ name: string }> }>
+}
+
+/**
  * 远程 KV 客户端 - 通过 Cloudflare API 访问
  */
-class RemoteKVStore {
+class RemoteKVStore implements KVStoreAdapter {
   private accountId: string
   private namespaceId: string
   private apiToken: string
@@ -32,7 +42,7 @@ class RemoteKVStore {
     })
   }
 
-  async get(key: string, type?: 'json' | 'text'): Promise<any> {
+  async get<T = unknown>(key: string, type?: 'json' | 'text'): Promise<T | null> {
     try {
       const res = await this.request(`/values/${encodeURIComponent(key)}`)
       if (!res.ok) return null
@@ -40,12 +50,12 @@ class RemoteKVStore {
       if (!text) return null
       if (type === 'json') {
         try {
-          return JSON.parse(text)
+          return JSON.parse(text) as T
         } catch {
           return null
         }
       }
-      return text
+      return text as T
     } catch (error) {
       console.error('[RemoteKV] GET 失败:', key, error)
       return null
@@ -95,20 +105,20 @@ class RemoteKVStore {
 /**
  * 本地 Mock KV Store（内存存储）
  */
-class LocalKVStore {
+class LocalKVStore implements KVStoreAdapter {
   private records = new Map<string, string>()
 
-  async get(key: string, type?: 'json' | 'text'): Promise<any> {
+  async get<T = unknown>(key: string, type?: 'json' | 'text'): Promise<T | null> {
     const value = this.records.get(key)
     if (!value) return null
     if (type === 'json') {
       try {
-        return JSON.parse(value)
+        return JSON.parse(value) as T
       } catch {
         return null
       }
     }
-    return value
+    return value as T
   }
 
   async put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> {
@@ -130,7 +140,7 @@ class LocalKVStore {
 }
 
 // 全局单例
-let kvStore: LocalKVStore | RemoteKVStore | null = null
+let kvStore: KVStoreAdapter | null = null
 
 /**
  * 检查是否配置了远程 KV
@@ -143,7 +153,10 @@ function hasRemoteKVConfig(): boolean {
   return hasAccountId && hasNamespaceId && hasToken
 }
 
-export function getLocalKV(): any {
+/**
+ * 获取本地/远程 KV Store 实例
+ */
+export function getLocalKV(): KVStoreAdapter {
   if (!kvStore) {
     if (hasRemoteKVConfig()) {
       kvStore = new RemoteKVStore()
@@ -154,8 +167,4 @@ export function getLocalKV(): any {
     }
   }
   return kvStore
-}
-
-export function isLocalDev(): boolean {
-  return process.env.NODE_ENV === 'development'
 }

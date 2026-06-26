@@ -6,8 +6,8 @@
 import { Proxy, ProxyConfig } from '../core/types'
 import yaml from 'js-yaml'
 import { logger } from '../core/logger'
-import { NetService } from '@/features'
-import { SingleNodeParser } from './node'
+import { fetchSubscription } from '@/features'
+import { parseProxyUri } from './node'
 import { deduplicateProxies } from '../core/dedup'
 
 /**
@@ -21,7 +21,7 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
   logger.debug(`\n开始解析订阅: ${url}`)
 
   try {
-    const response = await NetService.fetchSubscription(url, clientUserAgent)
+    const response = await fetchSubscription(url, clientUserAgent)
 
     // 检查响应大小
     const contentLength = response.headers.get('content-length')
@@ -81,7 +81,7 @@ function parseBase64Subscription(text: string): Proxy[] {
     if (!trimmed) continue
 
     try {
-      const proxy = SingleNodeParser.parse(trimmed)
+      const proxy = parseProxyUri(trimmed)
       if (proxy) proxies.push(proxy)
     } catch (e) {
       failedCount++

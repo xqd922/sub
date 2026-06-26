@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server'
-import { ShortLinkService } from '@/lib/kv'
+import { resolveShortLink } from '@/lib/kv'
 
 export const runtime = 'edge'
 
@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 
   try {
-    const targetUrl = await ShortLinkService.resolve(id)
+    const targetUrl = await resolveShortLink(id)
 
     if (!targetUrl) {
       // 短链接不存在，重定向到首页

@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server'
-import { ShortService } from '@/features'
+import { generateShortLink } from '@/features'
 import { logger } from '@/lib/core/logger'
 
 export const runtime = 'edge'
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     logger.debug('开始处理短链接请求', { url })
 
-    const result = await ShortService.generate(url)
+    const result = await generateShortLink(url)
     const duration = Date.now() - startTime
     
     logger.debug('短链接生成成功', { 
