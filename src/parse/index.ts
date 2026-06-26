@@ -1,19 +1,19 @@
-﻿// 协议解析器统一导出
-export { SSProtocol, parseShadowsocks, generateShadowsocksURL } from '@/parse/shadowsocks'
-export { VMessProtocol, parseVmess } from '@/parse/vmess'
-export { TrojanProtocol, parseTrojan } from '@/parse/trojan'
-export { VLessProtocol, parseVless } from '@/parse/vless'
-export { Hysteria2Protocol, parseHysteria2 } from '@/parse/hysteria2'
-export { SocksProtocol, parseSocks } from '@/parse/socks'
-export { AnyTLSProtocol, parseAnyTLS } from '@/parse/anytls'
+// 协议解析器统一导出
+export { parse as parseShadowsocks, toUri as generateShadowsocksURL } from '@/parse/shadowsocks'
+export { parse as parseVmess } from '@/parse/vmess'
+export { parse as parseTrojan } from '@/parse/trojan'
+export { parse as parseVless } from '@/parse/vless'
+export { parse as parseHysteria2 } from '@/parse/hysteria2'
+export { parse as parseSocks } from '@/parse/socks'
+export { parse as parseAnyTLS } from '@/parse/anytls'
 
 import { Proxy } from '@/types'
-import { SSProtocol } from '@/parse/shadowsocks'
-import { VMessProtocol } from '@/parse/vmess'
-import { TrojanProtocol } from '@/parse/trojan'
-import { VLessProtocol } from '@/parse/vless'
-import { Hysteria2Protocol } from '@/parse/hysteria2'
-import { AnyTLSProtocol } from '@/parse/anytls'
+import { toUri as ssToUri } from '@/parse/shadowsocks'
+import { toUri as vmessToUri } from '@/parse/vmess'
+import { toUri as trojanToUri } from '@/parse/trojan'
+import { toUri as vlessToUri } from '@/parse/vless'
+import { toUri as hysteria2ToUri } from '@/parse/hysteria2'
+import { toUri as anytlsToUri } from '@/parse/anytls'
 
 /**
  * 统一的 Proxy 转 URI 接口
@@ -22,17 +22,17 @@ import { AnyTLSProtocol } from '@/parse/anytls'
 export function proxyToUri(proxy: Proxy): string | null {
   switch (proxy.type) {
     case 'ss':
-      return SSProtocol.generateURL(proxy)
+      return ssToUri(proxy)
     case 'vmess':
-      return VMessProtocol.toUri(proxy)
+      return vmessToUri(proxy)
     case 'trojan':
-      return TrojanProtocol.toUri(proxy)
+      return trojanToUri(proxy)
     case 'vless':
-      return VLessProtocol.toUri(proxy)
+      return vlessToUri(proxy)
     case 'hysteria2':
-      return Hysteria2Protocol.toUri(proxy)
+      return hysteria2ToUri(proxy)
     case 'anytls':
-      return AnyTLSProtocol.toUri(proxy)
+      return anytlsToUri(proxy)
     default:
       return null
   }

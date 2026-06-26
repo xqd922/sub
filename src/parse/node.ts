@@ -1,14 +1,16 @@
 import { Proxy } from '@/types'
 import { logger } from '@/logger'
 import {
-  SSProtocol,
-  VMessProtocol,
-  TrojanProtocol,
-  VLessProtocol,
-  Hysteria2Protocol,
-  SocksProtocol,
-  AnyTLSProtocol
-} from '@/parse'
+  parse as parseShadowsocks,
+  toUri as ssToUri,
+  toSingboxOutbound as ssToSingboxOutbound
+} from '@/parse/shadowsocks'
+import { parse as parseVmess, toSingboxOutbound as vmessToSingboxOutbound } from '@/parse/vmess'
+import { parse as parseTrojan, toSingboxOutbound as trojanToSingboxOutbound } from '@/parse/trojan'
+import { parse as parseVless, toSingboxOutbound as vlessToSingboxOutbound } from '@/parse/vless'
+import { parse as parseHysteria2, toSingboxOutbound as hysteria2ToSingboxOutbound } from '@/parse/hysteria2'
+import { parse as parseSocks, toSingboxOutbound as socksToSingboxOutbound } from '@/parse/socks'
+import { parse as parseAnyTLS, toSingboxOutbound as anytlsToSingboxOutbound } from '@/parse/anytls'
 
 /**
  * sing-box出站配置接口
@@ -30,19 +32,19 @@ export function parseProxyUri(uri: string): Proxy | null {
   try {
     // 检查协议类型并使用对应的协议解析器
     if (uri.startsWith('ss://')) {
-      return SSProtocol.parse(uri)
+      return parseShadowsocks(uri)
     } else if (uri.startsWith('vmess://')) {
-      return VMessProtocol.parse(uri)
+      return parseVmess(uri)
     } else if (uri.startsWith('trojan://')) {
-      return TrojanProtocol.parse(uri)
+      return parseTrojan(uri)
     } else if (uri.startsWith('vless://')) {
-      return VLessProtocol.parse(uri)
+      return parseVless(uri)
     } else if (uri.startsWith('hysteria2://') || uri.startsWith('hy2://')) {
-      return Hysteria2Protocol.parse(uri)
+      return parseHysteria2(uri)
     } else if (uri.startsWith('socks://')) {
-      return SocksProtocol.parse(uri)
+      return parseSocks(uri)
     } else if (uri.startsWith('anytls://')) {
-      return AnyTLSProtocol.parse(uri)
+      return parseAnyTLS(uri)
     }
     throw new Error('不支持的代理协议类型，请检查链接格式')
   } catch (error) {
@@ -57,7 +59,7 @@ export function parseProxyUri(uri: string): Proxy | null {
  * @returns SS URL 字符串
  */
 export function generateShadowsocksURL(proxy: Proxy): string {
-  return SSProtocol.generateURL(proxy)
+  return ssToUri(proxy) || ''
 }
 
 /**
@@ -105,19 +107,19 @@ export function proxyToSingboxOutbound(proxy: Proxy): SingboxOutbound | null {
   // 使用对应协议的转换器
   switch (proxy.type) {
     case 'ss':
-      return SSProtocol.toSingboxOutbound(proxy)
+      return ssToSingboxOutbound(proxy)
     case 'vmess':
-      return VMessProtocol.toSingboxOutbound(proxy)
+      return vmessToSingboxOutbound(proxy)
     case 'trojan':
-      return TrojanProtocol.toSingboxOutbound(proxy)
+      return trojanToSingboxOutbound(proxy)
     case 'vless':
-      return VLessProtocol.toSingboxOutbound(proxy)
+      return vlessToSingboxOutbound(proxy)
     case 'hysteria2':
-      return Hysteria2Protocol.toSingboxOutbound(proxy)
+      return hysteria2ToSingboxOutbound(proxy)
     case 'socks5':
-      return SocksProtocol.toSingboxOutbound(proxy)
+      return socksToSingboxOutbound(proxy)
     case 'anytls':
-      return AnyTLSProtocol.toSingboxOutbound(proxy)
+      return anytlsToSingboxOutbound(proxy)
     default:
       return null
   }

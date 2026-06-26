@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { VMessProtocol } from '@/parse/vmess'
+import { parse, validate } from '@/parse/vmess'
 
 /**
  * Helper: build a vmess:// URI from a config object
@@ -29,12 +29,12 @@ function defaultConfig(overrides: Record<string, string | number> = {}) {
   }
 }
 
-describe('VMessProtocol.parse', () => {
+describe('parse (vmess)', () => {
   // --- Happy path ---
 
   it('parses a basic VMess TCP node', () => {
     const uri = buildVmessUri(defaultConfig())
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.type).toBe('vmess')
     expect(proxy.server).toBe('1.2.3.4')
@@ -48,14 +48,14 @@ describe('VMessProtocol.parse', () => {
 
   it('uses the "ps" field as the proxy name', () => {
     const uri = buildVmessUri(defaultConfig({ ps: 'My-Vmess-Node' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.name).toBe('My-Vmess-Node')
   })
 
   it('falls back to server as name when ps is empty', () => {
     const uri = buildVmessUri(defaultConfig({ ps: '' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.name).toBe('1.2.3.4')
   })
@@ -64,14 +64,14 @@ describe('VMessProtocol.parse', () => {
 
   it('enables TLS when tls field is "tls"', () => {
     const uri = buildVmessUri(defaultConfig({ tls: 'tls' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.tls).toBe(true)
   })
 
   it('disables TLS when tls field is empty', () => {
     const uri = buildVmessUri(defaultConfig({ tls: '' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.tls).toBe(false)
   })
@@ -84,7 +84,7 @@ describe('VMessProtocol.parse', () => {
       path: '/ws-path',
       host: 'ws.example.com',
     }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.network).toBe('ws')
     expect(proxy['ws-opts']?.path).toBe('/ws-path')
@@ -97,7 +97,7 @@ describe('VMessProtocol.parse', () => {
       path: '/path',
       host: '',
     }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy['ws-opts']?.headers?.Host).toBe('1.2.3.4')
   })
@@ -106,7 +106,7 @@ describe('VMessProtocol.parse', () => {
 
   it('parses SNI field into servername', () => {
     const uri = buildVmessUri(defaultConfig({ sni: 'example.com' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.servername).toBe('example.com')
   })
@@ -115,14 +115,14 @@ describe('VMessProtocol.parse', () => {
 
   it('parses numeric alterId', () => {
     const uri = buildVmessUri(defaultConfig({ aid: '16' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.alterId).toBe(16)
   })
 
   it('defaults alterId to 0 for non-numeric string', () => {
     const uri = buildVmessUri(defaultConfig({ aid: 'abc' }))
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.alterId).toBe(0)
   })
@@ -133,21 +133,21 @@ describe('VMessProtocol.parse', () => {
     const cfg = defaultConfig()
     delete (cfg as Record<string, unknown>).net
     const uri = buildVmessUri(cfg)
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.network).toBe('tcp')
   })
 
   it('sets skip-cert-verify to false by default', () => {
     const uri = buildVmessUri(defaultConfig())
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy['skip-cert-verify']).toBe(false)
   })
 
   it('sets tfo to false by default', () => {
     const uri = buildVmessUri(defaultConfig())
-    const proxy = VMessProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.tfo).toBe(false)
   })
@@ -155,15 +155,15 @@ describe('VMessProtocol.parse', () => {
   // --- Error cases ---
 
   it('throws on invalid JSON', () => {
-    expect(() => VMessProtocol.parse('vmess://not-valid-base64!!!')).toThrow()
+    expect(() => parse('vmess://not-valid-base64!!!')).toThrow()
   })
 
   it('throws on empty URI after vmess:// prefix', () => {
-    expect(() => VMessProtocol.parse('vmess://')).toThrow()
+    expect(() => parse('vmess://')).toThrow()
   })
 })
 
-describe('VMessProtocol.validate', () => {
+describe('validate (vmess)', () => {
   it('returns true for a valid vmess proxy with uuid', () => {
     const proxy = {
       type: 'vmess',
@@ -172,7 +172,7 @@ describe('VMessProtocol.validate', () => {
       port: 443,
       uuid: 'a3482e88-686a-4a58-8126-99c9df64b7bf',
     }
-    expect(VMessProtocol.validate(proxy as any)).toBe(true)
+    expect(validate(proxy as any)).toBe(true)
   })
 
   it('returns false when type is not vmess', () => {
@@ -183,7 +183,7 @@ describe('VMessProtocol.validate', () => {
       port: 443,
       uuid: 'a3482e88-686a-4a58-8126-99c9df64b7bf',
     }
-    expect(VMessProtocol.validate(proxy as any)).toBe(false)
+    expect(validate(proxy as any)).toBe(false)
   })
 
   it('returns false when uuid is missing', () => {
@@ -193,6 +193,6 @@ describe('VMessProtocol.validate', () => {
       server: '1.2.3.4',
       port: 443,
     }
-    expect(VMessProtocol.validate(proxy as any)).toBe(false)
+    expect(validate(proxy as any)).toBe(false)
   })
 })

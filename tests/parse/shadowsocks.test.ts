@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SSProtocol } from '@/parse/shadowsocks'
+import { parse } from '@/parse/shadowsocks'
 
 /**
  * Helper: encode method:password@server:port into SIP002 base64 format
@@ -44,12 +44,12 @@ function buildLegacyUri(
   return uri
 }
 
-describe('SSProtocol.parse', () => {
+describe('parse (shadowsocks)', () => {
   // --- SIP002 format ---
 
   it('parses a basic SIP002 URI', () => {
     const uri = buildSIP002Uri('aes-256-gcm', 'mypassword', '1.2.3.4', 8388)
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.type).toBe('ss')
     expect(proxy.server).toBe('1.2.3.4')
@@ -60,7 +60,7 @@ describe('SSProtocol.parse', () => {
 
   it('parses SIP002 URI with a remark', () => {
     const uri = buildSIP002Uri('chacha20-ietf-poly1305', 'pass123', '5.6.7.8', 443, 'HK-Node')
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.name).toBe('HK-Node')
     expect(proxy.cipher).toBe('chacha20-ietf-poly1305')
@@ -68,7 +68,7 @@ describe('SSProtocol.parse', () => {
 
   it('uses server as name when no remark is provided', () => {
     const uri = buildSIP002Uri('aes-128-gcm', 'pw', 'example.com', 1234)
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.name).toBe('example.com')
   })
@@ -76,7 +76,7 @@ describe('SSProtocol.parse', () => {
   it('parses SIP002 URI with obfs plugin', () => {
     const plugin = 'obfs-local;obfs=http;obfs-host=www.bing.com'
     const uri = buildSIP002Uri('aes-256-gcm', 'pw', '1.2.3.4', 443, 'obfs-node', plugin)
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.plugin).toBe('obfs')
     expect(proxy['plugin-opts']?.mode).toBe('http')
@@ -87,7 +87,7 @@ describe('SSProtocol.parse', () => {
 
   it('parses a legacy base64 URI', () => {
     const uri = buildLegacyUri('aes-256-cfb', 'legacyPass', '9.8.7.6', 1080)
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.type).toBe('ss')
     expect(proxy.server).toBe('9.8.7.6')
@@ -98,7 +98,7 @@ describe('SSProtocol.parse', () => {
 
   it('parses a legacy base64 URI with remark', () => {
     const uri = buildLegacyUri('chacha20-ietf-poly1305', 'pass', '10.0.0.1', 8888, 'Legacy-Node')
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.name).toBe('Legacy-Node')
   })
@@ -110,7 +110,7 @@ describe('SSProtocol.parse', () => {
     const password = 'part1:part2:part3'
     const userInfo = Buffer.from(`${method}:${password}`).toString('base64').replace(/=/g, '')
     const uri = `ss://${userInfo}@1.2.3.4:443`
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.cipher).toBe(method)
     expect(proxy.password).toBe(password)
@@ -120,7 +120,7 @@ describe('SSProtocol.parse', () => {
 
   it('decodes URL-encoded remark', () => {
     const uri = buildSIP002Uri('aes-256-gcm', 'pw', '1.2.3.4', 443, '%F0%9F%87%AD%F0%9F%87%B0-HK')
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     // The remark should be decoded
     expect(proxy.name).toContain('-HK')
@@ -130,7 +130,7 @@ describe('SSProtocol.parse', () => {
 
   it('sets client-fingerprint to chrome by default', () => {
     const uri = buildSIP002Uri('aes-256-gcm', 'pw', '1.2.3.4', 443)
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy['client-fingerprint']).toBe('chrome')
   })
@@ -138,7 +138,7 @@ describe('SSProtocol.parse', () => {
   // --- Error cases ---
 
   it('throws on empty URI after ss:// prefix', () => {
-    expect(() => SSProtocol.parse('ss://')).toThrow()
+    expect(() => parse('ss://')).toThrow()
   })
 
   // --- IPv6 support ---
@@ -148,7 +148,7 @@ describe('SSProtocol.parse', () => {
     const password = 'testpw'
     const userInfo = Buffer.from(`${method}:${password}`).toString('base64').replace(/=/g, '')
     const uri = `ss://${userInfo}@[::1]:8388`
-    const proxy = SSProtocol.parse(uri)
+    const proxy = parse(uri)
 
     expect(proxy.server).toBe('::1')
     expect(proxy.port).toBe(8388)
