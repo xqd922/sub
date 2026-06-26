@@ -12,21 +12,21 @@
 ## 目录结构
 
 ```
-app/                          Next.js 路由层
-  (user)/                     用户页面路由组
-    page.tsx                  首页（/）
-    home.tsx                  首页主组件
-    use_convert.ts            转换 hook（页面专属）
-    use_short_link.ts         短链接 hook（页面专属）
-  api/                        API 路由（全部 Edge Runtime）
-    convert/route.ts          订阅转换
-    shorten/route.ts          短链接生成
-    s/[id]/route.ts           短链跳转
-  layout.tsx                  根布局
-  globals.css
-
-src/                          核心业务逻辑
-  parse/                      协议解析（每个文件一个协议）
+src/                          全部源码
+  app/                        Next.js App Router
+    (user)/                   用户页面路由组
+      page.tsx                首页（/）
+      home.tsx                首页主组件
+      use_convert.ts          转换 hook（页面专属）
+      use_short_link.ts       短链接 hook（页面专属）
+    api/                      API 路由（全部 Edge Runtime）
+      convert/route.ts        订阅转换
+      shorten/route.ts        短链接生成
+      s/[id]/route.ts         短链跳转
+    layout.tsx                根布局
+    globals.css
+    favicon.ico
+  parse/                      协议解析（每个文件一个协议，纯函数导出）
     index.ts                  barrel：proxy_to_uri, proxies_to_uris
     node.ts                   单节点解析入口
     remote.ts                 远程订阅获取
@@ -78,7 +78,7 @@ tests/                        测试文件
 ## 开发约定
 
 - **纯函数优先**: 使用函数 + 模块导出，不用 class + static method
-- **Edge Runtime**: 所有 `app/api/` 下的路由使用 Edge Runtime
+- **Edge Runtime**: 所有 `src/app/api/` 下的路由使用 Edge Runtime
 - **协议解析器接口**: `src/parse/` 下每个协议文件导出:
   - `parse(uri)` — 解析 URI 为节点对象
   - `toUri(node)` — 节点对象转回 URI
