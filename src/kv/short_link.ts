@@ -1,5 +1,7 @@
 import { ShortLink, KV_PREFIX } from '@/kv/types'
 import { getKV } from '@/kv/env'
+import { extractNameFromUrl } from '@/utils'
+import { logger } from '@/logger'
 
 /**
  * 短链接索引 key
@@ -23,27 +25,6 @@ async function generateShortId(url: string): Promise<string> {
     result += chars[idx]
   }
   return result
-}
-
-/**
- * 从 URL 提取名称
- */
-function extractNameFromUrl(url: string): string {
-  try {
-    const urlObj = new URL(url)
-    // 检查是否是转换后的链接
-    const originalUrl = urlObj.searchParams.get('url')
-    if (originalUrl) {
-      const decodedUrl = decodeURIComponent(originalUrl)
-      const innerUrl = new URL(decodedUrl)
-      return innerUrl.searchParams.get('name') ||
-             innerUrl.searchParams.get('remarks') ||
-             innerUrl.hostname
-    }
-    return urlObj.hostname
-  } catch {
-    return '短链接'
-  }
 }
 
 /**
@@ -73,7 +54,7 @@ async function addToIndex(id: string): Promise<void> {
       await kv.put(SHORT_INDEX_KEY, JSON.stringify({ ids }))
     }
   } catch (error) {
-    console.error('[ShortLink] 添加索引失败:', error)
+    logger.error('[ShortLink] 添加索引失败:', error)
   }
 }
 
@@ -94,7 +75,7 @@ async function removeFromIndex(id: string): Promise<void> {
       await kv.put(SHORT_INDEX_KEY, JSON.stringify({ ids }))
     }
   } catch (error) {
-    console.error('[ShortLink] 移除索引失败:', error)
+    logger.error('[ShortLink] 移除索引失败:', error)
   }
 }
 
@@ -155,7 +136,7 @@ export async function createShortLink(targetUrl: string): Promise<ShortLink | nu
 
     return shortLink
   } catch (error) {
-    console.error('[ShortLink] 创建失败:', error)
+    logger.error('[ShortLink] 创建失败:', error)
     return null
   }
 }
@@ -171,7 +152,7 @@ async function getShortLink(id: string): Promise<ShortLink | null> {
     const data = await kv.get(`${KV_PREFIX.SHORT}${id}`, 'json')
     return data as ShortLink | null
   } catch (error) {
-    console.error('[ShortLink] 获取失败:', error)
+    logger.error('[ShortLink] 获取失败:', error)
     return null
   }
 }
@@ -197,7 +178,7 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
     // 按创建时间倒序
     return shortLinks.sort((a, b) => b.createdAt - a.createdAt)
   } catch (error) {
-    console.error('[ShortLink] 获取全部失败:', error)
+    logger.error('[ShortLink] 获取全部失败:', error)
     return []
   }
 }
@@ -226,7 +207,7 @@ export async function updateShortLink(id: string, updates: Partial<Pick<ShortLin
 
     return updated
   } catch (error) {
-    console.error('[ShortLink] 更新失败:', error)
+    logger.error('[ShortLink] 更新失败:', error)
     return null
   }
 }
@@ -254,7 +235,7 @@ export async function deleteShortLink(id: string): Promise<boolean> {
 
     return true
   } catch (error) {
-    console.error('[ShortLink] 删除失败:', error)
+    logger.error('[ShortLink] 删除失败:', error)
     return false
   }
 }
@@ -285,7 +266,7 @@ export async function resolveShortLink(id: string): Promise<string | null> {
 
     return shortLink.targetUrl
   } catch (error) {
-    console.error('[ShortLink] 解析失败:', error)
+    logger.error('[ShortLink] 解析失败:', error)
     return null
   }
 }

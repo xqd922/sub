@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parsePort, formatBytes } from '@/utils'
+import { parsePort, formatBytes, extractNameFromUrl } from '@/utils'
 
 describe('parsePort', () => {
   it('parses a valid numeric string', () => {
@@ -95,5 +95,29 @@ describe('formatBytes', () => {
 
   it('formats 1.5 GB', () => {
     expect(formatBytes(1610612736)).toBe('1.50 GB')
+  })
+})
+
+describe('extractNameFromUrl', () => {
+  it('extracts name from query param', () => {
+    expect(extractNameFromUrl('https://example.com/sub?name=MyNode')).toBe('MyNode')
+  })
+
+  it('extracts remarks param', () => {
+    expect(extractNameFromUrl('https://example.com/sub?remarks=备注')).toBe('备注')
+  })
+
+  it('falls back to hostname', () => {
+    expect(extractNameFromUrl('https://example.com/sub')).toBe('example.com')
+  })
+
+  it('extracts name from inner url param', () => {
+    const inner = encodeURIComponent('https://api.test.com/link?name=Inner')
+    expect(extractNameFromUrl(`https://example.com/sub?url=${inner}`)).toBe('Inner')
+  })
+
+  it('returns fallback for invalid URL', () => {
+    expect(extractNameFromUrl('not-a-url')).toBe('未知订阅')
+    expect(extractNameFromUrl('not-a-url', '自定义')).toBe('自定义')
   })
 })

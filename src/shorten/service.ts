@@ -1,6 +1,7 @@
 import { logger } from '@/logger'
 import { fetchShortUrl } from '@/network/client'
 import { isAvailable as isKVAvailable, createShortLink } from '@/kv'
+import { extractNameFromUrl } from '@/utils'
 
 /**
  * 短链接提供商配置
@@ -116,23 +117,6 @@ async function generateSlug(url: string): Promise<string> {
   }
 }
 
-/**
- * 从URL提取名称
- */
-function getNameFromUrl(url: string): string | undefined {
-  try {
-    const urlObj = new URL(url)
-    const name = urlObj.searchParams.get('name')
-    if (name) return decodeURIComponent(name)
-
-    const remarks = urlObj.searchParams.get('remarks')
-    if (remarks) return decodeURIComponent(remarks)
-
-    return undefined
-  } catch {
-    return undefined
-  }
-}
 
 /**
  * Sink 处理器
@@ -153,7 +137,7 @@ async function handleSink(url: string): Promise<ShortResult> {
       throw new Error('无法获取原始订阅链接')
     }
 
-    const name = getNameFromUrl(originalUrl)
+    const name = extractNameFromUrl(originalUrl, '订阅链接')
     const slug = await generateSlug(originalUrl)
     if (!slug) {
       throw new Error('无法生成短链接标识')
@@ -215,7 +199,8 @@ async function handleBitly(url: string): Promise<ShortResult> {
   }
 
   const token = BITLY_TOKENS[Math.floor(Math.random() * BITLY_TOKENS.length)]
-  const fullUrl = url.replace('http://localhost:3001', 'https://sub.xqd.us.kg')
+  const siteUrl = process.env.SITE_URL || 'https://sub.xqd.us.kg'
+  const fullUrl = url.replace(/https?:\/\/localhost:\d+/, siteUrl)
 
   // 检查是否已存在
   try {

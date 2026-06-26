@@ -1,5 +1,7 @@
 import * as client from '@/kv/store'
 import { ConvertRecord, StatsData } from '@/kv/types'
+import { extractNameFromUrl } from '@/utils'
+import { logger } from '@/logger'
 
 /**
  * 生成记录 ID（基于 URL 的 hash）
@@ -11,27 +13,6 @@ export async function generateRecordId(url: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
   return hashHex.slice(0, 12)
-}
-
-/**
- * 从 URL 提取订阅名称
- */
-function extractNameFromUrl(url: string): string {
-  try {
-    const urlObj = new URL(url)
-
-    // 尝试从参数中获取名称
-    const name = urlObj.searchParams.get('name') ||
-                 urlObj.searchParams.get('remarks') ||
-                 urlObj.searchParams.get('tag')
-
-    if (name) return decodeURIComponent(name)
-
-    // 使用 hostname 作为名称
-    return urlObj.hostname
-  } catch {
-    return '未知订阅'
-  }
 }
 
 /**
@@ -100,7 +81,7 @@ export async function logConversion(params: {
 
     return record
   } catch (error) {
-    console.error('[RecordService] 记录转换失败:', error)
+    logger.error('[RecordService] 记录转换失败:', error)
     return null
   }
 }

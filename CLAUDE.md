@@ -18,14 +18,10 @@ app/                          Next.js 路由层
     home.tsx                  首页主组件
     use_convert.ts            转换 hook（页面专属）
     use_short_link.ts         短链接 hook（页面专属）
-  (admin)/                    管理面板路由组（占位，后续实现）
-    layout.tsx                管理面板布局
-    admin/                    管理页面
   api/                        API 路由（全部 Edge Runtime）
     convert/route.ts          订阅转换
     shorten/route.ts          短链接生成
     s/[id]/route.ts           短链跳转
-    admin/                    管理 API（占位）
   layout.tsx                  根布局
   globals.css
 
@@ -62,15 +58,12 @@ src/                          核心业务逻辑
   hooks/                      共享 hooks
     use_clipboard.ts
     use_toast.ts
-  auth/session.ts             认证逻辑（占位）
   types.ts                    全局共享类型
   logger.ts                   日志
   dedup.ts                    节点去重
   protocol.ts                 协议常量 & URL 判断
   preview.ts                  浏览器预览 HTML 样式
   utils.ts                    纯工具函数
-
-middleware.ts                 Next.js 中间件（路由保护）
 tests/                        测试文件
 ```
 

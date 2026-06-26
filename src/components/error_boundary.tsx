@@ -229,18 +229,6 @@ function DefaultErrorFallback({ error, retry }: DefaultErrorFallbackProps) {
           </button>
         </div>
 
-        {/* 帮助链接 */}
-        <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
-          如果问题持续出现，请联系{' '}
-          <a 
-            href="https://github.com/anthropics/claude-code/issues" 
-            className="text-blue-600 dark:text-blue-400 hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            技术支持
-          </a>
-        </div>
       </div>
     </div>
   )

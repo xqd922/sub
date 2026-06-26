@@ -1,5 +1,6 @@
 import { ConvertRecord, RecordIndex, DailyStats, KV_PREFIX } from '@/kv/types'
 import { getKV } from '@/kv/env'
+import { logger } from '@/logger'
 
 /**
  * 检查 KV 是否可用
@@ -20,7 +21,7 @@ export async function getRecord(id: string): Promise<ConvertRecord | null> {
     const data = await kv.get(`${KV_PREFIX.RECORD}${id}`, 'json')
     return data as ConvertRecord | null
   } catch (error) {
-    console.error('[KV] 获取记录失败:', error)
+    logger.error('[KV] 获取记录失败:', error)
     return null
   }
 }
@@ -40,7 +41,7 @@ export async function saveRecord(record: ConvertRecord): Promise<boolean> {
     )
     return true
   } catch (error) {
-    console.error('[KV] 保存记录失败:', error)
+    logger.error('[KV] 保存记录失败:', error)
     return false
   }
 }
@@ -56,7 +57,7 @@ export async function deleteRecordById(id: string): Promise<boolean> {
     await kv.delete(`${KV_PREFIX.RECORD}${id}`)
     return true
   } catch (error) {
-    console.error('[KV] 删除记录失败:', error)
+    logger.error('[KV] 删除记录失败:', error)
     return false
   }
 }
@@ -72,7 +73,7 @@ export async function getIndex(): Promise<RecordIndex> {
     const data = await kv.get(KV_PREFIX.INDEX, 'json')
     return (data as RecordIndex) || { ids: [], updatedAt: Date.now() }
   } catch (error) {
-    console.error('[KV] 获取索引失败:', error)
+    logger.error('[KV] 获取索引失败:', error)
     return { ids: [], updatedAt: Date.now() }
   }
 }
@@ -88,7 +89,7 @@ export async function updateIndex(index: RecordIndex): Promise<boolean> {
     await kv.put(KV_PREFIX.INDEX, JSON.stringify(index))
     return true
   } catch (error) {
-    console.error('[KV] 更新索引失败:', error)
+    logger.error('[KV] 更新索引失败:', error)
     return false
   }
 }
@@ -148,7 +149,7 @@ export async function getDailyStats(date: string): Promise<DailyStats | null> {
     const data = await kv.get(`${KV_PREFIX.DAILY}${date}`, 'json')
     return data as DailyStats | null
   } catch (error) {
-    console.error('[KV] 获取每日统计失败:', error)
+    logger.error('[KV] 获取每日统计失败:', error)
     return null
   }
 }
@@ -191,7 +192,7 @@ export async function incrementDailyHits(recordId: string): Promise<boolean> {
 
     return true
   } catch (error) {
-    console.error('[KV] 更新每日统计失败:', error)
+    logger.error('[KV] 更新每日统计失败:', error)
     return false
   }
 }

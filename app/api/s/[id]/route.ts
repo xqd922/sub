@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { resolveShortLink } from '@/kv'
+import { logger } from '@/logger'
 
 export const runtime = 'edge'
 
@@ -21,14 +22,12 @@ export async function GET(request: Request, { params }: RouteParams) {
     const targetUrl = await resolveShortLink(id)
 
     if (!targetUrl) {
-      // 短链接不存在，重定向到首页
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    // 重定向到目标 URL
     return NextResponse.redirect(targetUrl)
   } catch (error) {
-    console.error('[ShortLink] 重定向失败:', error)
+    logger.error('[ShortLink] 重定向失败:', error)
     return NextResponse.redirect(new URL('/', request.url))
   }
 }
