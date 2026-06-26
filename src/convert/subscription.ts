@@ -26,7 +26,7 @@ function createDefaultSubscription(): SubscriptionInfo {
     download: '0',
     total: '0',
     expire: '',
-    homepage: 'https://sub.xqd.pp.ua'
+    homepage: ''
   }
 }
 

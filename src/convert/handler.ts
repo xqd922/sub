@@ -176,6 +176,12 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
 
     const { proxies, subscription, isAirportSubscription } = await processSubscription(url, userAgent)
 
+    // 如果原始订阅没有 profile-web-page-url，用转换器自身地址作为首页
+    const requestOrigin = new URL(request.url).origin
+    if (!subscription.homepage || subscription.homepage === 'https://sub.xqd.pp.ua') {
+      subscription.homepage = requestOrigin
+    }
+
     const shouldFormat = shouldFormatNames(url)
     const formattedProxies = formatProxies(proxies, shouldFormat)
 
