@@ -1,6 +1,7 @@
-﻿import { NextResponse } from 'next/server'
 import { resolveShortLink } from '@/kv'
+import { handleRequest } from '@/convert/handler'
 import { logger } from '@/logger'
+import { NextResponse } from 'next/server'
 
 export const runtime = 'edge'
 
@@ -22,9 +23,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    return NextResponse.redirect(targetUrl)
+    const url = new URL(request.url)
+    url.pathname = '/api/convert'
+    url.searchParams.set('url', targetUrl)
+
+    return handleRequest(new Request(url.toString(), request))
   } catch (error) {
-    logger.error('[ShortLink] 重定向失败:', error)
+    logger.error('[ShortLink] 处理失败:', error)
     return NextResponse.redirect(new URL('/', request.url))
   }
 }
