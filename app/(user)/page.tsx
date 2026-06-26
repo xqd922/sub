@@ -1,12 +1,11 @@
-'use client'
+﻿'use client'
 
 import dynamic from 'next/dynamic'
 
-// 动态导入主组件
 const HomeContent = dynamic(() => import('./home'), {
-  ssr: false // 禁用服务端渲染
+  ssr: false 
 })
 
 export default function Home() {
   return <HomeContent />
-}
+}

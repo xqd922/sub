@@ -1,4 +1,4 @@
-interface ResultItemProps {
+﻿interface ResultItemProps {
   title: string
   url: string
   onCopy: () => void

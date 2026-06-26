@@ -1,8 +1,5 @@
-import { logger } from '@/logger'
+﻿import { logger } from '@/logger'
 
-/**
- * 网络配置接口
- */
 export interface NetworkConfig {
   timeout: number
   retries: number
@@ -30,9 +27,6 @@ const DEFAULT_CONFIG: NetworkConfig = {
 
 let config: NetworkConfig = { ...DEFAULT_CONFIG }
 
-/**
- * 网络统计和监控
- */
 let stats = {
   totalRequests: 0,
   successRequests: 0,
@@ -41,9 +35,6 @@ let stats = {
   errors: new Map<string, number>()
 }
 
-/**
- * 记录请求统计
- */
 function recordStats(success: boolean, responseTime: number, error?: string): void {
   stats.totalRequests++
 
@@ -57,38 +48,25 @@ function recordStats(success: boolean, responseTime: number, error?: string): vo
     }
   }
 
-  // 更新平均响应时间
   stats.averageResponseTime =
     (stats.averageResponseTime * (stats.totalRequests - 1) + responseTime) /
     stats.totalRequests
 }
 
-/**
- * 配置网络参数
- */
 export function configure(newConfig: Partial<NetworkConfig>): void {
   config = { ...config, ...newConfig }
   logger.debug('网络配置已更新:', newConfig)
 }
 
-/**
- * 获取当前配置
- */
 export function getConfig(): NetworkConfig {
   return { ...config }
 }
 
-/**
- * 重置配置为默认值
- */
 export function resetConfig(): void {
   config = { ...DEFAULT_CONFIG }
   logger.debug('网络配置已重置为默认值')
 }
 
-/**
- * 带重试的网络请求 - 增强版
- */
 export async function fetchWithRetry(
   url: string,
   options: {
@@ -96,8 +74,8 @@ export async function fetchWithRetry(
     timeout?: number
     delay?: number
     headers?: Record<string, string>
-    userAgent?: string  // 指定具体的 User-Agent
-    fallbackRotation?: boolean  // 是否启用容灾轮换
+    userAgent?: string  
+    fallbackRotation?: boolean  
   } = {}
 ): Promise<Response> {
   const startTime = Date.now()
@@ -116,7 +94,6 @@ export async function fetchWithRetry(
     let controller: AbortController | null = null
     let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-    // User-Agent 策略：优先使用指定的，否则容灾轮换
     const currentUA = userAgent ||
       (fallbackRotation
         ? config.userAgents[i % config.userAgents.length]
@@ -152,7 +129,6 @@ export async function fetchWithRetry(
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      // 记录成功统计
       const responseTime = Date.now() - startTime
       recordStats(true, responseTime)
 
@@ -170,14 +146,14 @@ export async function fetchWithRetry(
       logger.warn(`第 ${i + 1} 次尝试失败: [${errorName}] ${errorMessage}`)
 
       if (i === retries - 1) {
-        // 记录失败统计
+
         const responseTime = Date.now() - startTime
         recordStats(false, responseTime, `${errorName}: ${errorMessage}`)
 
         throw new Error(`网络请求失败: ${errorMessage} (${errorName})`)
       }
 
-      const waitTime = delay * Math.pow(2, i) // 指数退避
+      const waitTime = delay * Math.pow(2, i) 
       logger.debug(`等待 ${waitTime}ms 后重试...`)
       await new Promise(r => setTimeout(r, waitTime))
     }
@@ -186,9 +162,6 @@ export async function fetchWithRetry(
   throw new Error('所有重试都失败了')
 }
 
-/**
- * 订阅专用网络请求 - 使用固定的 ClashX User-Agent 确保订阅获取成功
- */
 export async function fetchSubscription(url: string, clientUserAgent?: string): Promise<Response> {
   const userAgent = 'ClashX/1.95.1'
   logger.info(`订阅请求 User-Agent: ${userAgent} (客户端原始: ${clientUserAgent || 'undefined'})`)
@@ -207,23 +180,17 @@ export async function fetchSubscription(url: string, clientUserAgent?: string): 
   })
 }
 
-/**
- * 远程节点专用网络请求
- */
 export async function fetchRemoteNodes(url: string): Promise<Response> {
   return fetchWithRetry(url, {
     retries: 2,
     timeout: 15000,
-    fallbackRotation: true, // 远程节点使用容灾轮换
+    fallbackRotation: true, 
     headers: {
       'Cache-Control': 'no-cache'
     }
   })
 }
 
-/**
- * 短链接专用网络请求 - 快速响应
- */
 export async function fetchShortUrl(url: string): Promise<Response> {
   return fetchWithRetry(url, {
     retries: 2,
@@ -235,9 +202,6 @@ export async function fetchShortUrl(url: string): Promise<Response> {
   })
 }
 
-/**
- * 获取网络统计信息
- */
 export function getStats() {
   const successRate = stats.totalRequests > 0
     ? (stats.successRequests / stats.totalRequests * 100).toFixed(2)
@@ -250,9 +214,6 @@ export function getStats() {
   }
 }
 
-/**
- * 重置统计信息
- */
 export function resetStats(): void {
   stats = {
     totalRequests: 0,
@@ -262,4 +223,4 @@ export function resetStats(): void {
     errors: new Map()
   }
   logger.debug('网络统计已重置')
-}
+}

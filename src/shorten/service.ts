@@ -1,11 +1,8 @@
-import { logger } from '@/logger'
+﻿import { logger } from '@/logger'
 import { fetchShortUrl } from '@/network/client'
 import { isAvailable as isKVAvailable, createShortLink } from '@/kv'
 import { extractNameFromUrl } from '@/utils'
 
-/**
- * 短链接提供商配置
- */
 interface ShortProvider {
   name: string
   timeout: number
@@ -22,11 +19,8 @@ interface ShortResult {
   id?: string
 }
 
-/**
- * KV 处理器 - 使用 Cloudflare KV 存储
- */
 async function handleKV(url: string): Promise<ShortResult> {
-  // 检查 KV 是否可用
+
   if (!(await isKVAvailable())) {
     throw new Error('KV 服务不可用')
   }
@@ -36,7 +30,6 @@ async function handleKV(url: string): Promise<ShortResult> {
     throw new Error('KV 创建短链接失败')
   }
 
-  // 构建短链接 URL
   const baseUrl = typeof window !== 'undefined'
     ? window.location.origin
     : process.env.SITE_URL || 'https://sub.xqd.pp.ua'
@@ -49,11 +42,8 @@ async function handleKV(url: string): Promise<ShortResult> {
   }
 }
 
-/**
- * TinyURL 处理器
- */
 async function handleTinyUrl(url: string): Promise<ShortResult> {
-  // 添加时间戳确保唯一性
+
   const timestamp = Date.now()
   const uniqueUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${timestamp}`
 
@@ -77,9 +67,6 @@ async function handleTinyUrl(url: string): Promise<ShortResult> {
   }
 }
 
-/**
- * 带超时的 fetch 封装
- */
 async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
@@ -95,9 +82,6 @@ async function fetchWithTimeout(
   }
 }
 
-/**
- * 生成短链接标识
- */
 async function generateSlug(url: string): Promise<string> {
   try {
     const urlObj = new URL(url)
@@ -106,7 +90,6 @@ async function generateSlug(url: string): Promise<string> {
       return token.slice(0, 6)
     }
 
-    // 使用 URL 的 SHA-256 前6位
     const msgBuffer = new TextEncoder().encode(url)
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -117,11 +100,6 @@ async function generateSlug(url: string): Promise<string> {
   }
 }
 
-
-/**
- * Sink 处理器
- * Requires env vars: SINK_URL, SINK_TOKEN
- */
 async function handleSink(url: string): Promise<ShortResult> {
   const SINK_URL = process.env.SINK_URL
   const SINK_TOKEN = process.env.SINK_TOKEN
@@ -183,10 +161,6 @@ async function handleSink(url: string): Promise<ShortResult> {
   }
 }
 
-/**
- * Bitly 处理器
- * Requires env var: BITLY_API_TOKEN (comma-separated for multiple tokens)
- */
 async function handleBitly(url: string): Promise<ShortResult> {
   const rawToken = process.env.BITLY_API_TOKEN
   if (!rawToken) {
@@ -202,7 +176,6 @@ async function handleBitly(url: string): Promise<ShortResult> {
   const siteUrl = process.env.SITE_URL || 'https://sub.xqd.us.kg'
   const fullUrl = url.replace(/https?:\/\/localhost:\d+/, siteUrl)
 
-  // 检查是否已存在
   try {
     const encodedUrl = encodeURIComponent(fullUrl)
     const checkResponse = await fetchWithTimeout(
@@ -217,7 +190,6 @@ async function handleBitly(url: string): Promise<ShortResult> {
       const existingData = await checkResponse.json() as { id: string }
       const bitlink = existingData.id
 
-      // 更新现有短链接
       const updateResponse = await fetchWithTimeout(
         `https://api-ssl.bitly.com/v4/bitlinks/${bitlink}`,
         {
@@ -243,10 +215,9 @@ async function handleBitly(url: string): Promise<ShortResult> {
       }
     }
   } catch {
-    // 忽略检查错误，继续创建新链接
+
   }
 
-  // 创建新短链接
   const response = await fetchWithTimeout('https://api-ssl.bitly.com/v4/shorten', {
     method: 'POST',
     headers: {
@@ -273,9 +244,6 @@ async function handleBitly(url: string): Promise<ShortResult> {
   }
 }
 
-/**
- * Cuttly 处理器
- */
 async function handleCuttly(url: string): Promise<ShortResult> {
   const token = process.env.CUTTLY_TOKEN
   if (!token) {
@@ -302,27 +270,21 @@ async function handleCuttly(url: string): Promise<ShortResult> {
   throw new Error(`Cuttly API 错误: ${data.url?.status || 'unknown'}`)
 }
 
-/**
- * 处理URL格式
- */
 function processUrl(url: string): string {
   try {
     const parsedUrl = new URL(url)
     const originalUrl = parsedUrl.searchParams.get('url')
 
-    // 如果已经是转换过的链接，直接使用
     if (originalUrl) {
       return url
     }
 
-    // 如果不是转换过的链接，需要先转换
     return `/sub?url=${encodeURIComponent(url)}`
   } catch {
     return url
   }
 }
 
-// KV 优先
 const PROVIDERS: Record<string, ShortProvider> = {
   kv: {
     name: 'KV',
@@ -358,20 +320,14 @@ const PROVIDERS: Record<string, ShortProvider> = {
 
 const SERVICE_ORDER = ['kv', 'tinyurl', 'sink', 'bitly', 'cuttly'] as const
 
-/**
- * 短链接服务 - 统一管理多个短链接提供商
- * 生成短链接 - 按优先级尝试多个服务
- */
 export async function generate(url: string): Promise<ShortResult> {
   if (!url) {
     throw new Error('请提供有效的URL地址')
   }
 
-  // 处理链接格式
   const targetUrl = processUrl(url)
   logger.debug('短链接生成', { original: url, target: targetUrl })
 
-  // 按优先级尝试服务
   let lastError: Error | null = null
 
   for (const serviceName of SERVICE_ORDER) {
@@ -393,4 +349,4 @@ export async function generate(url: string): Promise<ShortResult> {
   }
 
   throw new Error(`所有短链接服务暂时不可用，请稍后重试: ${lastError?.message || '未知错误'}`)
-}
+}

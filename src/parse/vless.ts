@@ -1,14 +1,9 @@
-import { Proxy, SingboxProxyConfig } from '@/types'
+﻿import { Proxy, SingboxProxyConfig } from '@/types'
 import { parsePort } from '@/utils'
 
-/**
- * 解析 VLess 节点
- * @param uri vless://开头的节点链接
- */
 export function parse(uri: string): Proxy {
   const url = new URL(uri)
 
-  // 处理 IPv6 地址，移除方括号
   let server = url.hostname
   if (server.startsWith('[') && server.endsWith(']')) {
     server = server.substring(1, server.length - 1)
@@ -24,11 +19,9 @@ export function parse(uri: string): Proxy {
   const sni = url.searchParams.get('sni') || ''
   const alpn = url.searchParams.get('alpn')
 
-  // 支持多种跳过证书验证的参数名
   const allowInsecure = url.searchParams.get('allowInsecure') || url.searchParams.get('skip-cert-verify')
   const skipCertVerify = allowInsecure === '1' || allowInsecure === 'true'
 
-  // 简化输出格式
   return {
     type: 'vless',
     name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
@@ -44,7 +37,6 @@ export function parse(uri: string): Proxy {
     tfo: false,
     ...(alpn && { alpn: alpn.split(',') }),
 
-    // 如果是 Reality 节点
     ...(pbk && {
       'reality-opts': {
         'public-key': pbk,
@@ -52,7 +44,6 @@ export function parse(uri: string): Proxy {
       }
     }),
 
-    // 如果是 WS 类型
     ...(type === 'ws' && {
       'ws-opts': {
         path: url.searchParams.get('path') || '',
@@ -64,20 +55,10 @@ export function parse(uri: string): Proxy {
   }
 }
 
-/**
- * 验证 VLess 节点配置
- * @param proxy 代理配置
- * @returns 是否有效
- */
 export function validate(proxy: Proxy): boolean {
   return proxy.type === 'vless' && !!(proxy.uuid)
 }
 
-/**
- * 转换为 Sing-box 格式
- * @param proxy VLess代理配置
- * @returns Sing-box出站配置
- */
 export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   if (proxy.type !== 'vless') {
     return null;
@@ -95,7 +76,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     packet_encoding: 'xudp'
   }
 
-  // 添加TLS配置
   if (proxy.tls) {
     config.tls = {
       enabled: true,
@@ -118,7 +98,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     }
   }
 
-  // 添加传输配置
   if (proxy.network && proxy.network !== 'tcp') {
     config.transport = {
       type: proxy.network,
@@ -133,7 +112,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     }
   }
 
-  // 添加链式代理支持（Sing-box 使用 detour 字段）
   if (proxy.detour) {
     config.detour = proxy.detour
   }
@@ -141,9 +119,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   return config
 }
 
-/**
- * 将 Proxy 对象转换为 VLess URI
- */
 export function toUri(proxy: Proxy): string | null {
   if (proxy.type !== 'vless') return null
 
@@ -157,13 +132,11 @@ export function toUri(proxy: Proxy): string | null {
   if (proxy['skip-cert-verify']) params.set('allowInsecure', '1')
   if (proxy.alpn) params.set('alpn', Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn)
 
-  // Reality 参数
   if (proxy['reality-opts']) {
     params.set('pbk', proxy['reality-opts']['public-key'] || '')
     if (proxy['reality-opts']['short-id']) params.set('sid', proxy['reality-opts']['short-id'])
   }
 
-  // WS 参数
   if (proxy.network === 'ws' && proxy['ws-opts']) {
     if (proxy['ws-opts'].path) params.set('path', proxy['ws-opts'].path)
     if (proxy['ws-opts'].headers?.Host) params.set('host', proxy['ws-opts'].headers.Host)

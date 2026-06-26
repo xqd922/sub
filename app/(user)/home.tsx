@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useUrlConverter } from './use_convert'
 import { useShortUrl } from './use_short_link'
@@ -25,7 +25,7 @@ export default function HomeContent() {
   } = useShortUrl()
 
   const handleConvertClick = async () => {
-    setShortUrl('') // 重置短链接
+    setShortUrl('') 
     await handleConvert()
   }
 

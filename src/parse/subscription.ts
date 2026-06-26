@@ -1,21 +1,10 @@
-﻿/**
- * 订阅解析模块
- * 支持 YAML 和 Base64 格式的订阅解析
- */
-
-import { Proxy, ProxyConfig } from '@/types'
+﻿import { Proxy, ProxyConfig } from '@/types'
 import yaml from 'js-yaml'
 import { logger } from '@/logger'
 import { fetchSubscription } from '@/network/client'
 import { parseProxyUri } from '@/parse/node'
 import { deduplicateProxies } from '@/dedup'
 
-/**
- * 解析订阅链接
- * @param url 订阅链接
- * @param clientUserAgent 客户端 User-Agent
- * @returns 解析后的节点列表
- */
 export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()
   logger.debug(`\n开始解析订阅: ${url}`)
@@ -23,7 +12,6 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
   try {
     const response = await fetchSubscription(url, clientUserAgent)
 
-    // 检查响应大小
     const contentLength = response.headers.get('content-length')
     const MAX_SIZE = 10 * 1024 * 1024
 
@@ -40,7 +28,6 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
       logger.warn(`订阅文件较大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，处理时间可能较长`)
     }
 
-    // 根据格式选择解析方法
     if (text.includes('proxies:')) {
       return parseYamlSubscription(text)
     }
@@ -56,7 +43,6 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
   }
 }
 
-/** 解析 YAML 格式订阅 */
 function parseYamlSubscription(text: string): Proxy[] {
   try {
     const config = yaml.load(text) as ProxyConfig
@@ -68,7 +54,6 @@ function parseYamlSubscription(text: string): Proxy[] {
   }
 }
 
-/** 解析 Base64 格式订阅 */
 function parseBase64Subscription(text: string): Proxy[] {
   const decodedText = Buffer.from(text, 'base64').toString()
   const lines = decodedText.split('\n')
@@ -99,4 +84,4 @@ function parseBase64Subscription(text: string): Proxy[] {
   }
 
   return proxies
-}
+}

@@ -1,26 +1,19 @@
-import { Proxy, SingboxProxyConfig } from '@/types'
+﻿import { Proxy, SingboxProxyConfig } from '@/types'
 import { parsePort } from '@/utils'
 
-/**
- * 解析 Hysteria2 节点
- * @param uri hysteria2://或hy2://开头的节点链接
- */
 export function parse(uri: string): Proxy {
-  // 处理 hy2:// 前缀
+
   const actualUri = uri.startsWith('hy2://') ? 'hysteria2://' + uri.substring(6) : uri
   const url = new URL(actualUri)
 
-  // 处理 IPv6 地址，移除方括号
   let server = url.hostname
   if (server.startsWith('[') && server.endsWith(']')) {
     server = server.substring(1, server.length - 1)
   }
 
-  // 解析 up 和 down 参数
   const upParam = url.searchParams.get('up')
   const downParam = url.searchParams.get('down')
 
-  // 解析 obfs 参数
   const obfs = url.searchParams.get('obfs')
   const obfsPassword = url.searchParams.get('obfs-password')
 
@@ -41,20 +34,10 @@ export function parse(uri: string): Proxy {
   }
 }
 
-/**
- * 验证 Hysteria2 节点配置
- * @param proxy 代理配置
- * @returns 是否有效
- */
 export function validate(proxy: Proxy): boolean {
   return proxy.type === 'hysteria2' && !!(proxy.password)
 }
 
-/**
- * 转换为 Sing-box 格式
- * @param proxy Hysteria2代理配置
- * @returns Sing-box出站配置
- */
 export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   if (proxy.type !== 'hysteria2') {
     return null;
@@ -73,7 +56,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     }
   };
 
-  // 添加 obfs 配置
   if (proxy.obfs && proxy['obfs-password']) {
     config.obfs = {
       type: proxy.obfs,
@@ -81,7 +63,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     };
   }
 
-  // 添加链式代理支持（Sing-box 使用 detour 字段）
   if (proxy.detour) {
     config.detour = proxy.detour
   }
@@ -89,9 +70,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   return config;
 }
 
-/**
- * 将 Proxy 对象转换为 Hysteria2 URI
- */
 export function toUri(proxy: Proxy): string | null {
   if (proxy.type !== 'hysteria2') return null
 

@@ -1,4 +1,4 @@
-export const previewStyles = `
+﻿export const previewStyles = `
   :root {
     --bg: #f7f8fa;
     --surface: #ffffff;
@@ -307,4 +307,4 @@ export const previewStyles = `
       font-size: 12px;
     }
   }
-`
+`

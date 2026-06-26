@@ -9,7 +9,7 @@ export interface Proxy {
   server: string
   port: number
   cipher?: string
-  'encrypt-method'?: string  // SS 加密方法 (Clash 格式)
+  'encrypt-method'?: string  
   password?: string
   uuid?: string
   alterId?: number
@@ -19,10 +19,10 @@ export interface Proxy {
   tls?: boolean
   'skip-cert-verify'?: boolean
   sni?: string
-  // SS obfs 配置 - Clash 格式
+
   obfs?: string
   'obfs-host'?: string
-  // SS obfs 配置 - 通用格式
+
   plugin?: string
   'plugin-opts'?: {
     mode?: string
@@ -56,7 +56,6 @@ export interface Proxy {
   encryption?: string
   fp?: string
 
-  // 添加 Hysteria2 相关属性
   insecure?: boolean
   up_mbps?: number
   down_mbps?: number
@@ -64,22 +63,17 @@ export interface Proxy {
   down?: string | null
   'obfs-password'?: string
 
-  // 添加 Reality 相关属性
   reality?: boolean
 
-  // 添加 tfo 属性
   tfo?: boolean
 
-  // SOCKS 代理相关属性
   username?: string
 
-  // AnyTLS 相关属性
   'idle-session-check-interval'?: string
   'idle-session-timeout'?: string
 
-  // 链式代理支持
-  'dialer-proxy'?: string  // Clash 格式
-  detour?: string          // Sing-box 格式
+  'dialer-proxy'?: string  
+  detour?: string          
 }
 
 export interface DnsConfig {
@@ -158,9 +152,6 @@ export interface ProxyGroup {
   tolerance?: number
 }
 
-/**
- * Clash 规则提供者配置
- */
 export interface RuleProvider {
   type: 'http' | 'file'
   behavior: 'domain' | 'ipcidr' | 'classical'
@@ -170,15 +161,11 @@ export interface RuleProvider {
   interval?: number
 }
 
-/**
- * YAML 订阅解析结果（带 proxies 字段）
- */
 export interface YamlSubscription {
   proxies?: Proxy[]
   [key: string]: unknown
 }
 
-// Sing-box 配置类型定义
 export interface SingboxTLSConfig {
   enabled: boolean;
   server_name: string;
@@ -203,6 +190,6 @@ export interface SingboxProxyConfig {
   uuid?: string;
   tls?: SingboxTLSConfig;
   transport?: SingboxTransportConfig;
-  detour?: string;  // 链式代理支持
+  detour?: string;  
   [key: string]: unknown;
 } 

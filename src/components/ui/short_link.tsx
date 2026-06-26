@@ -1,4 +1,4 @@
-interface ShortUrlGeneratorProps {
+﻿interface ShortUrlGeneratorProps {
   hasConvertedUrl: boolean
   shortUrl: string
   loading: boolean
@@ -46,4 +46,4 @@ export default function ShortUrlGenerator({
       </div>
     </div>
   )
-}
+}

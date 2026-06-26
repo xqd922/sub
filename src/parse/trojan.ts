@@ -1,10 +1,6 @@
-import { Proxy, SingboxProxyConfig } from '@/types'
+﻿import { Proxy, SingboxProxyConfig } from '@/types'
 import { parsePort } from '@/utils'
 
-/**
- * 解析 Trojan 节点
- * @param uri trojan://开头的节点链接
- */
 export function parse(uri: string): Proxy {
   const url = new URL(uri)
   const params = url.searchParams
@@ -19,7 +15,6 @@ export function parse(uri: string): Proxy {
     'skip-cert-verify': params.get('allowInsecure') === '1'
   }
 
-  // 处理传输协议
   const transportType = params.get('type')
   if (transportType === 'grpc') {
     proxy.network = 'grpc'
@@ -40,20 +35,10 @@ export function parse(uri: string): Proxy {
   return proxy
 }
 
-/**
- * 验证 Trojan 节点配置
- * @param proxy 代理配置
- * @returns 是否有效
- */
 export function validate(proxy: Proxy): boolean {
   return proxy.type === 'trojan' && !!(proxy.password)
 }
 
-/**
- * 转换为 Sing-box 格式
- * @param proxy Trojan代理配置
- * @returns Sing-box出站配置
- */
 export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   if (proxy.type !== 'trojan') {
     return null;
@@ -72,7 +57,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     }
   }
 
-  // 添加传输协议配置
   if (proxy.network === 'grpc' && proxy['grpc-opts']) {
     trojanConfig.transport = {
       type: 'grpc',
@@ -96,7 +80,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     }
   }
 
-  // 添加链式代理支持（Sing-box 使用 detour 字段）
   if (proxy.detour) {
     trojanConfig.detour = proxy.detour
   }
@@ -104,9 +87,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   return trojanConfig
 }
 
-/**
- * 将 Proxy 对象转换为 Trojan URI
- */
 export function toUri(proxy: Proxy): string | null {
   if (proxy.type !== 'trojan') return null
 

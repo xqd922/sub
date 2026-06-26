@@ -1,12 +1,6 @@
-﻿/**
- * 错误报告模块
- * 负责错误的记录、上报和日志输出
- */
-
-import { AppError, ErrorSeverity } from '@/error/errors'
+﻿import { AppError, ErrorSeverity } from '@/error/errors'
 import { logger } from '@/logger'
 
-/** 错误上下文信息 */
 interface ErrorContext {
   url?: string
   userAgent?: string
@@ -17,17 +11,12 @@ interface ErrorContext {
   additionalData?: Record<string, unknown>
 }
 
-/** 错误报告 */
 interface ErrorReport {
   error: AppError
   context: ErrorContext
   environment: 'development' | 'production' | 'test'
 }
 
-/**
- * 错误报告器（单例模式）
- * 负责错误的记录和日志输出
- */
 export class ErrorReporter {
   private static instance: ErrorReporter
 
@@ -40,7 +29,6 @@ export class ErrorReporter {
     return ErrorReporter.instance
   }
 
-  /** 报告错误 */
   async report(error: AppError, context: ErrorContext = {}): Promise<void> {
     const report: ErrorReport = {
       error,
@@ -55,7 +43,6 @@ export class ErrorReporter {
     this.logError(report)
   }
 
-  /** 记录错误到日志 */
   private logError(report: ErrorReport): void {
     const { error, context } = report
 
@@ -90,11 +77,9 @@ export class ErrorReporter {
     }
   }
 
-  /** 脱敏 IP 地址 */
   private maskIp(ip?: string): string | undefined {
     if (!ip) return undefined
 
-    // IPv4: 192.168.1.100 -> 192.168.*.**
     if (ip.includes('.')) {
       const parts = ip.split('.')
       if (parts.length === 4) {
@@ -102,7 +87,6 @@ export class ErrorReporter {
       }
     }
 
-    // IPv6
     if (ip.includes(':')) {
       const parts = ip.split(':')
       if (parts.length >= 4) {
@@ -114,12 +98,6 @@ export class ErrorReporter {
   }
 }
 
-/**
- * 全局错误处理函数
- * @param error 错误对象
- * @param context 错误上下文
- * @returns 转换后的 AppError
- */
 export async function handleError(
   error: Error | AppError,
   context: ErrorContext = {}
@@ -130,14 +108,9 @@ export async function handleError(
   return appError
 }
 
-/**
- * 创建错误响应
- * @param error 应用错误
- * @returns 包含状态码和响应体的对象
- */
 export function createErrorResponse(error: AppError) {
   return {
     status: error.statusCode,
     body: error.toResponse()
   }
-}
+}

@@ -1,10 +1,6 @@
-import { Proxy, SingboxProxyConfig } from '@/types'
+﻿import { Proxy, SingboxProxyConfig } from '@/types'
 import { parsePort } from '@/utils'
 
-/**
- * 解析 AnyTLS 节点
- * @param uri anytls://开头的节点链接
- */
 export function parse(uri: string): Proxy {
   const url = new URL(uri)
   const params = url.searchParams
@@ -20,7 +16,6 @@ export function parse(uri: string): Proxy {
     'skip-cert-verify': params.get('skip-cert-verify') === 'true' || params.get('allowInsecure') === '1'
   }
 
-  // 处理 idle-session-check-interval 和 idle-session-timeout
   const idleCheckInterval = params.get('idle-session-check-interval')
   if (idleCheckInterval) {
     proxy['idle-session-check-interval'] = idleCheckInterval
@@ -34,20 +29,10 @@ export function parse(uri: string): Proxy {
   return proxy
 }
 
-/**
- * 验证 AnyTLS 节点配置
- * @param proxy 代理配置
- * @returns 是否有效
- */
 export function validate(proxy: Proxy): boolean {
   return proxy.type === 'anytls' && !!(proxy.password)
 }
 
-/**
- * 转换为 Sing-box 格式
- * @param proxy AnyTLS 代理配置
- * @returns Sing-box 出站配置
- */
 export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   if (proxy.type !== 'anytls') {
     return null
@@ -66,7 +51,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     }
   }
 
-  // 添加 idle 配置
   if (proxy['idle-session-check-interval']) {
     config.idle_session_check_interval = proxy['idle-session-check-interval']
   }
@@ -74,7 +58,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
     config.idle_session_timeout = proxy['idle-session-timeout']
   }
 
-  // 添加链式代理支持
   if (proxy.detour) {
     config.detour = proxy.detour
   }
@@ -82,9 +65,6 @@ export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {
   return config
 }
 
-/**
- * 将 Proxy 对象转换为 AnyTLS URI
- */
 export function toUri(proxy: Proxy): string | null {
   if (proxy.type !== 'anytls') return null
 

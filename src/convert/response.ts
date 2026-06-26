@@ -1,4 +1,4 @@
-import yaml from 'js-yaml'
+﻿import yaml from 'js-yaml'
 import { Proxy } from '@/types'
 import { defaultConfig, generateProxyGroups } from '@/config/clash'
 import { generateSingboxConfig as buildSingboxConfig } from '@/config/singbox'
@@ -8,21 +8,15 @@ import { SubscriptionInfo } from '@/convert/subscription'
 import { logger } from '@/logger'
 import { formatBytes } from '@/utils'
 
-/**
- * HTML 转义，防止 XSS
- */
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-/**
- * 安全编码 HTTP 头部值
- */
 function encodeHeaderValue(value: string): string {
   try {
-    // 检查是否包含非 ASCII 字符
+
     if (!/^[\x00-\x7F]*$/.test(value)) {
-      // 如果是 URL，尝试使用 Punycode 编码域名部分
+
       if (value.startsWith('http://') || value.startsWith('https://')) {
         try {
           const url = new URL(value)
@@ -39,11 +33,8 @@ function encodeHeaderValue(value: string): string {
   }
 }
 
-/**
- * 生成 Clash YAML 配置
- */
 export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
-  // 清理 Clash 不需要的字段（移除 detour 字段）
+
   const clashProxies = proxies.map(proxy => {
     const { detour, ...clashProxy } = proxy
     return clashProxy
@@ -67,7 +58,6 @@ export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boo
     }
   })
 
-  // 给包含特殊字符的 path 值加引号
   output = output.replace(/path: ([^,}"'\n]+)/g, (match, value) => {
     if (/[?:&]/.test(value) && !value.startsWith('"')) {
       return `path: "${value}"`
@@ -78,24 +68,15 @@ export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boo
   return output
 }
 
-/**
- * 生成 Sing-box JSON 配置
- */
 export function generateSingboxConfig(proxies: Proxy[]): string {
   const config = buildSingboxConfig(proxies)
   return JSON.stringify(config, null, 2)
 }
 
-/**
- * 生成 v2rayNG/通用 base64 订阅
- */
 export function generateV2rayNGConfig(proxies: Proxy[]): string {
   return generateBase64Subscription(proxies)
 }
 
-/**
- * 生成浏览器预览页面
- */
 export function generatePreviewHtml(yamlConfig: string, jsonConfig: string): string {
   const escapedYaml = escapeHtml(yamlConfig)
   const escapedJson = escapeHtml(jsonConfig)
@@ -185,9 +166,6 @@ export function generatePreviewHtml(yamlConfig: string, jsonConfig: string): str
   `
 }
 
-/**
- * 生成响应头
- */
 export function generateResponseHeaders(
   subscription: SubscriptionInfo,
   isSingBox: boolean,
@@ -217,7 +195,6 @@ export function generateResponseHeaders(
     'profile-status': 'active'
   }
 
-  // 只在有流量信息时添加 subscription-userinfo 头
   if (Number(subscription.upload) > 0 || Number(subscription.download) > 0 || Number(subscription.total) > 0) {
     configHeaders['subscription-userinfo'] =
       `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
@@ -226,20 +203,15 @@ export function generateResponseHeaders(
   return configHeaders
 }
 
-/**
- * 检测客户端类型
- */
 export function detectClientType(userAgent: string): {
   isSingBox: boolean
   isV2rayNG: boolean
   isBrowser: boolean
   clientType: 'clash' | 'singbox' | 'v2rayng' | 'browser'
 } {
-  // 检测 sing-box 客户端标识（支持所有平台）
-  // SFA: Sing-box For Android, SFI: Sing-box For iOS, SFM: Sing-box For MAC, SFT: Sing-box For tvOS
+
   const isSingBox = /sing-box|SFA|SFI|SFM|SFT/i.test(userAgent)
 
-  // 检测 v2rayNG/v2rayN 等通用客户端
   const isV2rayNG = /v2rayn|v2rayng|quantumult|shadowrocket|surge|loon/i.test(userAgent)
 
   const isBrowser = /mozilla|chrome|safari|firefox|edge/i.test(userAgent) &&
@@ -253,15 +225,12 @@ export function detectClientType(userAgent: string): {
   } else if (isBrowser) {
     clientType = 'browser'
   } else {
-    clientType = 'clash' // 默认为 Clash（包括 clash.meta、mihomo 等）
+    clientType = 'clash' 
   }
 
   return { isSingBox, isV2rayNG, isBrowser, clientType }
 }
 
-/**
- * 记录配置生成统计信息
- */
 export function logConfigStats(
   proxies: Proxy[],
   formattedProxies: Proxy[],
@@ -277,4 +246,4 @@ export function logConfigStats(
   logger.info(`  ├─ 处理耗时: ${duration}ms`)
   logger.info(`  └─ 配置大小: ${formatBytes(yamlConfig.length)}`)
   logger.info('结束时间:', new Date().toLocaleString(), '\n')
-}
+}

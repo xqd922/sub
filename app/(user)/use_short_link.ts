@@ -10,7 +10,7 @@ export function useShortUrl() {
 
   const generateShortUrl = async (longUrl: string) => {
     if (!longUrl) return
-    
+
     setShortenLoading(true)
     try {
       const response = await fetch('/api/shorten', {
@@ -20,11 +20,11 @@ export function useShortUrl() {
         },
         body: JSON.stringify({ url: longUrl })
       })
-      
+
       if (!response.ok) {
         throw new Error('短链接生成服务暂时不可用，请稍后重试')
       }
-      
+
       const data = await response.json() as { shortUrl?: string }
       if (data.shortUrl) {
         setShortUrl(data.shortUrl)

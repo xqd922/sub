@@ -8,9 +8,6 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-/**
- * GET /s/[id] - 短链接重定向
- */
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params
 

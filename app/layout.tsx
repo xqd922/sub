@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
 import { GlobalErrorBoundary } from "@/components/error_boundary";
 import ToastContainer from "@/components/ui/toast";
@@ -23,4 +23,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+}

@@ -1,23 +1,17 @@
-import { ShortLink, KV_PREFIX } from '@/kv/types'
+﻿import { ShortLink, KV_PREFIX } from '@/kv/types'
 import { getKV } from '@/kv/env'
 import { extractNameFromUrl } from '@/utils'
 import { logger } from '@/logger'
 
-/**
- * 短链接索引 key
- */
 const SHORT_INDEX_KEY = 'index:shortlinks'
 
-/**
- * 生成短链接 ID (6位字符)
- */
 async function generateShortId(url: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(url + Date.now())
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-  // 使用 base62 风格的字符
+
   const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   let result = ''
   for (let i = 0; i < 6; i++) {
@@ -27,9 +21,6 @@ async function generateShortId(url: string): Promise<string> {
   return result
 }
 
-/**
- * 生成 URL 的 hash（用于去重）
- */
 async function getUrlHash(url: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(url)
@@ -38,9 +29,6 @@ async function getUrlHash(url: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
 }
 
-/**
- * 添加到索引
- */
 async function addToIndex(id: string): Promise<void> {
   const kv = await getKV()
   if (!kv) return
@@ -58,9 +46,6 @@ async function addToIndex(id: string): Promise<void> {
   }
 }
 
-/**
- * 从索引移除
- */
 async function removeFromIndex(id: string): Promise<void> {
   const kv = await getKV()
   if (!kv) return
@@ -79,17 +64,11 @@ async function removeFromIndex(id: string): Promise<void> {
   }
 }
 
-/**
- * 检查 KV 是否可用
- */
 export async function isAvailable(): Promise<boolean> {
   const kv = await getKV()
   return kv !== null
 }
 
-/**
- * 创建短链接
- */
 export async function createShortLink(targetUrl: string): Promise<ShortLink | null> {
   const kv = await getKV()
   if (!kv) return null
@@ -98,12 +77,11 @@ export async function createShortLink(targetUrl: string): Promise<ShortLink | nu
     const id = await generateShortId(targetUrl)
     const now = Date.now()
 
-    // 检查是否已存在（基于目标 URL 的 hash）
     const urlHash = await getUrlHash(targetUrl)
     const existingId = await kv.get(`${KV_PREFIX.SHORT}url:${urlHash}`) as string | null
 
     if (existingId) {
-      // 返回已存在的短链接
+
       const existing = await getShortLink(existingId)
       if (existing) return existing
     }
@@ -117,21 +95,18 @@ export async function createShortLink(targetUrl: string): Promise<ShortLink | nu
       lastAccess: now
     }
 
-    // 保存短链接
     await kv.put(
       `${KV_PREFIX.SHORT}${id}`,
       JSON.stringify(shortLink),
-      { expirationTtl: 86400 * 365 } // 1年过期
+      { expirationTtl: 86400 * 365 } 
     )
 
-    // 保存 URL -> ID 的映射（用于去重）
     await kv.put(
       `${KV_PREFIX.SHORT}url:${urlHash}`,
       id,
       { expirationTtl: 86400 * 365 }
     )
 
-    // 添加到索引
     await addToIndex(id)
 
     return shortLink
@@ -141,9 +116,6 @@ export async function createShortLink(targetUrl: string): Promise<ShortLink | nu
   }
 }
 
-/**
- * 获取短链接
- */
 async function getShortLink(id: string): Promise<ShortLink | null> {
   const kv = await getKV()
   if (!kv) return null
@@ -157,9 +129,6 @@ async function getShortLink(id: string): Promise<ShortLink | null> {
   }
 }
 
-/**
- * 获取所有短链接（并行优化）
- */
 export async function getAllShortLinks(): Promise<ShortLink[]> {
   const kv = await getKV()
   if (!kv) return []
@@ -168,14 +137,11 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
     const indexData = await kv.get(SHORT_INDEX_KEY, 'json') as { ids: string[] } | null
     const ids = indexData?.ids || []
 
-    // 并行获取所有短链接
     const linkPromises = ids.map(id => getShortLink(id))
     const linkResults = await Promise.all(linkPromises)
 
-    // 过滤掉 null 值
     const shortLinks = linkResults.filter((link): link is ShortLink => link !== null)
 
-    // 按创建时间倒序
     return shortLinks.sort((a, b) => b.createdAt - a.createdAt)
   } catch (error) {
     logger.error('[ShortLink] 获取全部失败:', error)
@@ -183,9 +149,6 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
   }
 }
 
-/**
- * 更新短链接
- */
 export async function updateShortLink(id: string, updates: Partial<Pick<ShortLink, 'name'>>): Promise<ShortLink | null> {
   const kv = await getKV()
   if (!kv) return null
@@ -212,25 +175,20 @@ export async function updateShortLink(id: string, updates: Partial<Pick<ShortLin
   }
 }
 
-/**
- * 删除短链接
- */
 export async function deleteShortLink(id: string): Promise<boolean> {
   const kv = await getKV()
   if (!kv) return false
 
   try {
-    // 获取短链接信息以删除 URL 映射
+
     const shortLink = await getShortLink(id)
     if (shortLink) {
       const urlHash = await getUrlHash(shortLink.targetUrl)
       await kv.delete(`${KV_PREFIX.SHORT}url:${urlHash}`)
     }
 
-    // 删除短链接
     await kv.delete(`${KV_PREFIX.SHORT}${id}`)
 
-    // 从索引移除
     await removeFromIndex(id)
 
     return true
@@ -240,9 +198,6 @@ export async function deleteShortLink(id: string): Promise<boolean> {
   }
 }
 
-/**
- * 记录访问并返回目标 URL
- */
 export async function resolveShortLink(id: string): Promise<string | null> {
   const kv = await getKV()
   if (!kv) return null
@@ -251,7 +206,6 @@ export async function resolveShortLink(id: string): Promise<string | null> {
     const shortLink = await getShortLink(id)
     if (!shortLink) return null
 
-    // 更新访问统计
     const updated: ShortLink = {
       ...shortLink,
       hits: shortLink.hits + 1,
@@ -269,4 +223,4 @@ export async function resolveShortLink(id: string): Promise<string | null> {
     logger.error('[ShortLink] 解析失败:', error)
     return null
   }
-}
+}

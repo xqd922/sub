@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useToast } from '@/hooks/use_toast'
 
@@ -25,4 +25,4 @@ export default function ToastContainer() {
       ))}
     </div>
   )
-}
+}

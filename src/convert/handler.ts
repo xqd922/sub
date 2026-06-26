@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { Proxy } from '@/types'
 import { processSubscription, shouldFormatNames, formatProxies, logSubscriptionStats, SubscriptionInfo } from '@/convert/subscription'
 import {
@@ -15,9 +15,6 @@ import { AppError, ErrorCode, ErrorFactory } from '@/error/errors'
 import { handleError, createErrorResponse } from '@/error/reporter'
 import { isUrlEnabled, logConversion } from '@/kv'
 
-/**
- * 获取 Cloudflare 执行上下文
- */
 async function getExecutionContext(): Promise<ExecutionContext | null> {
   try {
     const { getRequestContext } = await import('@cloudflare/next-on-pages')
@@ -28,9 +25,6 @@ async function getExecutionContext(): Promise<ExecutionContext | null> {
   }
 }
 
-/**
- * 生成响应内容
- */
 function generateResponse(
   proxies: Proxy[],
   formattedProxies: Proxy[],
@@ -42,14 +36,14 @@ function generateResponse(
 ): NextResponse {
 
   if (isSingBox) {
-    // Sing-box JSON 配置
+
     const jsonConfig = generateSingboxConfig(formattedProxies)
     const headers = generateResponseHeaders(subscription, true, false)
     return new NextResponse(jsonConfig, { headers })
   }
 
   if (isV2rayNG) {
-    // v2rayNG base64 订阅
+
     const base64Config = generateV2rayNGConfig(formattedProxies)
     const headers = {
       'Content-Type': 'text/plain; charset=utf-8',
@@ -63,7 +57,7 @@ function generateResponse(
   }
 
   if (isBrowser) {
-    // 浏览器预览，生成两种配置
+
     const yamlConfig = generateClashConfig(formattedProxies, isAirportSubscription)
     const jsonConfig = generateSingboxConfig(formattedProxies)
     const headers = generateResponseHeaders(subscription, false, true)
@@ -71,15 +65,11 @@ function generateResponse(
     return new NextResponse(html, { headers })
   }
 
-  // Clash YAML 配置
   const yamlConfig = generateClashConfig(formattedProxies, isAirportSubscription)
   const headers = generateResponseHeaders(subscription, false, false)
   return new NextResponse(yamlConfig, { headers })
 }
 
-/**
- * 统一错误处理
- */
 async function processError(
   error: unknown,
   request: Request,
@@ -92,7 +82,6 @@ async function processError(
 
   let appError: AppError
 
-  // 转换各种错误为 AppError
   if (error instanceof AppError) {
     appError = error
   } else if (error instanceof Error) {
@@ -116,7 +105,6 @@ async function processError(
     )
   }
 
-  // 增强错误信息
   const enhancedError = new AppError(
     appError.code,
     appError.message,
@@ -132,7 +120,6 @@ async function processError(
     appError.cause
   )
 
-  // 报告错误
   await handleError(enhancedError, {
     url,
     userAgent,
@@ -143,7 +130,6 @@ async function processError(
     }
   })
 
-  // 返回错误响应
   const { status, body } = createErrorResponse(enhancedError)
   return NextResponse.json(body, {
     status,
@@ -154,11 +140,6 @@ async function processError(
   })
 }
 
-/**
- * 核心请求处理器 - 统一处理所有订阅转换请求
- *
- * 处理订阅转换请求的主入口
- */
 export async function handleRequest(request: Request): Promise<NextResponse> {
   const startTime = Date.now()
   const userAgent = request.headers.get('user-agent') || ''
@@ -167,7 +148,7 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
                    'unknown'
 
   try {
-    // 1. 验证和解析请求参数
+
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
 
@@ -181,32 +162,25 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
       throw ErrorFactory.subscription.invalidUrl(url)
     }
 
-    // 检查 URL 是否被禁用
     const isEnabled = await isUrlEnabled(url)
     if (!isEnabled) {
       throw AppError.validation('该订阅链接已被禁用', 'url', undefined)
     }
 
-    // 2. 检测客户端类型
     const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(userAgent)
 
-    // 记录客户端信息
     logger.info('\n=== 客户端信息 ===')
     logger.info(`类型: ${clientType}`)
     logger.info(`User-Agent: ${userAgent}`)
     logger.info('===================\n')
 
-    // 3. 处理订阅（核心异步操作）
     const { proxies, subscription, isAirportSubscription } = await processSubscription(url, userAgent)
 
-    // 4. 格式化节点名称（同步操作）
     const shouldFormat = shouldFormatNames(url)
     const formattedProxies = formatProxies(proxies, shouldFormat)
 
-    // 记录订阅统计
     logSubscriptionStats(subscription, proxies)
 
-    // 5. 生成配置并返回响应
     const response = generateResponse(
       proxies,
       formattedProxies,
@@ -217,7 +191,6 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
       isAirportSubscription
     )
 
-    // 6. 记录转换到 KV（使用 waitUntil 确保后台任务完成）
     const ctx = await getExecutionContext()
     const recordPromise = logConversion({
       originalUrl: url,
@@ -229,12 +202,10 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
       logger.warn('记录转换失败:', err)
     })
 
-    // 使用 waitUntil 确保记录在响应后继续执行
     if (ctx?.waitUntil) {
       ctx.waitUntil(recordPromise)
     }
 
-    // 7. 记录处理统计
     const duration = Date.now() - startTime
     logConfigStats(proxies, formattedProxies, '', clientType, duration)
 
@@ -243,4 +214,4 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
   } catch (error: unknown) {
     return processError(error, request, startTime, userAgent, clientIp)
   }
-}
+}

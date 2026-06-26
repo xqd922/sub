@@ -1,11 +1,8 @@
-import * as client from '@/kv/store'
+﻿import * as client from '@/kv/store'
 import { ConvertRecord, StatsData } from '@/kv/types'
 import { extractNameFromUrl } from '@/utils'
 import { logger } from '@/logger'
 
-/**
- * 生成记录 ID（基于 URL 的 hash）
- */
 export async function generateRecordId(url: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(url)
@@ -15,9 +12,6 @@ export async function generateRecordId(url: string): Promise<string> {
   return hashHex.slice(0, 12)
 }
 
-/**
- * 记录一次转换（核心方法）
- */
 export async function logConversion(params: {
   originalUrl: string
   clientType: string
@@ -27,7 +21,6 @@ export async function logConversion(params: {
 }): Promise<ConvertRecord | null> {
   const { originalUrl, clientType, nodeCount, clientIp, subscriptionName } = params
 
-  // 检查 KV 是否可用
   if (!(await client.isAvailable())) {
     return null
   }
@@ -36,11 +29,10 @@ export async function logConversion(params: {
     const id = await generateRecordId(originalUrl)
     const now = Date.now()
 
-    // 检查是否已存在记录
     const existing = await client.getRecord(id)
 
     if (existing) {
-      // 更新已有记录（如果有新的订阅名称，也更新名称）
+
       const updated: ConvertRecord = {
         ...existing,
         name: subscriptionName || existing.name,
@@ -53,13 +45,11 @@ export async function logConversion(params: {
       }
       await client.saveRecord(updated)
 
-      // 记录每日统计
       await client.incrementDailyHits(id)
 
       return updated
     }
 
-    // 创建新记录
     const record: ConvertRecord = {
       id,
       originalUrl,
@@ -76,7 +66,6 @@ export async function logConversion(params: {
     await client.saveRecord(record)
     await client.addToIndex(id)
 
-    // 记录每日统计
     await client.incrementDailyHits(id)
 
     return record
@@ -86,19 +75,15 @@ export async function logConversion(params: {
   }
 }
 
-/**
- * 检查 URL 是否可用（未被删除）
- */
 export async function isUrlEnabled(url: string): Promise<boolean> {
   if (!(await client.isAvailable())) {
-    return true // KV 不可用时默认允许
+    return true 
   }
 
   try {
     const id = await generateRecordId(url)
     const record = await client.getRecord(id)
-    // 如果记录不存在，允许访问（新链接）
-    // 如果记录存在且 deleted=true，拒绝访问
+
     if (!record) return true
     return !record.deleted
   } catch {
@@ -106,25 +91,16 @@ export async function isUrlEnabled(url: string): Promise<boolean> {
   }
 }
 
-/**
- * 获取所有记录（排除已删除的）
- */
 export async function getRecords(): Promise<ConvertRecord[]> {
   const allRecords = await client.getAllRecords()
-  // 过滤掉已删除的记录
+
   return allRecords.filter(record => !record.deleted)
 }
 
-/**
- * 获取单条记录
- */
 export async function getRecord(id: string): Promise<ConvertRecord | null> {
   return client.getRecord(id)
 }
 
-/**
- * 更新记录
- */
 export async function updateRecord(id: string, updates: Partial<ConvertRecord>): Promise<ConvertRecord | null> {
   const record = await client.getRecord(id)
   if (!record) return null
@@ -139,14 +115,10 @@ export async function updateRecord(id: string, updates: Partial<ConvertRecord>):
   return updated
 }
 
-/**
- * 删除记录（软删除，标记为已删除，链接将失效）
- */
 export async function deleteRecord(id: string): Promise<boolean> {
   const record = await client.getRecord(id)
   if (!record) return false
 
-  // 软删除：标记为已删除
   const updated: ConvertRecord = {
     ...record,
     deleted: true,
@@ -154,14 +126,11 @@ export async function deleteRecord(id: string): Promise<boolean> {
   }
 
   await client.saveRecord(updated)
-  // 从索引中移除（不再显示在列表中）
+
   await client.removeFromIndex(id)
   return true
 }
 
-/**
- * 获取统计数据
- */
 export async function getStats(): Promise<StatsData> {
   const records = await getRecords()
   const now = Date.now()
@@ -178,7 +147,6 @@ export async function getStats(): Promise<StatsData> {
     }
   }
 
-  // 获取真实的今日访问次数
   const today = new Date().toISOString().slice(0, 10)
   const dailyStats = await client.getDailyStats(today)
   const todayHits = dailyStats?.totalHits || 0
@@ -189,4 +157,4 @@ export async function getStats(): Promise<StatsData> {
     todayHits,
     activeRecords
   }
-}
+}

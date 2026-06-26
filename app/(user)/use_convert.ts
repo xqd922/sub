@@ -25,7 +25,6 @@ export function useUrlConverter() {
       const convertedUrl = `${baseUrl}/sub?url=${encodedUrl}`
       setConvertedUrl(convertedUrl)
 
-
       const copied = await copyToClipboard(convertedUrl)
       showToast(copied ? '已复制到剪贴板' : '转换成功', copied ? 'success' : 'info')
     } catch {

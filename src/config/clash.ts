@@ -1,30 +1,24 @@
 ﻿import { ClashConfig, Proxy, ProxyGroup } from '@/types'
 
-// 生成代理组配置
 export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true): ProxyGroup[] {
   const proxyNames = proxies.map(proxy => proxy.name);
 
-  // 筛选 HK 节点
   const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/i.test(p))
 
-  // 筛选低延迟节点
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
 
-  // 动态构建 Manual 的 proxies 列表
   const manualProxies = ['Auto', 'DIRECT']
   if (hkProxies.length > 0) {
     manualProxies.push('HK')
-    // 只有当为机场订阅且有 HK 组和 Min 节点时，才添加 Min 组到 Manual
+
     if (isAirportSubscription && minProxies.length > 0) manualProxies.push('Min')
   }
   manualProxies.push(...proxyNames)
 
-  // 动态构建 Emby 的 proxies 列表
   const embyProxies = ['Manual', 'DIRECT']
   if (isAirportSubscription && minProxies.length > 0) embyProxies.push('Min')
   embyProxies.push(...proxyNames)
 
-  // 构建代理组数组
   const groups: ProxyGroup[] = [
     {
       name: 'Manual',
@@ -51,7 +45,6 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     }
   ]
 
-  // 只要存在 HK 节点就添加 HK 代理组
   if (hkProxies.length > 0) {
     groups.push({
       name: 'HK',
@@ -63,7 +56,6 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     })
   }
 
-  // 只有为机场订阅且存在低延迟节点时才添加 Min 代理组
   if (isAirportSubscription && minProxies.length > 0) {
     groups.push({
       name: 'Min',
@@ -78,7 +70,6 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   return groups
 }
 
-// 默认配置
 export const defaultConfig: ClashConfig = {
   'mixed-port': 7890,
   'allow-lan': true,
@@ -286,14 +277,12 @@ export const defaultConfig: ClashConfig = {
     }
   },
   'rules': [
-    // 私有网络 - 优先直连
+
     'RULE-SET,private,DIRECT',
     'RULE-SET,private-ip,DIRECT,no-resolve',
 
-    // 起点读书全部直连
     'PROCESS-NAME,com.qidian.QDReader,DIRECT',
 
-    // 银行 & 支付 - 直连
     'PROCESS-NAME,com.icbc,DIRECT',
     'PROCESS-NAME,com.chinamworld.main,DIRECT',
     'PROCESS-NAME,com.android.bankabc,DIRECT',
@@ -304,13 +293,11 @@ export const defaultConfig: ClashConfig = {
     'PROCESS-NAME,com.tencent.mm,DIRECT',
     'PROCESS-NAME,com.unionpay,DIRECT',
 
-    // 运营商 - 直连
     'PROCESS-NAME,com.greenpoint.android.mc10086.activity,DIRECT',
     'PROCESS-NAME,com.sinovatech.unicom.ui,DIRECT',
     'PROCESS-NAME,com.ct.client,DIRECT',
     'PROCESS-NAME,com.ai.obc.cbn.app,DIRECT',
 
-    // 购物 - 直连
     'PROCESS-NAME,com.xunmeng.pinduoduo,DIRECT',
     'PROCESS-NAME,com.jingdong.app.mall,DIRECT',
     'PROCESS-NAME,com.taobao.taobao,DIRECT',
@@ -319,13 +306,11 @@ export const defaultConfig: ClashConfig = {
     'PROCESS-NAME,com.sankuai.meituan,DIRECT',
     'PROCESS-NAME,com.achievo.vipshop,DIRECT',
 
-    // 输入法 - 直连
     'PROCESS-NAME,com.tencent.wetype,DIRECT',
 
     'RULE-SET,tencent,DIRECT',
     'RULE-SET,ads,REJECT',
 
-    // UDP/443 全局拦截（除中国 IP）- 强制 HTTP/3 降级
     'AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN,no-resolve)))),REJECT',
 
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
@@ -339,14 +324,11 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,apple-cdn.net,DIRECT',
     'DOMAIN-SUFFIX,sharepoint.com,DIRECT',
 
-    // Emby
     'RULE-SET,emby,Emby',
 
-    // AI Services - 使用 666OS rule-providers
     'RULE-SET,ai,AI',
     'RULE-SET,ai-ip,AI,no-resolve',
 
-    // 国际服务 - 使用 rule-providers
     'RULE-SET,telegram,Manual',
     'RULE-SET,telegram-ip,Manual,no-resolve',
     'RULE-SET,github,Manual',
@@ -364,4 +346,4 @@ export const defaultConfig: ClashConfig = {
     'GEOIP,CN,DIRECT',
     'MATCH,Manual'
   ],
-} as const
+} as const

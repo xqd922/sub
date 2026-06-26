@@ -1,23 +1,10 @@
-﻿/**
- * 本地开发 KV Store
- * 支持两种模式：
- * 1. Mock 模式：内存存储（默认）
- * 2. Remote 模式：连接 Cloudflare KV API（通过环境变量配置）
- */
-
-/**
- * KV Store 通用接口，与 Cloudflare KVNamespace 兼容
- */
-export interface KVStoreAdapter {
+﻿export interface KVStoreAdapter {
   get(key: string, type?: 'json' | 'text'): Promise<unknown>
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
   delete(key: string): Promise<void>
   list(options?: { prefix?: string }): Promise<{ keys: Array<{ name: string }> }>
 }
 
-/**
- * 远程 KV 客户端 - 通过 Cloudflare API 访问
- */
 class RemoteKVStore implements KVStoreAdapter {
   private accountId: string
   private namespaceId: string
@@ -102,9 +89,6 @@ class RemoteKVStore implements KVStoreAdapter {
   }
 }
 
-/**
- * 本地 Mock KV Store（内存存储）
- */
 class LocalKVStore implements KVStoreAdapter {
   private records = new Map<string, string>()
 
@@ -139,12 +123,8 @@ class LocalKVStore implements KVStoreAdapter {
   }
 }
 
-// 全局单例
 let kvStore: KVStoreAdapter | null = null
 
-/**
- * 检查是否配置了远程 KV
- */
 function hasRemoteKVConfig(): boolean {
   const hasAccountId = !!(process.env.CF_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID)
   const hasNamespaceId = !!(process.env.CF_KV_NAMESPACE_ID || process.env.CLOUDFLARE_KV_NAMESPACE_ID)
@@ -153,9 +133,6 @@ function hasRemoteKVConfig(): boolean {
   return hasAccountId && hasNamespaceId && hasToken
 }
 
-/**
- * 获取本地/远程 KV Store 实例
- */
 export function getLocalKV(): KVStoreAdapter {
   if (!kvStore) {
     if (hasRemoteKVConfig()) {
@@ -167,4 +144,4 @@ export function getLocalKV(): KVStoreAdapter {
     }
   }
   return kvStore
-}
+}
