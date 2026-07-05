@@ -318,6 +318,8 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,cdn.lilyemby.com,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
     'DOMAIN-SUFFIX,qwen.ai,DIRECT',
+    'DOMAIN,stream-1.sadchicktv.com,DIRECT',
+    'DOMAIN,stream-2.sadchicktv.com,DIRECT',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
