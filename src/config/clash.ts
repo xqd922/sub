@@ -311,7 +311,7 @@ export const defaultConfig: ClashConfig = {
     'RULE-SET,tencent,DIRECT',
     'RULE-SET,ads,REJECT',
 
-    'AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN,no-resolve)))),REJECT',
+    'AND,((DST-PORT,443),(NETWORK,UDP)),REJECT',
 
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
