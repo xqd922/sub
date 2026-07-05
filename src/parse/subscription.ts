@@ -1,9 +1,7 @@
-﻿import { Proxy, ProxyConfig } from '@/types'
-import yaml from 'js-yaml'
+﻿import { Proxy } from '@/types'
 import { logger } from '@/logger'
 import { fetchSubscription } from '@/network/client'
-import { parseProxyUri } from '@/parse/node'
-import { deduplicateProxies } from '@/dedup'
+import { parseSubscriptionText } from '@/convert/subscription'
 
 export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()
@@ -28,10 +26,7 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
       logger.warn(`订阅文件较大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，处理时间可能较长`)
     }
 
-    if (text.includes('proxies:')) {
-      return parseYamlSubscription(text)
-    }
-    return parseBase64Subscription(text)
+    return parseSubscriptionText(text)
 
   } catch (error) {
     const duration = Date.now() - startTime
@@ -42,46 +37,3 @@ export async function parseSubscription(url: string, clientUserAgent?: string): 
     throw error
   }
 }
-
-function parseYamlSubscription(text: string): Proxy[] {
-  try {
-    const config = yaml.load(text) as ProxyConfig
-    const proxies = config.proxies || []
-    return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
-  } catch (e) {
-    logger.warn('YAML 解析失败:', e instanceof Error ? e.message : String(e))
-    return []
-  }
-}
-
-function parseBase64Subscription(text: string): Proxy[] {
-  const decodedText = Buffer.from(text, 'base64').toString()
-  const lines = decodedText.split('\n')
-  const proxies: Proxy[] = []
-  let failedCount = 0
-  const failedTypes = new Set<string>()
-
-  for (const line of lines) {
-    const trimmed = line?.trim()
-    if (!trimmed) continue
-
-    try {
-      const proxy = parseProxyUri(trimmed)
-      if (proxy) proxies.push(proxy)
-    } catch (e) {
-      failedCount++
-      const protocol = trimmed.split('://')[0] || 'unknown'
-      failedTypes.add(protocol)
-
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug(`节点解析失败 [${protocol}]: ${e instanceof Error ? e.message : String(e)}`)
-      }
-    }
-  }
-
-  if (failedCount > 0) {
-    logger.warn(`节点解析完成: 成功 ${proxies.length} 个, 失败 ${failedCount} 个 (协议: ${Array.from(failedTypes).join(', ')})`)
-  }
-
-  return proxies
-}

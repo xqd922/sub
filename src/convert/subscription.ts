@@ -101,7 +101,7 @@ function extractSubscriptionInfo(response: Response): SubscriptionInfo {
   }
 }
 
-function parseSubscriptionContent(text: string): Proxy[] {
+export function parseSubscriptionText(text: string): Proxy[] {
   if (text.includes('proxies:')) {
     const config = yaml.load(text) as YamlSubscription
     const proxies = config.proxies || []
@@ -167,7 +167,7 @@ export async function processSubscription(url: string, clientUserAgent?: string)
     subscription = extractSubscriptionInfo(response)
 
     const text = await response.text()
-    proxies = text && text.length > 0 ? parseSubscriptionContent(text) : []
+    proxies = text && text.length > 0 ? parseSubscriptionText(text) : []
     isAirportSubscription = true  
   }
 
