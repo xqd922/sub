@@ -1,15 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
-import { Proxy } from '@/types'
-import { processSubscription, shouldFormatNames, formatProxies, logSubscriptionStats, SubscriptionInfo } from '@/convert/subscription'
-import {
-  detectClientType,
-  generateClashConfig,
-  generateSingboxConfig,
-  generateV2rayNGConfig,
-  generatePreviewHtml,
-  generateResponseHeaders,
-  logConfigStats,
-} from '@/convert/response'
+import { processSubscription, shouldFormatNames, formatProxies, logSubscriptionStats } from '@/convert/subscription'
+import { renderConversionResponse, logConfigStats } from '@/convert/response'
 import { logger } from '@/logger'
 import { AppError, ErrorCode, ErrorFactory } from '@/error/errors'
 import { handleError, createErrorResponse } from '@/error/reporter'
@@ -23,51 +14,6 @@ async function getExecutionContext(): Promise<ExecutionContext | null> {
   } catch {
     return null
   }
-}
-
-function generateResponse(
-  proxies: Proxy[],
-  formattedProxies: Proxy[],
-  subscription: SubscriptionInfo,
-  isSingBox: boolean,
-  isV2rayNG: boolean,
-  isBrowser: boolean,
-  isAirportSubscription: boolean
-): NextResponse {
-
-  if (isSingBox) {
-
-    const jsonConfig = generateSingboxConfig(formattedProxies)
-    const headers = generateResponseHeaders(subscription, true, false)
-    return new NextResponse(jsonConfig, { headers })
-  }
-
-  if (isV2rayNG) {
-
-    const base64Config = generateV2rayNGConfig(formattedProxies)
-    const headers = {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      'Access-Control-Allow-Origin': '*',
-      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
-      'profile-update-interval': String(subscription.updateInterval || 24),
-      'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
-    }
-    return new NextResponse(base64Config, { headers })
-  }
-
-  if (isBrowser) {
-
-    const yamlConfig = generateClashConfig(formattedProxies, isAirportSubscription)
-    const jsonConfig = generateSingboxConfig(formattedProxies)
-    const headers = generateResponseHeaders(subscription, false, true)
-    const html = generatePreviewHtml(yamlConfig, jsonConfig)
-    return new NextResponse(html, { headers })
-  }
-
-  const yamlConfig = generateClashConfig(formattedProxies, isAirportSubscription)
-  const headers = generateResponseHeaders(subscription, false, false)
-  return new NextResponse(yamlConfig, { headers })
 }
 
 async function processError(
@@ -167,13 +113,6 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
       throw AppError.validation('该订阅链接已被禁用', 'url', undefined)
     }
 
-    const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(userAgent)
-
-    logger.info('\n=== 客户端信息 ===')
-    logger.info(`类型: ${clientType}`)
-    logger.info(`User-Agent: ${userAgent}`)
-    logger.info('===================\n')
-
     const { proxies, subscription, isAirportSubscription } = await processSubscription(url, userAgent)
 
     // 如果原始订阅没有 profile-web-page-url，用转换器自身地址作为首页
@@ -187,20 +126,25 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
 
     logSubscriptionStats(subscription, proxies)
 
-    const response = generateResponse(
+    const rendered = renderConversionResponse({
       proxies,
       formattedProxies,
       subscription,
-      isSingBox,
-      isV2rayNG,
-      isBrowser,
+      userAgent,
       isAirportSubscription
-    )
+    })
+
+    logger.info('\n=== 客户端信息 ===')
+    logger.info(`类型: ${rendered.clientType}`)
+    logger.info(`User-Agent: ${userAgent}`)
+    logger.info('===================\n')
+
+    const response = new NextResponse(rendered.body, { headers: rendered.headers })
 
     const ctx = await getExecutionContext()
     const recordPromise = logConversion({
       originalUrl: url,
-      clientType,
+      clientType: rendered.clientType,
       nodeCount: proxies.length,
       clientIp,
       subscriptionName: subscription.name
@@ -213,7 +157,7 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
     }
 
     const duration = Date.now() - startTime
-    logConfigStats(proxies, formattedProxies, '', clientType, duration)
+    logConfigStats(proxies, formattedProxies, rendered.body, rendered.clientType, duration)
 
     return response
 

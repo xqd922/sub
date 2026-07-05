@@ -166,6 +166,80 @@ export function generatePreviewHtml(yamlConfig: string, jsonConfig: string): str
   `
 }
 
+export type ClientType = 'clash' | 'singbox' | 'v2rayng' | 'browser'
+
+export interface RenderConversionInput {
+  proxies: Proxy[]
+  formattedProxies: Proxy[]
+  subscription: SubscriptionInfo
+  userAgent: string
+  isAirportSubscription: boolean
+}
+
+export interface RenderedConversionResponse {
+  body: string
+  headers: Record<string, string>
+  clientType: ClientType
+  configSize: number
+}
+
+function generateV2rayNGHeaders(subscription: SubscriptionInfo): Record<string, string> {
+  return {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-cache',
+    'Access-Control-Allow-Origin': '*',
+    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(subscription.name)}`,
+    'profile-update-interval': String(subscription.updateInterval || 24),
+    'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`
+  }
+}
+
+export function renderConversionResponse(input: RenderConversionInput): RenderedConversionResponse {
+  const { formattedProxies, subscription, userAgent, isAirportSubscription } = input
+  const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(userAgent)
+
+  if (isSingBox) {
+    const body = generateSingboxConfig(formattedProxies)
+    return {
+      body,
+      headers: generateResponseHeaders(subscription, true, false),
+      clientType,
+      configSize: body.length
+    }
+  }
+
+  if (isV2rayNG) {
+    const body = generateV2rayNGConfig(formattedProxies)
+    return {
+      body,
+      headers: generateV2rayNGHeaders(subscription),
+      clientType,
+      configSize: body.length
+    }
+  }
+
+  const yamlConfig = generateClashConfig(formattedProxies, isAirportSubscription)
+
+  if (isBrowser) {
+    const jsonConfig = generateSingboxConfig(formattedProxies)
+    const body = generatePreviewHtml(yamlConfig, jsonConfig)
+    return {
+      body,
+      headers: generateResponseHeaders(subscription, false, true),
+      clientType,
+      configSize: yamlConfig.length + jsonConfig.length
+    }
+  }
+
+  return {
+    body: yamlConfig,
+    headers: generateResponseHeaders(subscription, false, false),
+    clientType,
+    configSize: yamlConfig.length
+  }
+}
+
+
 export function generateResponseHeaders(
   subscription: SubscriptionInfo,
   isSingBox: boolean,
