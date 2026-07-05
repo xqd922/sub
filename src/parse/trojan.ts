@@ -5,14 +5,19 @@ export function parse(uri: string): Proxy {
   const url = new URL(uri)
   const params = url.searchParams
 
+  let server = url.hostname
+  if (server.startsWith('[') && server.endsWith(']')) {
+    server = server.substring(1, server.length - 1)
+  }
+
   const proxy: Proxy = {
     type: 'trojan',
-    name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
-    server: url.hostname,
+    name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
+    server: server,
     port: parsePort(url.port),
     password: url.username,
-    sni: params.get('sni') || url.hostname,
-    'skip-cert-verify': params.get('allowInsecure') === '1'
+    sni: url.searchParams.get('sni') || server,
+    'skip-cert-verify': url.searchParams.get('allowInsecure') === '1'
   }
 
   const transportType = params.get('type')

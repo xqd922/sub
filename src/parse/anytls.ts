@@ -5,10 +5,15 @@ export function parse(uri: string): Proxy {
   const url = new URL(uri)
   const params = url.searchParams
 
+  let server = url.hostname
+  if (server.startsWith('[') && server.endsWith(']')) {
+    server = server.substring(1, server.length - 1)
+  }
+
   const proxy: Proxy = {
     type: 'anytls',
-    name: url.hash ? decodeURIComponent(url.hash.slice(1)) : url.hostname,
-    server: url.hostname,
+    name: url.hash ? decodeURIComponent(url.hash.slice(1)) : server,
+    server: server,
     port: parsePort(url.port),
     password: decodeURIComponent(url.username),
     sni: params.get('sni') || url.hostname,
