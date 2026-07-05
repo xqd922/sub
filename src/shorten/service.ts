@@ -5,8 +5,6 @@ import { extractNameFromUrl } from '@/utils'
 
 interface ShortProvider {
   name: string
-  timeout: number
-  retries: number
   handler: (url: string) => Promise<ShortResult>
 }
 
@@ -288,32 +286,22 @@ function processUrl(url: string): string {
 const PROVIDERS: Record<string, ShortProvider> = {
   kv: {
     name: 'KV',
-    timeout: 3000,
-    retries: 1,
     handler: handleKV
   },
   tinyurl: {
     name: 'TinyURL',
-    timeout: 3000,
-    retries: 1,
     handler: handleTinyUrl
   },
   sink: {
     name: 'Sink',
-    timeout: 3000,
-    retries: 1,
     handler: handleSink
   },
   bitly: {
     name: 'Bitly',
-    timeout: 5000,
-    retries: 2,
     handler: handleBitly
   },
   cuttly: {
     name: 'Cuttly',
-    timeout: 3000,
-    retries: 1,
     handler: handleCuttly
   }
 }
