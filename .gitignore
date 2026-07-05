@@ -2,6 +2,13 @@
 
 # dependencies
 /node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # testing
 /coverage
@@ -19,7 +26,9 @@
 
 # debug
 npm-debug.log*
-bun-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -27,13 +36,6 @@ bun-debug.log*
 # vercel
 .vercel
 
-# cloudflare
-.wrangler/
-wrangler.toml
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# claude code
-.claude/settings.local.json

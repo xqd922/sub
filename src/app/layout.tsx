@@ -1,7 +1,7 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import "./globals.css";
-import { GlobalErrorBoundary } from "@/components/error_boundary";
-import ToastContainer from "@/components/ui/toast";
+import { GlobalErrorBoundary } from "./_components/error_boundary";
+import ToastContainer from "./_components/toast";
 
 export const metadata: Metadata = {
   title: "通用订阅转换",
@@ -23,4 +23,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+}
