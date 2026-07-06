@@ -6,7 +6,8 @@
   'hysteria2://',
   'hy2://',
   'socks://',
-  'anytls://'
+  'anytls://',
+  'snell://'
 ] as const
 
 export type ProtocolPrefix = typeof SUPPORTED_PROTOCOLS[number]
