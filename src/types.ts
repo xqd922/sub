@@ -69,11 +69,22 @@ export interface Proxy {
 
   username?: string
 
-  'idle-session-check-interval'?: string
-  'idle-session-timeout'?: string
+  'idle-session-check-interval'?: number
+  'idle-session-timeout'?: number
+  'min-idle-session'?: number
 
-  'dialer-proxy'?: string  
-  detour?: string          
+  fingerprint?: string
+  certificate?: string
+  'private-key'?: string
+
+  'ech-opts'?: {
+    enable?: boolean
+    config?: string
+    'query-server-name'?: string
+  }
+
+  'dialer-proxy'?: string
+  detour?: string
 }
 
 export interface DnsConfig {
@@ -170,6 +181,12 @@ export interface SingboxTLSConfig {
   enabled: boolean;
   server_name: string;
   insecure: boolean;
+  alpn?: string[];
+  utls?: { enabled: boolean; fingerprint: string };
+  fingerprint?: string;
+  certificate?: string;
+  ech?: { enabled: boolean; config?: string; config_path?: string };
+  [key: string]: unknown;
 }
 
 export interface SingboxTransportConfig {
