@@ -163,10 +163,10 @@ export async function fetchWithRetry(
 }
 
 export async function fetchSubscription(url: string, _clientUserAgent?: string): Promise<Response> {
-  const userAgent = 'ClashX/1.95.1'
+  const userAgent = 'clash.meta'
   logger.info(`订阅请求 User-Agent: ${userAgent}`)
 
-  return fetchWithRetry(url, {
+  const response = await fetchWithRetry(url, {
     retries: 3,
     timeout: 30000,
     userAgent,
@@ -178,6 +178,32 @@ export async function fetchSubscription(url: string, _clientUserAgent?: string):
       'Pragma': 'no-cache'
     }
   })
+
+  // 如果 clash.meta 没返回 profile-web-page-url，用 ClashX UA 补一次 HEAD 请求
+  if (!response.headers.get('profile-web-page-url')) {
+    try {
+      const headResp = await fetch(url, {
+        method: 'HEAD',
+        headers: { 'User-Agent': 'ClashX/1.95.1' },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10000),
+      })
+      const homepage = headResp.headers.get('profile-web-page-url')
+      if (homepage) {
+        const headers = new Headers(response.headers)
+        headers.set('profile-web-page-url', homepage)
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        })
+      }
+    } catch (e) {
+      logger.warn('获取 profile-web-page-url 失败:', e)
+    }
+  }
+
+  return response
 }
 
 export async function fetchRemoteNodes(url: string): Promise<Response> {
