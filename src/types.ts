@@ -23,6 +23,21 @@ export interface Proxy {
   obfs?: string
   'obfs-host'?: string
 
+  psk?: string
+  version?: number
+  reuse?: boolean
+
+  'obfs-opts'?: {
+    mode?: string
+    host?: string
+    password?: string
+    version?: number
+    fingerprint?: string
+    'skip-cert-verify'?: boolean
+    alpn?: string[]
+    [key: string]: unknown
+  }
+
   plugin?: string
   'plugin-opts'?: {
     mode?: string

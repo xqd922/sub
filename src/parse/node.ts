@@ -11,6 +11,7 @@ import { parse as parseVless, toSingboxOutbound as vlessToSingboxOutbound } from
 import { parse as parseHysteria2, toSingboxOutbound as hysteria2ToSingboxOutbound } from '@/parse/hysteria2'
 import { parse as parseSocks, toSingboxOutbound as socksToSingboxOutbound } from '@/parse/socks'
 import { parse as parseAnyTLS, toSingboxOutbound as anytlsToSingboxOutbound } from '@/parse/anytls'
+import { parse as parseSnell, toSingboxOutbound as snellToSingboxOutbound } from '@/parse/snell'
 
 interface SingboxOutbound {
   type: string;
@@ -37,6 +38,8 @@ export function parseProxyUri(uri: string): Proxy | null {
       return parseSocks(uri)
     } else if (uri.startsWith('anytls://')) {
       return parseAnyTLS(uri)
+    } else if (uri.startsWith('snell://')) {
+      return parseSnell(uri)
     }
     throw new Error('不支持的代理协议类型，请检查链接格式')
   } catch (error) {
@@ -72,6 +75,8 @@ export function validateProxy(proxy: Proxy): boolean {
       return !!(proxy.password)
     case 'anytls':
       return !!(proxy.password)
+    case 'snell':
+      return !!(proxy.psk)
     case 'socks5':
       return true
     default:
@@ -96,6 +101,8 @@ export function proxyToSingboxOutbound(proxy: Proxy): SingboxOutbound | null {
       return socksToSingboxOutbound(proxy)
     case 'anytls':
       return anytlsToSingboxOutbound(proxy)
+    case 'snell':
+      return snellToSingboxOutbound(proxy)
     default:
       return null
   }
