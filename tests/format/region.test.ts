@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { detectRegion, isoToFlag, extractFlagEmoji } from '@/format/region'
+import { detectRegion, isoToFlag, extractFlagEmoji } from '@/node/region'
 
 describe('isoToFlag', () => {
   it('converts US to its flag emoji', () => {

@@ -1,5 +1,5 @@
 ﻿import { AppError, ErrorSeverity } from '@/error/errors'
-import { logger } from '@/logger'
+import { logger } from '@/lib/logger'
 
 interface ErrorContext {
   url?: string
@@ -113,4 +113,4 @@ export function createErrorResponse(error: AppError) {
     status: error.statusCode,
     body: error.toResponse()
   }
-}
+}

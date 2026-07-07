@@ -1,6 +1,6 @@
 ﻿import { describe, expect, it } from 'vitest'
-import { parseSubscriptionText, shouldFormatNames, formatProxies } from '@/convert/subscription'
-import type { Proxy } from '@/types'
+import { parseSubscriptionText, shouldFormatNames, formatProxies } from '@/fetch/subscription'
+import type { Proxy } from '@/node/types'
 
 const ssUri = 'ss://YWVzLTEyOC1nY206cGFzcw@proxy.example.net:8388#Node%201'
 

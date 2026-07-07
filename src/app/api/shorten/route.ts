@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
-import { generate as generateShortLink } from '@/shorten/service'
-import { logger } from '@/logger'
+import { generate as generateShortLink } from '@/link/service'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'edge'
 
@@ -54,4 +54,4 @@ export async function GET(request: Request) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url })
   }))
-}
+}

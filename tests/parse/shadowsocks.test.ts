@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parse } from '@/parse/shadowsocks'
+import { parse } from '@/node/proto/shadowsocks'
 
 /**
  * Helper: encode method:password@server:port into SIP002 base64 format

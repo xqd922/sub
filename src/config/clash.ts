@@ -1,4 +1,9 @@
-﻿import { ClashConfig, Proxy, ProxyGroup } from '@/types'
+﻿import yaml from 'js-yaml'
+import { Proxy } from '@/node/types'
+import { ClashConfig, ProxyGroup } from '@/config/types'
+import { generateBase64Subscription } from '@/node/index'
+import { generateSingboxConfig as buildSingboxConfig } from '@/config/singbox'
+import { previewStyles } from '@/config/preview'
 
 export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true): ProxyGroup[] {
   const proxyNames = proxies.map(proxy => proxy.name);
@@ -348,4 +353,80 @@ export const defaultConfig: ClashConfig = {
     'GEOIP,CN,DIRECT',
     'MATCH,Manual'
   ],
-} as const
+} as const
+
+// ===== String-returning wrappers for fetch/response =====
+
+export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
+  const clashProxies = proxies.map(proxy => {
+    const { detour, ...clashProxy } = proxy
+    return clashProxy
+  })
+
+  const clashConfig = {
+    ...defaultConfig,
+    proxies: clashProxies,
+    'proxy-groups': generateProxyGroups(clashProxies, isAirportSubscription)
+  }
+
+  let output = yaml.dump(clashConfig, {
+    flowLevel: 2,
+    lineWidth: -1,
+    indent: 2,
+    noRefs: true,
+    forceQuotes: false,
+    quotingType: '"',
+    styles: {
+      '!!null': 'lowercase'
+    }
+  })
+
+  output = output.replace(/path: ([^,}"'\n]+)/g, (match, value) => {
+    if (/[?:&]/.test(value) && !value.startsWith('"')) {
+      return `path: "${value}"`
+    }
+    return match
+  })
+
+  return output
+}
+
+export function generateSingboxConfig(proxies: Proxy[]): string {
+  const config = buildSingboxConfig(proxies)
+  return JSON.stringify(config, null, 2)
+}
+
+export function generateV2rayNGConfig(proxies: Proxy[]): string {
+  return generateBase64Subscription(proxies)
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+export function generatePreviewHtml(yamlConfig: string, jsonConfig: string): string {
+  const escapedYaml = escapeHtml(yamlConfig)
+  const escapedJson = escapeHtml(jsonConfig)
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>配置预览</title>
+      <style>${previewStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>Clash 配置</h2>
+        <pre>${escapedYaml}</pre>
+      </div>
+      <div class="container">
+        <h2>sing-box 配置</h2>
+        <pre>${escapedJson}</pre>
+      </div>
+    </body>
+    </html>
+  `
+}

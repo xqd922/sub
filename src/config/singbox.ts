@@ -1,5 +1,5 @@
-﻿import { Proxy } from '@/types'
-import { proxyToSingboxOutbound } from '@/parse/node'
+﻿import { Proxy } from '@/node/types'
+import { proxyToSingboxOutbound } from '@/node/node'
 
 export function generateSingboxConfig(proxies: Proxy[]) {
   const validOutbounds = proxies.map(proxy => proxyToSingboxOutbound(proxy))

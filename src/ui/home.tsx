@@ -1,7 +1,7 @@
 'use client'
 
-import { useUrlConverter } from '../_hooks/use_convert'
-import { useShortUrl } from '../_hooks/use_short_link'
+import { useUrlConverter } from '@/hooks/use_convert'
+import { useShortUrl } from '@/hooks/use_short_link'
 import UrlInput from './url_input'
 import ResultItem from './copy_button'
 import ShortUrlGenerator from './short_link'

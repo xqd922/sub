@@ -1,7 +1,7 @@
-﻿import * as client from '@/kv/store'
+﻿import * as client from '@/kv/operations'
 import { ConvertRecord, StatsData } from '@/kv/types'
-import { extractNameFromUrl } from '@/utils'
-import { logger } from '@/logger'
+import { extractNameFromUrl } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 export async function generateRecordId(url: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -157,4 +157,4 @@ export async function getStats(): Promise<StatsData> {
     todayHits,
     activeRecords
   }
-}
+}

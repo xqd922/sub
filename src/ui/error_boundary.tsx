@@ -3,7 +3,7 @@
 import { Component, ReactNode, ErrorInfo } from 'react'
 import { AppError, ErrorCode, ErrorSeverity } from '@/error/errors'
 import { handleError } from '@/error/reporter'
-import { logger } from '@/logger'
+import { logger } from '@/lib/logger'
 
 interface ErrorBoundaryState {
   hasError: boolean

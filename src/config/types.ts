@@ -1,106 +1,6 @@
-﻿export interface ProxyConfig {
-  proxies: Proxy[]
-  [key: string]: unknown
-}
+import { Proxy } from '@/node/types'
 
-export interface Proxy {
-  name: string
-  type: string
-  server: string
-  port: number
-  cipher?: string
-  'encrypt-method'?: string  
-  password?: string
-  uuid?: string
-  alterId?: number
-  network?: string
-  wsPath?: string
-  wsHeaders?: Record<string, string>
-  tls?: boolean
-  'skip-cert-verify'?: boolean
-  sni?: string
-
-  obfs?: string
-  'obfs-host'?: string
-
-  psk?: string
-  version?: number
-  reuse?: boolean
-
-  'obfs-opts'?: {
-    mode?: string
-    host?: string
-    password?: string
-    version?: number
-    fingerprint?: string
-    'skip-cert-verify'?: boolean
-    alpn?: string[]
-    [key: string]: unknown
-  }
-
-  plugin?: string
-  'plugin-opts'?: {
-    mode?: string
-    host?: string
-    [key: string]: string | undefined
-  }
-  'reality-opts'?: {
-    'public-key'?: string
-    'short-id'?: string
-  }
-  ports?: string
-  mport?: string
-  udp?: boolean
-  flow?: string
-  'client-fingerprint'?: string
-  servername?: string
-  path?: string
-  host?: string
-  alpn?: string[] | string
-  'ws-opts'?: {
-    path?: string
-    headers?: {
-      Host?: string
-      [key: string]: string | undefined
-    }
-  }
-  'grpc-opts'?: {
-    'grpc-service-name'?: string
-    'grpc-mode'?: string
-  }
-  encryption?: string
-  fp?: string
-
-  insecure?: boolean
-  up_mbps?: number
-  down_mbps?: number
-  up?: string | null
-  down?: string | null
-  'obfs-password'?: string
-
-  reality?: boolean
-
-  tfo?: boolean
-
-  username?: string
-
-  'idle-session-check-interval'?: number
-  'idle-session-timeout'?: number
-  'min-idle-session'?: number
-
-  fingerprint?: string
-  certificate?: string
-  'private-key'?: string
-
-  'ech-opts'?: {
-    enable?: boolean
-    config?: string
-    'query-server-name'?: string
-  }
-
-  'dialer-proxy'?: string
-  detour?: string
-}
+// ===== Clash =====
 
 export interface DnsConfig {
   enable: boolean
@@ -187,10 +87,7 @@ export interface RuleProvider {
   interval?: number
 }
 
-export interface YamlSubscription {
-  proxies?: Proxy[]
-  [key: string]: unknown
-}
+// ===== Sing-box =====
 
 export interface SingboxTLSConfig {
   enabled: boolean;
@@ -222,6 +119,13 @@ export interface SingboxProxyConfig {
   uuid?: string;
   tls?: SingboxTLSConfig;
   transport?: SingboxTransportConfig;
-  detour?: string;  
+  detour?: string;
   [key: string]: unknown;
-} 
+}
+
+// ===== Subscription =====
+
+export interface YamlSubscription {
+  proxies?: Proxy[]
+  [key: string]: unknown
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parse, validate } from '@/parse/vmess'
+import { parse, validate } from '@/node/proto/vmess'
 
 /**
  * Helper: build a vmess:// URI from a config object

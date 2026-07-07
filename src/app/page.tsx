@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 
-const HomeContent = dynamic(() => import('./_components/home'), {
+const HomeContent = dynamic(() => import('@/ui/home'), {
   ssr: false 
 })
 

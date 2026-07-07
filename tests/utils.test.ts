@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parsePort, formatBytes, extractNameFromUrl } from '@/utils'
+import { parsePort, formatBytes, extractNameFromUrl } from '@/lib/utils'
 
 describe('parsePort', () => {
   it('parses a valid numeric string', () => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useToast } from '../_hooks/use_toast'
+import { useToast } from '@/hooks/use_toast'
 
 const typeClasses: Record<string, string> = {
   success: 'bg-green-600',

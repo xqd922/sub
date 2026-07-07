@@ -1,17 +1,17 @@
-﻿import { Proxy } from '@/types'
-import { logger } from '@/logger'
+﻿import { Proxy } from '@/node/types'
+import { logger } from '@/lib/logger'
 import {
   parse as parseShadowsocks,
   toUri as ssToUri,
   toSingboxOutbound as ssToSingboxOutbound
-} from '@/parse/shadowsocks'
-import { parse as parseVmess, toSingboxOutbound as vmessToSingboxOutbound } from '@/parse/vmess'
-import { parse as parseTrojan, toSingboxOutbound as trojanToSingboxOutbound } from '@/parse/trojan'
-import { parse as parseVless, toSingboxOutbound as vlessToSingboxOutbound } from '@/parse/vless'
-import { parse as parseHysteria2, toSingboxOutbound as hysteria2ToSingboxOutbound } from '@/parse/hysteria2'
-import { parse as parseSocks, toSingboxOutbound as socksToSingboxOutbound } from '@/parse/socks'
-import { parse as parseAnyTLS, toSingboxOutbound as anytlsToSingboxOutbound } from '@/parse/anytls'
-import { parse as parseSnell, toSingboxOutbound as snellToSingboxOutbound } from '@/parse/snell'
+} from '@/node/proto/shadowsocks'
+import { parse as parseVmess, toSingboxOutbound as vmessToSingboxOutbound } from '@/node/proto/vmess'
+import { parse as parseTrojan, toSingboxOutbound as trojanToSingboxOutbound } from '@/node/proto/trojan'
+import { parse as parseVless, toSingboxOutbound as vlessToSingboxOutbound } from '@/node/proto/vless'
+import { parse as parseHysteria2, toSingboxOutbound as hysteria2ToSingboxOutbound } from '@/node/proto/hysteria2'
+import { parse as parseSocks, toSingboxOutbound as socksToSingboxOutbound } from '@/node/proto/socks'
+import { parse as parseAnyTLS, toSingboxOutbound as anytlsToSingboxOutbound } from '@/node/proto/anytls'
+import { parse as parseSnell, toSingboxOutbound as snellToSingboxOutbound } from '@/node/proto/snell'
 
 interface SingboxOutbound {
   type: string;

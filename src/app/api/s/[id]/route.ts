@@ -1,6 +1,6 @@
 import { resolveShortLink } from '@/kv'
-import { handleRequest } from '@/convert/handler'
-import { logger } from '@/logger'
+import { handleRequest } from '@/fetch/handler'
+import { logger } from '@/lib/logger'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'edge'

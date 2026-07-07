@@ -1,4 +1,4 @@
-﻿import { logger } from '@/logger'
+﻿import { logger } from '@/lib/logger'
 
 export interface NetworkConfig {
   timeout: number
@@ -249,4 +249,4 @@ export function resetStats(): void {
     errors: new Map()
   }
   logger.debug('网络统计已重置')
-}
+}

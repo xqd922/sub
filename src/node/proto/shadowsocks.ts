@@ -1,6 +1,7 @@
-﻿import { Proxy, SingboxProxyConfig } from '@/types'
-import { parsePort } from '@/utils'
-import { logger } from '@/logger'
+import { Proxy } from '@/node/types'
+import { SingboxProxyConfig } from '@/config/types'
+import { parsePort } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 export function parse(uri: string): Proxy {
 

@@ -1,7 +1,7 @@
 ﻿import { ShortLink, KV_PREFIX } from '@/kv/types'
-import { getKV } from '@/kv/env'
-import { extractNameFromUrl } from '@/utils'
-import { logger } from '@/logger'
+import { getKV } from '@/kv/store'
+import { extractNameFromUrl } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 const SHORT_INDEX_KEY = 'index:shortlinks'
 
@@ -223,4 +223,4 @@ export async function resolveShortLink(id: string): Promise<string | null> {
     logger.error('[ShortLink] 解析失败:', error)
     return null
   }
-}
+}

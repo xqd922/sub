@@ -1,4 +1,4 @@
-import { handleRequest } from '@/convert/handler'
+import { handleRequest } from '@/fetch/handler'
 
 export const runtime = 'edge'
 

@@ -1,7 +1,7 @@
-﻿import { Proxy } from '@/types'
-import { logger } from '@/logger'
+﻿import { Proxy } from '@/node/types'
+import { logger } from '@/lib/logger'
 import { fetchSubscription } from '@/network/client'
-import { parseSubscriptionText } from '@/convert/subscription'
+import { parseSubscriptionText } from '@/fetch/subscription'
 
 export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
   const startTime = Date.now()

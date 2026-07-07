@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from 'vitest'
-import { renderConversionResponse } from '@/convert/response'
-import type { Proxy } from '@/types'
-import type { SubscriptionInfo } from '@/convert/subscription'
+import { renderConversionResponse } from '@/fetch/response'
+import type { Proxy } from '@/node/types'
+import type { SubscriptionInfo } from '@/fetch/subscription'
 
 const proxy: Proxy = {
   name: 'HK 01',
