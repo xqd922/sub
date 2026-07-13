@@ -1,5 +1,5 @@
 ﻿import { Proxy } from '@/node/types'
-import { detectRegion, CITY_MAP, MULTI_CITY_COUNTRIES } from '@/node/region'
+import { detectRegion } from '@/node/region'
 
 function isIPv6Node(name: string): boolean {
   return /ipv6|ip6|v6|双栈/i.test(name)
@@ -29,10 +29,6 @@ function formatProxyName(
   useShortCode: boolean = false
 ): Proxy {
 
-  const cityMatch = Object.keys(CITY_MAP).find(key =>
-    proxy.name.includes(key)
-  )
-
   const region = detectRegion(proxy.name)
 
   if (!region) {
@@ -40,8 +36,6 @@ function formatProxyName(
   }
 
   const { flag, code: countryCode, name: regionName } = region
-  const isMultiCityCountry = countryCode in MULTI_CITY_COUNTRIES
-
   const multiplier = extractMultiplier(proxy.name)
   const ipv6 = isIPv6Node(proxy.name)
 

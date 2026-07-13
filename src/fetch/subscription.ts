@@ -1,14 +1,14 @@
 ﻿import { Proxy } from '@/node/types'
-import { YamlSubscription } from '@/config/types'
-import { parseProxyUri, parseMultipleProxies } from '@/node/node'
+import { parseMultipleProxies } from '@/node/node'
 import { fetchNodesFromRemote } from '@/fetch/remote'
+import { parseSubscriptionResponse } from '@/fetch/parse_subscription'
 import { formatProxies as formatProxiesImpl } from '@/node/format'
 import { isProtocolUrl, isGistUrl, shouldFormatNodeNames } from '@/lib/protocol'
 import { fetchSubscription } from '@/network/client'
 import { logger } from '@/lib/logger'
 import { formatBytes } from '@/lib/utils'
-import { deduplicateProxies } from '@/node/dedup'
-import yaml from 'js-yaml'
+
+export { parseSubscriptionText } from '@/fetch/parse_subscription'
 
 export interface SubscriptionInfo {
   name: string
@@ -102,40 +102,7 @@ function extractSubscriptionInfo(response: Response): SubscriptionInfo {
   }
 }
 
-export function parseSubscriptionText(text: string): Proxy[] {
-  if (text.includes('proxies:')) {
-    const config = yaml.load(text) as YamlSubscription
-    const proxies = config.proxies || []
-
-    return deduplicateProxies(proxies, { keepStrategy: 'shorter' })
-  }
-
-  try {
-    const decodedText = Buffer.from(text, 'base64').toString()
-    const lines = decodedText.split('\n')
-    const proxies: Proxy[] = []
-
-    for (const line of lines) {
-      if (!line.trim()) continue
-      try {
-        const proxy = parseProxyUri(line)
-        if (proxy) {
-          proxies.push(proxy)
-        }
-      } catch (e) {
-        logger.warn('节点解析失败:', e)
-      }
-    }
-
-    return proxies
-  } catch (e) {
-
-    logger.warn('订阅内容解码失败，非有效的 Base64 或 YAML 格式:', e)
-    return []
-  }
-}
-
-export async function processSubscription(url: string, clientUserAgent?: string): Promise<{
+export async function processSubscription(url: string): Promise<{
   proxies: Proxy[]
   subscription: SubscriptionInfo
   isAirportSubscription: boolean  
@@ -164,11 +131,9 @@ export async function processSubscription(url: string, clientUserAgent?: string)
     isAirportSubscription = false  
   } else {
 
-    const response = await fetchSubscription(url, clientUserAgent)
+    const response = await fetchSubscription(url)
     subscription = extractSubscriptionInfo(response)
-
-    const text = await response.text()
-    proxies = text && text.length > 0 ? parseSubscriptionText(text) : []
+    proxies = await parseSubscriptionResponse(response)
     isAirportSubscription = true  
   }
 

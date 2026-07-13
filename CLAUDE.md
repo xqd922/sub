@@ -98,7 +98,6 @@ ss (Shadowsocks)、vmess、trojan、vless、hysteria2、socks、anytls、snell
 
 ```bash
 bun run dev          # 开发服务器 (Turbopack)
-bun run dev:fast     # 快速开发 (跳过 lint 和类型检查)
 bun run build        # 生产构建
 bun run build:cf     # 构建 Cloudflare Pages 部署产物
 bun run test         # 运行测试

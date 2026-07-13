@@ -1,8 +1,8 @@
-import { Proxy } from '@/node/types'
+import { Proxy, VmessProxy } from '@/node/types'
 import { SingboxProxyConfig } from '@/config/types'
 import { parsePort } from '@/lib/utils'
 
-export function parse(uri: string): Proxy {
+export function parse(uri: string): VmessProxy {
   const content = uri.substring(8)
   const config = JSON.parse(Buffer.from(content, 'base64').toString())
 
@@ -39,8 +39,10 @@ export function parse(uri: string): Proxy {
   }
 }
 
-export function validate(proxy: Proxy): boolean {
-  return proxy.type === 'vmess' && !!(proxy.uuid)
+export function validate(proxy: unknown): proxy is VmessProxy {
+  return typeof proxy === 'object' && proxy !== null &&
+    'type' in proxy && proxy.type === 'vmess' &&
+    'uuid' in proxy && typeof proxy.uuid === 'string' && proxy.uuid.length > 0
 }
 
 export function toSingboxOutbound(proxy: Proxy): SingboxProxyConfig | null {

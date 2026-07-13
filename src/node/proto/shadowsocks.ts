@@ -1,9 +1,9 @@
-import { Proxy } from '@/node/types'
+import { Proxy, SSProxy } from '@/node/types'
 import { SingboxProxyConfig } from '@/config/types'
 import { parsePort } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 
-export function parse(uri: string): Proxy {
+export function parse(uri: string): SSProxy {
 
   const content = uri.substring(5)
 
@@ -142,7 +142,7 @@ export function parse(uri: string): Proxy {
     decodedRemark = remark
   }
 
-  const proxy: Proxy = {
+  const proxy: SSProxy = {
     type: 'ss',
     name: decodedRemark || server,
     server,

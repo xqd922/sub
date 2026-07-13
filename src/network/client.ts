@@ -162,7 +162,7 @@ export async function fetchWithRetry(
   throw new Error('所有重试都失败了')
 }
 
-export async function fetchSubscription(url: string, _clientUserAgent?: string): Promise<Response> {
+export async function fetchSubscription(url: string): Promise<Response> {
   const userAgent = 'clash.meta'
   logger.info(`订阅请求 User-Agent: ${userAgent}`)
 

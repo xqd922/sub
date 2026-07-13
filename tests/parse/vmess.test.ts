@@ -172,7 +172,7 @@ describe('validate (vmess)', () => {
       port: 443,
       uuid: 'a3482e88-686a-4a58-8126-99c9df64b7bf',
     }
-    expect(validate(proxy as any)).toBe(true)
+    expect(validate(proxy)).toBe(true)
   })
 
   it('returns false when type is not vmess', () => {
@@ -183,7 +183,7 @@ describe('validate (vmess)', () => {
       port: 443,
       uuid: 'a3482e88-686a-4a58-8126-99c9df64b7bf',
     }
-    expect(validate(proxy as any)).toBe(false)
+    expect(validate(proxy)).toBe(false)
   })
 
   it('returns false when uuid is missing', () => {
@@ -193,6 +193,6 @@ describe('validate (vmess)', () => {
       server: '1.2.3.4',
       port: 443,
     }
-    expect(validate(proxy as any)).toBe(false)
+    expect(validate(proxy)).toBe(false)
   })
 })

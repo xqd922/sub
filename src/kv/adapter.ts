@@ -105,7 +105,7 @@ class LocalKVStore implements KVStoreAdapter {
     return value as T
   }
 
-  async put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> {
+  async put(key: string, value: string): Promise<void> {
     this.records.set(key, value)
   }
 
@@ -144,4 +144,4 @@ export function getLocalKV(): KVStoreAdapter {
     }
   }
   return kvStore
-}
+}

@@ -356,7 +356,8 @@ export const defaultConfig: ClashConfig = {
 
 export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
   const clashProxies = proxies.map(proxy => {
-    const { detour, ...clashProxy } = proxy
+    const clashProxy = { ...proxy }
+    delete clashProxy.detour
     return clashProxy
   })
 

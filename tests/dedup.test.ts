@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { deduplicateProxies } from '@/node/dedup'
-import type { Proxy } from '@/node/types'
+import type { Proxy, SSProxy } from '@/node/types'
 
 /** Helper to build a minimal valid SS proxy */
-function makeProxy(overrides: Partial<Proxy> = {}): Proxy {
+function makeProxy(overrides: Partial<SSProxy> = {}): SSProxy {
   return {
     type: 'ss',
     name: 'test-node',

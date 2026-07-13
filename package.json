@@ -3,12 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
-    "dev:fast": "next dev --turbo --no-lint --no-type-check",
+    "dev": "next dev",
     "build": "next build",
     "build:cf": "bun run build && bun x @cloudflare/next-on-pages",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -1,33 +1,56 @@
-﻿import { Proxy } from '@/node/types'
+import { Proxy } from '@/node/types'
+import { YamlSubscription } from '@/config/types'
 import { logger } from '@/lib/logger'
 import { fetchSubscription } from '@/network/client'
-import { parseSubscriptionText } from '@/fetch/subscription'
+import { parseMultipleProxies } from '@/node/node'
+import { deduplicateProxies } from '@/node/dedup'
+import { isProtocolUrl } from '@/lib/protocol'
+import yaml from 'js-yaml'
 
-export async function parseSubscription(url: string, clientUserAgent?: string): Promise<Proxy[]> {
+const MAX_SUBSCRIPTION_SIZE = 10 * 1024 * 1024
+
+function parseProxyList(text: string): Proxy[] {
+  const proxyText = text.split(/\s+/).filter(isProtocolUrl).join('\n')
+  return deduplicateProxies(parseMultipleProxies(proxyText), { keepStrategy: 'shorter' })
+}
+
+export function parseSubscriptionText(text: string): Proxy[] {
+  if (text.includes('proxies:')) {
+    const config = yaml.load(text) as YamlSubscription
+    return deduplicateProxies(config.proxies || [], { keepStrategy: 'shorter' })
+  }
+
+  const plainTextProxies = parseProxyList(text)
+  return plainTextProxies.length > 0
+    ? plainTextProxies
+    : parseProxyList(Buffer.from(text.trim(), 'base64').toString('utf-8'))
+}
+
+export async function parseSubscriptionResponse(response: Response): Promise<Proxy[]> {
+  const contentLength = Number(response.headers.get('content-length'))
+  if (contentLength > MAX_SUBSCRIPTION_SIZE) {
+    throw new Error(`订阅文件过大 (${(contentLength / 1024 / 1024).toFixed(2)}MB)，超过10MB限制`)
+  }
+
+  const text = await response.text()
+  if (!text.trim()) {
+    throw new Error('订阅内容为空，请检查订阅链接是否正确')
+  }
+
+  const actualSize = new TextEncoder().encode(text).byteLength
+  if (actualSize > MAX_SUBSCRIPTION_SIZE) {
+    throw new Error(`订阅文件过大 (${(actualSize / 1024 / 1024).toFixed(2)}MB)，超过10MB限制`)
+  }
+
+  return parseSubscriptionText(text)
+}
+
+export async function parseSubscription(url: string): Promise<Proxy[]> {
   const startTime = Date.now()
   logger.debug(`\n开始解析订阅: ${url}`)
 
   try {
-    const response = await fetchSubscription(url, clientUserAgent)
-
-    const contentLength = response.headers.get('content-length')
-    const MAX_SIZE = 10 * 1024 * 1024
-
-    if (contentLength && parseInt(contentLength) > MAX_SIZE) {
-      throw new Error(`订阅文件过大 (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)}MB)，超过10MB限制`)
-    }
-
-    const text = await response.text()
-    if (!text || text.length === 0) {
-      throw new Error('订阅内容为空，请检查订阅链接是否正确')
-    }
-
-    if (text.length > MAX_SIZE) {
-      logger.warn(`订阅文件较大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，处理时间可能较长`)
-    }
-
-    return parseSubscriptionText(text)
-
+    return parseSubscriptionResponse(await fetchSubscription(url))
   } catch (error) {
     const duration = Date.now() - startTime
     logger.error('\n=== 订阅解析失败 ===')
