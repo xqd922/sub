@@ -3,6 +3,24 @@ import { SingboxProxyConfig } from '@/config/types'
 import { parsePort } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 
+function decodeBase64Url(value: string): string {
+  const standardBase64 = value
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+  const paddedBase64 = standardBase64
+    + '='.repeat((4 - standardBase64.length % 4) % 4)
+
+  return Buffer.from(paddedBase64, 'base64').toString('utf-8')
+}
+
+function encodeBase64Url(value: string): string {
+  return Buffer.from(value)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
 export function parse(uri: string): SSProxy {
 
   const content = uri.substring(5)
@@ -41,24 +59,17 @@ export function parse(uri: string): SSProxy {
       }
     }
 
-    const standardBase64 = basePart
-      .replace(/-/g, '+')   
-      .replace(/_/g, '/')   
-
-    const paddedBase64 = standardBase64 +
-      '=='.slice(0, (4 - standardBase64.length % 4) % 4)
-
     if (basePart.includes('@')) {
-
-      const [userInfo = '', serverPart] = paddedBase64.split('@')
+      const separatorIndex = basePart.lastIndexOf('@')
+      const userInfo = basePart.substring(0, separatorIndex)
+      const serverPart = basePart.substring(separatorIndex + 1)
       if (!userInfo) {
         throw new Error('SS链接格式错误：缺少用户信息')
       }
-      const decodedUserInfo = Buffer.from(userInfo, 'base64').toString('utf-8')
+      const decodedUserInfo = decodeBase64Url(userInfo)
       decoded = `${decodedUserInfo}@${serverPart}`
     } else {
-
-      decoded = Buffer.from(paddedBase64, 'base64').toString('utf-8')
+      decoded = decodeBase64Url(basePart)
     }
   } catch (error) {
     logger.error('SS链接解析错误:', {
@@ -169,7 +180,7 @@ export function toUri(proxy: Proxy): string | null {
   const userInfo = `${proxy['encrypt-method'] || proxy.cipher}:${proxy.password}`;
   const baseInfo = `${proxy.server}:${proxy.port}`;
 
-  const base64UserInfo = Buffer.from(userInfo).toString('base64');
+  const base64UserInfo = encodeBase64Url(userInfo);
 
   let url = `ss://${base64UserInfo}@${baseInfo}`;
 

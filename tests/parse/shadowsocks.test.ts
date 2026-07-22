@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parse } from '@/node/proto/shadowsocks'
+import { parse, toUri } from '@/node/proto/shadowsocks'
 
 /**
  * Helper: encode method:password@server:port into SIP002 base64 format
@@ -114,6 +114,35 @@ describe('parse (shadowsocks)', () => {
 
     expect(proxy.cipher).toBe(method)
     expect(proxy.password).toBe(password)
+  })
+
+  it('parses Shadowsocks 2022 multi-user keys without changing a hyphenated server', () => {
+    const method = '2022-blake3-aes-256-gcm'
+    const serverKey = Buffer.from('0123456789abcdef0123456789abcdef').toString('base64')
+    const userKey = Buffer.from('fedcba9876543210fedcba9876543210').toString('base64')
+    const password = `${serverKey}:${userKey}`
+    const uri = buildSIP002Uri(method, password, 'edge-iepl.example.com', 65011, 'Hong Kong 1')
+
+    const proxy = parse(uri)
+
+    expect(proxy.cipher).toBe(method)
+    expect(proxy.password).toBe(password)
+    expect(proxy.server).toBe('edge-iepl.example.com')
+    expect(proxy.port).toBe(65011)
+    expect(proxy.name).toBe('Hong Kong 1')
+  })
+
+  it('round-trips Shadowsocks 2022 multi-user keys using URL-safe SIP002 user info', () => {
+    const method = '2022-blake3-aes-256-gcm'
+    const password = 'c2VydmVyLWtleQ==:dXNlci1rZXk='
+    const proxy = parse(buildSIP002Uri(method, password, 'ss-2022.example.com', 443, 'SS 2022'))
+
+    const generatedUri = toUri(proxy)
+
+    expect(generatedUri).not.toBeNull()
+    const encodedUserInfo = generatedUri!.substring(5, generatedUri!.lastIndexOf('@'))
+    expect(encodedUserInfo).not.toMatch(/[+/=]/)
+    expect(parse(generatedUri!)).toEqual(proxy)
   })
 
   // --- Remark encoding ---
