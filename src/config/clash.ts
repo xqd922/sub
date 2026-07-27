@@ -321,7 +321,6 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
-    'DOMAIN,stream-1.sadchicktv.com,DIRECT',
     'DOMAIN-SUFFIX,neko.mo.cn,Manual',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
