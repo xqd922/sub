@@ -268,18 +268,23 @@ export function generateSingboxConfig(proxies: Proxy[]) {
         }
       ]
     },
+    services: [
+      {
+        type: "api",
+        listen: "127.0.0.1",
+        listen_port: 9090,
+        secret: "",
+        dashboard: {
+          enabled: true,
+          http_client: "rule-set-download"
+        }
+      }
+    ],
     experimental: {
       cache_file: {
         enabled: true,
         store_fakeip: true,
         store_dns: true
-      },
-      clash_api: {
-        external_controller: "127.0.0.1:9090",
-        external_ui: "ui",
-        external_ui_download_url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
-        external_ui_download_detour: "Manual",
-        secret: ""
       }
     }
   }

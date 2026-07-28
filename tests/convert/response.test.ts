@@ -56,6 +56,19 @@ describe('renderConversionResponse', () => {
       .filter((rule: { outbound?: string }) => rule.outbound)
       .every((rule: { action?: string }) => rule.action === 'route')).toBe(true)
     expect(config.route.default_http_client).toBe('rule-set-download')
+    expect(config.services).toEqual([
+      {
+        type: 'api',
+        listen: '127.0.0.1',
+        listen_port: 9090,
+        secret: '',
+        dashboard: {
+          enabled: true,
+          http_client: 'rule-set-download'
+        }
+      }
+    ])
+    expect(config.experimental).not.toHaveProperty('clash_api')
     expect(config.experimental.cache_file).toEqual({
       enabled: true,
       store_fakeip: true,
