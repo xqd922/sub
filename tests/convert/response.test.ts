@@ -35,6 +35,16 @@ describe('renderConversionResponse', () => {
     expect(result.clientType).toBe('singbox')
     expect(result.body).toContain('"outbounds"')
     expect(result.headers['Content-Type']).toContain('application/json')
+
+    const config = JSON.parse(result.body)
+    expect(config.dns).not.toHaveProperty('independent_cache')
+    expect(config.http_clients).toEqual([
+      {
+        tag: 'rule-set-download',
+        detour: 'Manual'
+      }
+    ])
+    expect(config.route.default_http_client).toBe('rule-set-download')
   })
 
   it('renders browser preview HTML for browser user agents', () => {

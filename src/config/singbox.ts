@@ -12,6 +12,12 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       output: "box.log",
       timestamp: true
     },
+    http_clients: [
+      {
+        tag: "rule-set-download",
+        detour: "Manual"
+      }
+    ],
     dns: {
       servers: [
         {
@@ -63,8 +69,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
           server: "local"
         }
       ],
-      strategy: "prefer_ipv4",
-      independent_cache: true
+      strategy: "prefer_ipv4"
     },
     inbounds: [
       {
@@ -167,6 +172,7 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       ],
       final: "Manual",
       auto_detect_interface: true,
+      default_http_client: "rule-set-download",
       default_domain_resolver: {
         server: "local"
       },
@@ -216,4 +222,4 @@ export function generateSingboxConfig(proxies: Proxy[]) {
       }
     }
   }
-} 
+}
