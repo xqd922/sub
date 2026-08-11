@@ -80,7 +80,7 @@ export const defaultConfig: ClashConfig = {
   'allow-lan': true,
   'mode': 'rule',
   'log-level': 'info',
-  'ipv6': true,
+  'ipv6': false,
   'unified-delay': false,
   'tcp-concurrent': true,
   'keep-alive-idle': 300,
@@ -108,12 +108,12 @@ export const defaultConfig: ClashConfig = {
   },
   'dns': {
     'enable': true,
-    'ipv6': true,
+    'ipv6': false,
     'cache-algorithm': 'arc',
     'listen': '[::]:1053',
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'proxy-server-nameserver': ['https://doh.pub/dns-query'],
+    'proxy-server-nameserver': ['https://sh.dns44.cn:44443/dns-query', 'https://hk.dns44.cn:44443/dns-query'],
     'nameserver': ['https://dns.alidns.com/dns-query'],
     'nameserver-policy': {
       '*': 'system',
