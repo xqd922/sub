@@ -320,6 +320,7 @@ export const defaultConfig: ClashConfig = {
 
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
+    'DOMAIN,speedtest-better.apple-cdn.net,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
     'DOMAIN-SUFFIX,neko.mo.cn,Manual',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
