@@ -113,7 +113,7 @@ export const defaultConfig: ClashConfig = {
     'listen': '[::]:1053',
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'proxy-server-nameserver': ['https://doh.pub/dns-query', 'https://sh.dns44.cn:44443/dns-query', 'https://hk.dns44.cn:44443/dns-query'],
+    'proxy-server-nameserver': ['https://sh.dns44.cn:44443/dns-query', 'https://hk.dns44.cn:44443/dns-query'],
     'nameserver': ['https://dns.alidns.com/dns-query'],
     'nameserver-policy': {
       '*': 'system',
