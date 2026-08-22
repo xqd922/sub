@@ -34,7 +34,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
       name: 'Auto',
       type: 'url-test',
       proxies: proxyNames,
-      url: 'http://www.gstatic.com/generate_204',
+      url: 'https://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     },
@@ -55,7 +55,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
       name: 'HK',
       type: 'url-test',
       proxies: hkProxies,
-      url: 'http://www.gstatic.com/generate_204',
+      url: 'https://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     })
@@ -66,7 +66,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
       name: 'Min',
       type: 'url-test',
       proxies: minProxies,
-      url: 'http://www.gstatic.com/generate_204',
+      url: 'https://www.gstatic.com/generate_204',
       interval: 300,
       tolerance: 50
     })
