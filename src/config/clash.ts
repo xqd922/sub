@@ -108,12 +108,12 @@ export const defaultConfig: ClashConfig = {
   },
   'dns': {
     'enable': true,
-    'ipv6': false,
+    'ipv6': true,
     'cache-algorithm': 'arc',
     'listen': '[::]:1053',
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'proxy-server-nameserver': ['https://sh.dns44.cn:44443/dns-query', 'https://hk.dns44.cn:44443/dns-query'],
+    'proxy-server-nameserver': ['https://doh.pub/dns-query', 'https://sh.dns44.cn:44443/dns-query', 'https://hk.dns44.cn:44443/dns-query'],
     'nameserver': ['https://dns.alidns.com/dns-query'],
     'nameserver-policy': {
       '*': 'system',
@@ -305,6 +305,11 @@ export const defaultConfig: ClashConfig = {
 
     'PROCESS-NAME,com.xunmeng.pinduoduo,DIRECT',
     'PROCESS-NAME,com.jingdong.app.mall,DIRECT',
+    'PROCESS-NAME,com.jd.jrapp,DIRECT',
+    'PROCESS-NAME,com.jingdong.pdj,DIRECT',
+    'PROCESS-NAME,com.jd.pingou,DIRECT',
+    'PROCESS-NAME,com.jd.jdlite,DIRECT',
+    'PROCESS-NAME,com.jd.jdl,DIRECT',
     'PROCESS-NAME,com.taobao.taobao,DIRECT',
     'PROCESS-NAME,com.tmall.wireless,DIRECT',
     'PROCESS-NAME,com.taobao.idlefish,DIRECT',
@@ -320,7 +325,7 @@ export const defaultConfig: ClashConfig = {
 
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
-    'DOMAIN,speedtest-better.apple-cdn.net,DIRECT',
+    'DOMAIN-SUFFIX,apple-cdn.net,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
     'DOMAIN-SUFFIX,neko.mo.cn,Manual',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
