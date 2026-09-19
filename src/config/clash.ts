@@ -13,7 +13,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
 
   const manualProxies = ['Auto', 'DIRECT']
-  if (hkProxies.length > 0) {
+  if (hkProxies.length >= 3) {
     manualProxies.push('HK')
 
     if (isAirportSubscription && minProxies.length > 0) manualProxies.push('Min')
@@ -51,7 +51,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     }
   ]
 
-  if (hkProxies.length > 0) {
+  if (hkProxies.length >= 3) {
     groups.push({
       name: 'HK',
       type: 'url-test',
