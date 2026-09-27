@@ -20,13 +20,13 @@ export function generateProxyGroups(proxies: Proxy[]): ProxyGroup[] {
   }
   manualProxies.push(...proxyNames)
 
-  const embyProxies = ['✋ Manual', 'DIRECT']
+  const embyProxies = ['🎯 Manual', 'DIRECT']
   if (minProxies.length > 0) embyProxies.push('Min')
   embyProxies.push(...proxyNames)
 
   const groups: ProxyGroup[] = [
     {
-      name: '✋ Manual',
+      name: '🎯 Manual',
       type: 'select',
       proxies: manualProxies
     },
@@ -47,7 +47,7 @@ export function generateProxyGroups(proxies: Proxy[]): ProxyGroup[] {
     {
       name: '🤖 AI',
       type: 'select',
-      proxies: ['✋ Manual', ...proxyNames]
+      proxies: ['🎯 Manual', ...proxyNames]
     }
   ]
 
@@ -122,7 +122,7 @@ export const defaultConfig: ClashConfig = {
     'nameserver-policy': {
       '*': 'system',
       '+.arpa': 'system',
-      'rule-set:gfw': ['https://dns.google/dns-query#✋ Manual']
+      'rule-set:gfw': ['https://dns.google/dns-query#🎯 Manual']
     },
     'use-hosts': true,
     'direct-nameserver': ['system'],
@@ -335,7 +335,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
-    'DOMAIN-SUFFIX,neko.mo.cn,✋ Manual',
+    'DOMAIN-SUFFIX,neko.mo.cn,🎯 Manual',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
@@ -346,13 +346,13 @@ export const defaultConfig: ClashConfig = {
     'RULE-SET,ai,🤖 AI',
     'RULE-SET,ai-ip,🤖 AI,no-resolve',
 
-    'RULE-SET,telegram,✋ Manual',
-    'RULE-SET,telegram-ip,✋ Manual,no-resolve',
-    'RULE-SET,github,✋ Manual',
-    'RULE-SET,twitter,✋ Manual',
-    'RULE-SET,youtube,✋ Manual',
-    'RULE-SET,google,✋ Manual',
-    'RULE-SET,gfw,✋ Manual',
+    'RULE-SET,telegram,🎯 Manual',
+    'RULE-SET,telegram-ip,🎯 Manual,no-resolve',
+    'RULE-SET,github,🎯 Manual',
+    'RULE-SET,twitter,🎯 Manual',
+    'RULE-SET,youtube,🎯 Manual',
+    'RULE-SET,google,🎯 Manual',
+    'RULE-SET,gfw,🎯 Manual',
     'RULE-SET,cn,DIRECT',
     'RULE-SET,cn-ip,DIRECT,no-resolve',
     'DOMAIN,injections.adguard.org,DIRECT',
@@ -361,14 +361,14 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,cn,DIRECT',
     'DOMAIN-KEYWORD,-cn,DIRECT',
     'GEOIP,CN,DIRECT',
-    'MATCH,✋ Manual'
+    'MATCH,🎯 Manual'
   ],
 } as const
 
 // ===== String-returning wrappers for fetch/response =====
 
 const POLICY_ICONS: Array<[string, string]> = [
-  ['✋ Manual', 'Manual'],
+  ['🎯 Manual', 'Manual'],
   ['♻️ Auto', 'Auto'],
   ['📺 Emby', 'Emby'],
   ['🤖 AI', 'AI']
