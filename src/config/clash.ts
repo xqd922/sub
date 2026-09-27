@@ -12,7 +12,7 @@ export function generateProxyGroups(proxies: Proxy[]): ProxyGroup[] {
 
   const minProxies = proxyNames.filter(p => /0\.[0-3](?:[0-9]*)?/.test(p))
 
-  const manualProxies = ['Auto', 'DIRECT']
+  const manualProxies = ['♻️ Auto', 'DIRECT']
   if (hkProxies.length >= 3) {
     manualProxies.push('HK')
 
@@ -20,18 +20,18 @@ export function generateProxyGroups(proxies: Proxy[]): ProxyGroup[] {
   }
   manualProxies.push(...proxyNames)
 
-  const embyProxies = ['Manual', 'DIRECT']
+  const embyProxies = ['👆 Manual', 'DIRECT']
   if (minProxies.length > 0) embyProxies.push('Min')
   embyProxies.push(...proxyNames)
 
   const groups: ProxyGroup[] = [
     {
-      name: 'Manual',
+      name: '👆 Manual',
       type: 'select',
       proxies: manualProxies
     },
     {
-      name: 'Auto',
+      name: '♻️ Auto',
       type: 'url-test',
       proxies: proxyNames,
       url: 'https://www.gstatic.com/generate_204',
@@ -40,14 +40,14 @@ export function generateProxyGroups(proxies: Proxy[]): ProxyGroup[] {
       lazy: true
     },
     {
-      name: 'Emby',
+      name: '📺 Emby',
       type: 'select',
       proxies: embyProxies
     },
     {
-      name: 'AI',
+      name: '🤖 AI',
       type: 'select',
-      proxies: ['Manual', ...proxyNames]
+      proxies: ['👆 Manual', ...proxyNames]
     }
   ]
 
@@ -122,7 +122,7 @@ export const defaultConfig: ClashConfig = {
     'nameserver-policy': {
       '*': 'system',
       '+.arpa': 'system',
-      'rule-set:gfw': ['https://dns.google/dns-query#Manual']
+      'rule-set:gfw': ['https://dns.google/dns-query#👆 Manual']
     },
     'use-hosts': true,
     'direct-nameserver': ['system'],
@@ -335,24 +335,24 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
     'DOMAIN-SUFFIX,gegeselect.hk,DIRECT',
-    'DOMAIN-SUFFIX,neko.mo.cn,Manual',
+    'DOMAIN-SUFFIX,neko.mo.cn,👆 Manual',
     'IP-CIDR,95.161.76.100/31,REJECT,no-resolve',
     'DOMAIN-SUFFIX,steamcontent.com,DIRECT',
     'DOMAIN,msmp.abchina.com.cn,REJECT',
     'DOMAIN-SUFFIX,sharepoint.com,DIRECT',
 
-    'RULE-SET,emby,Emby',
+    'RULE-SET,emby,📺 Emby',
 
-    'RULE-SET,ai,AI',
-    'RULE-SET,ai-ip,AI,no-resolve',
+    'RULE-SET,ai,🤖 AI',
+    'RULE-SET,ai-ip,🤖 AI,no-resolve',
 
-    'RULE-SET,telegram,Manual',
-    'RULE-SET,telegram-ip,Manual,no-resolve',
-    'RULE-SET,github,Manual',
-    'RULE-SET,twitter,Manual',
-    'RULE-SET,youtube,Manual',
-    'RULE-SET,google,Manual',
-    'RULE-SET,gfw,Manual',
+    'RULE-SET,telegram,👆 Manual',
+    'RULE-SET,telegram-ip,👆 Manual,no-resolve',
+    'RULE-SET,github,👆 Manual',
+    'RULE-SET,twitter,👆 Manual',
+    'RULE-SET,youtube,👆 Manual',
+    'RULE-SET,google,👆 Manual',
+    'RULE-SET,gfw,👆 Manual',
     'RULE-SET,cn,DIRECT',
     'RULE-SET,cn-ip,DIRECT,no-resolve',
     'DOMAIN,injections.adguard.org,DIRECT',
@@ -361,11 +361,30 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN-SUFFIX,cn,DIRECT',
     'DOMAIN-KEYWORD,-cn,DIRECT',
     'GEOIP,CN,DIRECT',
-    'MATCH,Manual'
+    'MATCH,👆 Manual'
   ],
 } as const
 
 // ===== String-returning wrappers for fetch/response =====
+
+const POLICY_ICONS: Array<[string, string]> = [
+  ['👆 Manual', 'Manual'],
+  ['♻️ Auto', 'Auto'],
+  ['📺 Emby', 'Emby'],
+  ['🤖 AI', 'AI']
+]
+
+function hidePolicyIcons(value: string): string {
+  return POLICY_ICONS.reduce((name, [iconName, plainName]) => name.replace(iconName, plainName), value)
+}
+
+function groupsWithoutIcons(groups: ProxyGroup[]): ProxyGroup[] {
+  return groups.map(group => ({
+    ...group,
+    name: hidePolicyIcons(group.name),
+    proxies: group.proxies.map(hidePolicyIcons)
+  }))
+}
 
 export function generateClashConfig(proxies: Proxy[]): string {
   const clashProxies = proxies.map(proxy => {
@@ -374,10 +393,26 @@ export function generateClashConfig(proxies: Proxy[]): string {
     return clashProxy
   })
 
+  let proxyGroups = generateProxyGroups(clashProxies)
+  const showIcons = proxyGroups.every(group => group.name !== 'HK' && group.name !== 'Min')
+  if (!showIcons) proxyGroups = groupsWithoutIcons(proxyGroups)
+
+  const dns = defaultConfig.dns
+  const nameserverPolicy = dns?.['nameserver-policy']
   const clashConfig = {
     ...defaultConfig,
+    dns: showIcons || !dns || !nameserverPolicy ? dns : {
+      ...dns,
+      'nameserver-policy': Object.fromEntries(
+        Object.entries(nameserverPolicy).map(([domain, server]) => [
+          domain,
+          Array.isArray(server) ? server.map(hidePolicyIcons) : hidePolicyIcons(server)
+        ])
+      )
+    },
+    rules: showIcons ? defaultConfig.rules : defaultConfig.rules.map(hidePolicyIcons),
     proxies: clashProxies,
-    'proxy-groups': generateProxyGroups(clashProxies)
+    'proxy-groups': proxyGroups
   }
 
   let output = yaml.dump(clashConfig, {
