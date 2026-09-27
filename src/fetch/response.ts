@@ -12,7 +12,6 @@ export interface RenderConversionInput {
   formattedProxies: Proxy[]
   subscription: SubscriptionInfo
   userAgent: string
-  isAirportSubscription: boolean
 }
 
 export interface RenderedConversionResponse {
@@ -53,7 +52,7 @@ function generateV2rayNGHeaders(subscription: SubscriptionInfo): Record<string, 
 }
 
 export function renderConversionResponse(input: RenderConversionInput): RenderedConversionResponse {
-  const { formattedProxies, subscription, userAgent, isAirportSubscription } = input
+  const { formattedProxies, subscription, userAgent } = input
   const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(userAgent)
 
   if (isSingBox) {
@@ -76,7 +75,7 @@ export function renderConversionResponse(input: RenderConversionInput): Rendered
     }
   }
 
-  const yamlConfig = generateClashConfig(formattedProxies, isAirportSubscription)
+  const yamlConfig = generateClashConfig(formattedProxies)
 
   if (isBrowser) {
     const jsonConfig = generateSingboxConfig(formattedProxies)

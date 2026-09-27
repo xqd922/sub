@@ -113,7 +113,7 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
       throw AppError.validation('该订阅链接已被禁用', 'url', undefined)
     }
 
-    const { proxies, subscription, isAirportSubscription } = await processSubscription(url)
+    const { proxies, subscription } = await processSubscription(url)
 
     // 如果原始订阅没有 profile-web-page-url，用转换器自身地址作为首页
     const requestOrigin = new URL(request.url).origin
@@ -130,8 +130,7 @@ export async function handleRequest(request: Request): Promise<NextResponse> {
       proxies,
       formattedProxies,
       subscription,
-      userAgent,
-      isAirportSubscription
+      userAgent
     })
 
     logger.info('\n=== 客户端信息 ===')

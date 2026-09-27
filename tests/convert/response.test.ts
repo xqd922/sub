@@ -30,7 +30,6 @@ describe('renderConversionResponse', () => {
       formattedProxies: [proxy],
       subscription,
       userAgent: 'sing-box/1.10',
-      isAirportSubscription: true
     })
 
     expect(result.clientType).toBe('singbox')
@@ -98,7 +97,6 @@ describe('renderConversionResponse', () => {
       formattedProxies: [proxy],
       subscription,
       userAgent: 'Mozilla/5.0 Chrome/120 Safari/537.36',
-      isAirportSubscription: true
     })
 
     expect(result.clientType).toBe('browser')
@@ -112,7 +110,6 @@ describe('renderConversionResponse', () => {
       formattedProxies: [proxy],
       subscription,
       userAgent: 'curl/8',
-      isAirportSubscription: true
     })
 
     expect(result.clientType).toBe('clash')

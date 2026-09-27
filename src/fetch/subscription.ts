@@ -105,22 +105,17 @@ function extractSubscriptionInfo(response: Response): SubscriptionInfo {
 export async function processSubscription(url: string): Promise<{
   proxies: Proxy[]
   subscription: SubscriptionInfo
-  isAirportSubscription: boolean  
 }> {
   logger.info('开始处理订阅:', url)
 
   let proxies: Proxy[]
   let subscription: SubscriptionInfo
-  let isAirportSubscription = false  
 
   if (isGistUrl(url)) {
     logger.info('检测到 Gist 订阅，获取所有节点')
     const result = await fetchNodesFromRemote(url)
     proxies = result.proxies
     subscription = createDefaultSubscription()
-
-    isAirportSubscription = result.hasSubscriptionUrls
-    logger.info(`Gist 包含订阅链接: ${result.hasSubscriptionUrls}, 是否生成 HK 组: ${isAirportSubscription}`)
   } else if (isProtocolUrl(url)) {
     logger.info('检测到节点链接，使用节点解析器')
     proxies = parseMultipleProxies(url)
@@ -128,16 +123,14 @@ export async function processSubscription(url: string): Promise<{
       throw new Error('无效的节点链接')
     }
     subscription = createDefaultSubscription()
-    isAirportSubscription = false  
   } else {
 
     const response = await fetchSubscription(url)
     subscription = extractSubscriptionInfo(response)
     proxies = await parseSubscriptionResponse(response)
-    isAirportSubscription = true  
   }
 
-  return { proxies, subscription, isAirportSubscription }
+  return { proxies, subscription }
 }
 
 export function formatProxies(proxies: Proxy[], shouldFormat: boolean): Proxy[] {

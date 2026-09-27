@@ -15,7 +15,6 @@ const SUBSCRIPTION_PREFIXES = ['http://', 'https://']
 
 export async function fetchNodesFromRemote(url: string): Promise<{
   proxies: Proxy[]
-  hasSubscriptionUrls: boolean
 }> {
   try {
     const response = await fetchRemoteNodes(url)
@@ -26,10 +25,6 @@ export async function fetchNodesFromRemote(url: string): Promise<{
 
     const content = await response.text()
     const lines = content.split('\n').map(line => line.trim()).filter(Boolean)
-
-    const hasSubscriptionUrls = lines.some(line =>
-      SUBSCRIPTION_PREFIXES.some(prefix => line.startsWith(prefix))
-    )
 
     const singleNodeLines: string[] = []
     const subscriptionLines: string[] = []
@@ -113,7 +108,7 @@ export async function fetchNodesFromRemote(url: string): Promise<{
 
     logger.info(`Gist 最终节点: ${deduplicated.length} 个`)
 
-    return { proxies: deduplicated, hasSubscriptionUrls }
+    return { proxies: deduplicated }
   } catch (error) {
     logger.error('获取远程节点失败:', error)
     throw error

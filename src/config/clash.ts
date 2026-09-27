@@ -5,7 +5,7 @@ import { generateBase64Subscription } from '@/node/index'
 import { generateSingboxConfig as buildSingboxConfig } from '@/config/singbox'
 import { previewStyles } from '@/config/preview'
 
-export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boolean = true): ProxyGroup[] {
+export function generateProxyGroups(proxies: Proxy[]): ProxyGroup[] {
   const proxyNames = proxies.map(proxy => proxy.name);
 
   const hkProxies = proxyNames.filter(p => /香港|HK|Hong Kong|HKG/i.test(p))
@@ -16,12 +16,12 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
   if (hkProxies.length >= 3) {
     manualProxies.push('HK')
 
-    if (isAirportSubscription && minProxies.length > 0) manualProxies.push('Min')
+    if (minProxies.length > 0) manualProxies.push('Min')
   }
   manualProxies.push(...proxyNames)
 
   const embyProxies = ['Manual', 'DIRECT']
-  if (isAirportSubscription && minProxies.length > 0) embyProxies.push('Min')
+  if (minProxies.length > 0) embyProxies.push('Min')
   embyProxies.push(...proxyNames)
 
   const groups: ProxyGroup[] = [
@@ -63,7 +63,7 @@ export function generateProxyGroups(proxies: Proxy[], isAirportSubscription: boo
     })
   }
 
-  if (isAirportSubscription && minProxies.length > 0) {
+  if (minProxies.length > 0) {
     groups.push({
       name: 'Min',
       type: 'url-test',
@@ -367,7 +367,7 @@ export const defaultConfig: ClashConfig = {
 
 // ===== String-returning wrappers for fetch/response =====
 
-export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boolean = true): string {
+export function generateClashConfig(proxies: Proxy[]): string {
   const clashProxies = proxies.map(proxy => {
     const clashProxy = { ...proxy }
     delete clashProxy.detour
@@ -377,7 +377,7 @@ export function generateClashConfig(proxies: Proxy[], isAirportSubscription: boo
   const clashConfig = {
     ...defaultConfig,
     proxies: clashProxies,
-    'proxy-groups': generateProxyGroups(clashProxies, isAirportSubscription)
+    'proxy-groups': generateProxyGroups(clashProxies)
   }
 
   let output = yaml.dump(clashConfig, {
