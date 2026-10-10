@@ -1,5 +1,5 @@
-﻿import { Proxy, SSProxy } from '@/protocols/types'
-import { SingboxProxyConfig } from '@/templates/types'
+﻿import { Proxy, SSProxy } from '@/protocols/model'
+import { SingboxProxyConfig } from '@/templates/schema'
 import { parsePort } from '@/infra/utils'
 import { logger } from '@/infra/logger'
 

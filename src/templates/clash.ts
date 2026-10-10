@@ -1,6 +1,6 @@
 ﻿import yaml from 'js-yaml'
-import { Proxy } from '@/protocols/types'
-import { ClashConfig, ProxyGroup } from '@/templates/types'
+import { Proxy } from '@/protocols/model'
+import { ClashConfig, ProxyGroup } from '@/templates/schema'
 import { generateBase64Subscription } from '@/protocols/index'
 import { generateSingboxConfig as buildSingboxConfig } from '@/templates/sing-box'
 import { previewStyles } from '@/templates/preview'

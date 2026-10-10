@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from 'vitest'
 import { renderConversionResponse } from '@/conversion/response'
 import { generateSingboxConfig as buildSingboxConfig } from '@/templates/sing-box'
-import type { Proxy } from '@/protocols/types'
+import type { Proxy } from '@/protocols/model'
 import type { SubscriptionInfo } from '@/conversion/subscription'
 
 const proxy: Proxy = {

@@ -1,6 +1,6 @@
 ﻿import { describe, it, expect } from 'vitest'
 import { deduplicateProxies } from '@/conversion/proxy-dedup'
-import type { Proxy, SSProxy } from '@/protocols/types'
+import type { Proxy, SSProxy } from '@/protocols/model'
 
 /** Helper to build a minimal valid SS proxy */
 function makeProxy(overrides: Partial<SSProxy> = {}): SSProxy {

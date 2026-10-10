@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from 'vitest'
 import { parseSubscriptionText, shouldFormatNames, formatProxies } from '@/conversion/subscription'
 import { parseSubscriptionResponse } from '@/conversion/parse-subscription'
-import type { Proxy } from '@/protocols/types'
+import type { Proxy } from '@/protocols/model'
 
 const ssUri = 'ss://YWVzLTEyOC1nY206cGFzcw@proxy.example.net:8388#Node%201'
 

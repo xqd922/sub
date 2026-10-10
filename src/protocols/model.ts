@@ -1,4 +1,4 @@
-// ===== Base =====
+// ===== Model =====
 
 export interface BaseProxy {
   name: string
@@ -20,7 +20,7 @@ export interface BaseProxy {
   'private-key'?: string
 }
 
-// ===== Protocol-specific =====
+// ===== Protocol-specific models =====
 
 export interface SSProxy extends BaseProxy {
   type: 'ss'

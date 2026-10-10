@@ -1,4 +1,4 @@
-﻿import { Proxy } from '@/protocols/types'
+﻿import { Proxy } from '@/protocols/model'
 import { generateClashConfig, generateSingboxConfig, generateV2rayNGConfig, generatePreviewHtml } from '@/templates/clash'
 import { SubscriptionInfo } from '@/conversion/subscription'
 import { detectClientType } from '@/infra/client'

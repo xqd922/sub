@@ -1,4 +1,4 @@
-﻿import { Proxy } from '@/protocols/types'
+﻿import { Proxy } from '@/protocols/model'
 import { parseMultipleProxies } from '@/protocols/index'
 import { fetchNodesFromRemote } from '@/conversion/remote-nodes'
 import { parseSubscriptionResponse } from '@/conversion/parse-subscription'

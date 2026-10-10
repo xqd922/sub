@@ -1,6 +1,6 @@
 ﻿import { parseSubscription } from '@/conversion/parse-subscription'
 import { parseProxyUri } from '@/protocols/index'
-import { Proxy } from '@/protocols/types'
+import { Proxy } from '@/protocols/model'
 import { logger } from '@/infra/logger'
 import { fetchRemoteNodes } from '@/infra/network'
 import { deduplicateProxies } from '@/conversion/proxy-dedup'

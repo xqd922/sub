@@ -29,13 +29,13 @@ src/                          全部源码
 ├── protocols/                协议解析器（SS/Vmess/Trojan/VLESS/Hysteria2/SOCKS/AnyTLS/Snell）
 │   ├── shadowsocks.ts
 │   ├── vmess.ts / trojan.ts / vless.ts / hysteria2.ts / socks.ts / anytls.ts / snell.ts
-│   ├── types.ts              BaseProxy + 协议扩展类型
+│   ├── model.ts              节点模型：BaseProxy + 8 个协议专属 interface + Proxy 联合类型 + isClashProxy
 │   └── index.ts              分发器：parseProxyUri / proxyToUri / proxyToSingboxOutbound / generateBase64Subscription
 ├── templates/                客户端配置生成
 │   ├── clash.ts              Clash YAML + generateClashConfig + generateProxyGroups
 │   ├── sing-box.ts           Sing-box JSON
 │   ├── preview.ts            预览 HTML 样式
-│   └── types.ts              ClashConfig / SingboxProxyConfig 等
+│   └── schema.ts             输出 schema：ClashConfig / Singbox*Config / ProxyGroup / RuleProvider / YamlSubscription
 ├── conversion/               订阅 → 配置转换流水线
 │   ├── subscription.ts       processSubscription（Gist / 单节点 / 常规订阅）
 │   ├── parse-subscription.ts 低层解析（含大小限制）
@@ -116,9 +116,10 @@ app/        ──只调用 conversion / links / auth + Next.js route plumbing
   - `parse(uri)` — 解析 URI 为 `Proxy`
   - `toUri(node)` — `Proxy` 转回 URI
   - `toSingboxOutbound(node)` — `Proxy` → Sing-box outbound 对象
-- **类型跟着领域走**：每个模块导出自己的类型，只有 Proxy 体系和 ClientConfig 体系保留公共 `types.ts`。
-  - `protocols/types.ts`：domain 数据（SSProxy / VmessProxy / … / Proxy 联合类型 / isClashProxy）。
-  - `templates/types.ts`：rendering 输出（ClashConfig / Singbox*Config / ProxyGroup / RuleProvider / YamlSubscription）。两类接口**不要合并**，前者描述节点，后者描述产物，生命周期不同。
+- **类型跟着领域走**：每个模块导出自己的类型；两个类型入口分别承载不同职责，**不要合并**：
+  - `protocols/model.ts`：domain 模型（SSProxy / VmessProxy / … / Proxy 联合类型 / isClashProxy）—— **节点是什么**。
+  - `templates/schema.ts`：rendering 输出（ClashConfig / Singbox*Config / ProxyGroup / RuleProvider / YamlSubscription）—— **配置长什么样**。
+  两者生命周期不同：新增协议只动 model，新增输出格式只动 schema。
 - **错误路径**：所有领域错误用 `src/infra/error.ts` 的 `AppError`，HTTP 出口交给 `src/infra/error-reporter.ts`。
 - **CSS**：Tailwind CSS 4，通过 `@import "tailwindcss"` 引入。
 

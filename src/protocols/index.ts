@@ -1,4 +1,4 @@
-import { Proxy } from '@/protocols/types'
+﻿import { Proxy } from '@/protocols/model'
 import { logger } from '@/infra/logger'
 
 import {

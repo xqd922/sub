@@ -1,5 +1,5 @@
-﻿import { Proxy } from '@/protocols/types'
-import { YamlSubscription } from '@/templates/types'
+﻿import { Proxy } from '@/protocols/model'
+import { YamlSubscription } from '@/templates/schema'
 import { logger } from '@/infra/logger'
 import { fetchSubscription } from '@/infra/network'
 import { parseMultipleProxies } from '@/protocols/index'

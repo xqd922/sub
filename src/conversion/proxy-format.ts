@@ -1,4 +1,4 @@
-﻿import { Proxy } from '@/protocols/types'
+﻿import { Proxy } from '@/protocols/model'
 import { detectRegion } from '@/conversion/region'
 
 function isIPv6Node(name: string): boolean {

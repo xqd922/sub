@@ -1,5 +1,5 @@
-﻿import { Proxy } from '@/protocols/types'
-import { SingboxProxyConfig } from '@/templates/types'
+﻿import { Proxy } from '@/protocols/model'
+import { SingboxProxyConfig } from '@/templates/schema'
 import { parsePort } from '@/infra/utils'
 
 export function parse(uri: string): Proxy {
