@@ -104,10 +104,9 @@ export const defaultConfig: ClashConfig = {
     'override-destination': true,
     'sniff': {
       'HTTP': { 'ports': [80, '8080-8880'], 'override-destination': true },
-      'TLS': { 'ports': [443, 8443] },
-      'QUIC': { 'ports': [443, 8443] }
+      'TLS': { 'ports': [443, 8443] }
     },
-    'skip-domain': ['Mijia Cloud', '+.push.apple.com']
+    'skip-domain': ['Mijia Cloud', '+.push.apple.com', '+.163.com', '+.netease.com']
   },
   'dns': {
     'enable': true,
@@ -130,7 +129,8 @@ export const defaultConfig: ClashConfig = {
       'rule-set:private',
       'rule-set:fakeip-filter',
       'rule-set:tencent',
-      'rule-set:geolocation-cn'
+      'rule-set:geolocation-cn',
+      '+.163.com'
     ]
   },
   'hosts': {
@@ -330,7 +330,9 @@ export const defaultConfig: ClashConfig = {
     'RULE-SET,tencent,DIRECT',
     'RULE-SET,ads,REJECT',
 
-    'AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn),(RULE-SET,cn-ip,no-resolve)))))),REJECT',
+    'DOMAIN-SUFFIX,163.com,DIRECT',
+    'DOMAIN-SUFFIX,netease.com,DIRECT',
+    'AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn),(GEOIP,CN)))))),REJECT',
 
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
     'DOMAIN,1001.pp.ua,DIRECT',
