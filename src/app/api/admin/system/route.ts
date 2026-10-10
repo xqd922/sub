@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
 import { AppError } from '@/infra/error'
 import { requireAdmin } from '@/auth/guard'
-import { isAvailable } from '@/infra/kv/index'
+import { isAvailable } from '@/infra/kv/operations'
 import { getLoginLog } from '@/auth/login-log'
 import { logger } from '@/infra/logger'
 

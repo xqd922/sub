@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+﻿import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   ADMIN_COOKIE_NAME,
   SESSION_TTL_MS,
@@ -144,12 +144,26 @@ describe('parseSessionCookie', () => {
 })
 
 describe('serializeSessionCookie', () => {
+  // Bun 的内置 test runner 没有 vi.stubEnv/vi.unstubAllEnvs；
+  // 用 Object.defineProperty 覆写 process.env 更通用。
+  const savedNodeEnv = process.env.NODE_ENV
+
   afterEach(() => {
-    vi.unstubAllEnvs()
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: savedNodeEnv,
+      writable: true,
+      configurable: true,
+      enumerable: true
+    })
   })
 
   it('includes standard flags in production and adds Secure', () => {
-    vi.stubEnv('NODE_ENV', 'production')
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'production',
+      writable: true,
+      configurable: true,
+      enumerable: true
+    })
     const cookie = serializeSessionCookie('tok')
 
     expect(cookie).toContain(`${ADMIN_COOKIE_NAME}=tok`)
@@ -161,7 +175,12 @@ describe('serializeSessionCookie', () => {
   })
 
   it('omits Secure in development', () => {
-    vi.stubEnv('NODE_ENV', 'development')
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'development',
+      writable: true,
+      configurable: true,
+      enumerable: true
+    })
     expect(serializeSessionCookie('tok')).not.toContain('Secure')
   })
 

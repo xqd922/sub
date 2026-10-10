@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
 import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
 import { requireAdmin } from '@/auth/guard'
-import { listAllRecordsForAdmin, createRecordManually, setRecordEnabled, deleteRecordPermanently } from '@/infra/kv/index'
+import { listAllRecordsForAdmin, createRecordManually, setRecordEnabled, deleteRecordPermanently } from '@/infra/kv/records'
 import { logger } from '@/infra/logger'
 
 export const runtime = 'edge'

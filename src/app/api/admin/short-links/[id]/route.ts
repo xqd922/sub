@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
 import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
 import { requireAdmin } from '@/auth/guard'
-import { updateShortLink, deleteShortLink } from '@/infra/kv/index'
+import { updateShortLink, deleteShortLink } from '@/infra/kv/short_link'
 import { logger } from '@/infra/logger'
 
 export const runtime = 'edge'

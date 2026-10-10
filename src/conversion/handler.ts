@@ -4,7 +4,7 @@ import { renderConversionResponse, logConfigStats } from '@/conversion/response'
 import { logger } from '@/infra/logger'
 import { AppError, ErrorCode, ErrorFactory } from '@/infra/error'
 import { handleError, createErrorResponse } from '@/infra/error-reporter'
-import { isUrlEnabled, logConversion } from '@/infra/kv/index'
+import { isUrlEnabled, logConversion } from '@/infra/kv/records'
 
 async function getExecutionContext(): Promise<ExecutionContext | null> {
   try {

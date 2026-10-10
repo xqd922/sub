@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
 import { AppError } from '@/infra/error'
 import { requireAdmin } from '@/auth/guard'
-import { getStats, getRecentDailyStats } from '@/infra/kv/index'
+import { getStats, getRecentDailyStats } from '@/infra/kv/records'
 import { logger } from '@/infra/logger'
 
 export const runtime = 'edge'

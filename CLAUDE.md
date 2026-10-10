@@ -67,8 +67,7 @@ src/                          全部源码
 │       ├── records.ts        转换记录 + 统计
 │       ├── short_link.ts     短链接存储
 │       ├── maintenance.ts    pingKV + rebuildIndexes
-│       ├── types.ts          ConvertRecord / ShortLink / StatsData / DailyStats / KV_PREFIX
-│       └── index.ts          barrel
+│       └── types.ts          ConvertRecord / ShortLink / StatsData / DailyStats / KV_PREFIX
 └── components/               前端 UI（client components + hooks）
     ├── home.tsx / copy-button.tsx / url-input.tsx / short-link.tsx / toast.tsx / error-boundary.tsx / qr-code.tsx
     ├── admin-dashboard.tsx / admin-login.tsx / admin-stats.tsx / admin-records.tsx / admin-short-links.tsx / admin-system.tsx / admin-tools.tsx
@@ -118,6 +117,8 @@ app/        ──只调用 conversion / links / auth + Next.js route plumbing
   - `toUri(node)` — `Proxy` 转回 URI
   - `toSingboxOutbound(node)` — `Proxy` → Sing-box outbound 对象
 - **类型跟着领域走**：每个模块导出自己的类型，只有 Proxy 体系和 ClientConfig 体系保留公共 `types.ts`。
+  - `protocols/types.ts`：domain 数据（SSProxy / VmessProxy / … / Proxy 联合类型 / isClashProxy）。
+  - `templates/types.ts`：rendering 输出（ClashConfig / Singbox*Config / ProxyGroup / RuleProvider / YamlSubscription）。两类接口**不要合并**，前者描述节点，后者描述产物，生命周期不同。
 - **错误路径**：所有领域错误用 `src/infra/error.ts` 的 `AppError`，HTTP 出口交给 `src/infra/error-reporter.ts`。
 - **CSS**：Tailwind CSS 4，通过 `@import "tailwindcss"` 引入。
 

@@ -1,6 +1,7 @@
-﻿import { logger } from '@/infra/logger'
+import { logger } from '@/infra/logger'
 import { fetchShortUrl } from '@/infra/network'
-import { isAvailable as isKVAvailable, createShortLink } from '@/infra/kv/index'
+import { isAvailable as isKVAvailable } from '@/infra/kv/operations'
+import { createShortLink } from '@/infra/kv/short_link'
 import { extractNameFromUrl } from '@/infra/utils'
 
 interface ShortProvider {

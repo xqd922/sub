@@ -1,4 +1,4 @@
-﻿import { resolveShortLink } from '@/infra/kv/index'
+﻿import { resolveShortLink } from '@/infra/kv/short_link'
 import { handleRequest } from '@/conversion/handler'
 import { logger } from '@/infra/logger'
 import { NextResponse } from 'next/server'
