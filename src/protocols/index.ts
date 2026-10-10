@@ -43,8 +43,9 @@ export function parseProxyUri(uri: string): Proxy | null {
 
 export function parseMultipleProxies(input: string): Proxy[] {
   return input
-    .split(/\s+/)
-    .filter(uri => uri.trim())
+    .split(/\r?\n/)
+    .map(uri => uri.trim())
+    .filter(uri => uri)
     .map(parseProxyUri)
     .filter((proxy): proxy is Proxy => proxy !== null)
 }

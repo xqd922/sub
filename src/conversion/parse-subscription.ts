@@ -10,7 +10,13 @@ import yaml from 'js-yaml'
 const MAX_SUBSCRIPTION_SIZE = 10 * 1024 * 1024
 
 function parseProxyList(text: string): Proxy[] {
-  const proxyText = text.split(/\s+/).filter(isProtocolUrl).join('\n')
+  // 按行而不是按空白切分：节点名 (#fragment) 里常含未编码空格，
+  // split(/\s+/) 会把一行撕成多个"单词"，把节点名截断甚至整行丢弃。
+  const proxyText = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(isProtocolUrl)
+    .join('\n')
   return deduplicateProxies(parseMultipleProxies(proxyText), { keepStrategy: 'shorter' })
 }
 

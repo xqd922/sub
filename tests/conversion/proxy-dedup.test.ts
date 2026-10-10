@@ -51,7 +51,7 @@ describe('deduplicateProxies', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('keeps info nodes when filterInfoNodes is false', () => {
+  it('keeps info nodes when filterInfoNodes is explicitly disabled', () => {
     const info = makeProxy({ name: '剩余流量: 10GB' })
     const result = deduplicateProxies([info], { ...opts, filterInfoNodes: false })
     expect(result).toHaveLength(1)

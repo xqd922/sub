@@ -150,6 +150,8 @@ export function deduplicateProxies(
   options: DeduplicateOptions = {}
 ): Proxy[] {
   const {
+    // 默认按名字过滤"信息节点"（剩余流量/套餐到期/官网等），
+    // 这些是机场埋进订阅里的提示占位，不应出现在客户端节点列表。
     filterInfoNodes = true,
     verbose = true,
     keepStrategy = 'shorter'
