@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { AppError } from '@/error/errors'
+﻿import { NextResponse } from 'next/server'
+import { AppError } from '@/infra/error'
 import { requireAdmin } from '@/auth/guard'
-import { rebuildIndexes } from '@/kv/maintenance'
-import { logger } from '@/lib/logger'
+import { rebuildIndexes } from '@/infra/kv/maintenance'
+import { logger } from '@/infra/logger'
 
 export const runtime = 'edge'
 

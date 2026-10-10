@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { AppError, ErrorCode, ErrorSeverity } from '@/error/errors'
+﻿import { NextResponse } from 'next/server'
+import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
 import { ADMIN_COOKIE_NAME, SESSION_TTL_MS, createSessionToken } from '@/auth/session'
 import { checkLoginRateLimit, recordFailedLogin, clearLoginAttempts, getClientIp } from '@/auth/guard'
-import { appendLoginAttempt } from '@/auth/login_log'
+import { appendLoginAttempt } from '@/auth/login-log'
 
 export const runtime = 'edge'
 

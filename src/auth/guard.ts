@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorSeverity } from '@/error/errors'
+﻿import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
 import { getSessionFromRequest } from '@/auth/session'
 
 export const LOGIN_MAX_ATTEMPTS = 5

@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorSeverity } from '@/error/errors'
+﻿import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
 
 export const ADMIN_COOKIE_NAME = 'admin_session'
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000

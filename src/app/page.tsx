@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 
 import dynamic from 'next/dynamic'
 
-const HomeContent = dynamic(() => import('@/ui/home'), {
+const HomeContent = dynamic(() => import('@/components/home'), {
   ssr: false 
 })
 

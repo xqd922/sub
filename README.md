@@ -1,4 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 订阅转换（sub-next）
+
+输入代理订阅链接 → 输出 Clash / Sing-box / v2rayNG 配置 + 短链 + 预览页。
+
+## 目录速览
+
+```
+src/
+├── app/         Next.js App Router（公开路由保持原状）
+├── protocols/   代理协议解析器，一个文件一个协议
+├── templates/   Clash / Sing-box / 预览 HTML 的生成器
+├── conversion/  订阅 → proxies → 输出配置的完整流水线
+├── links/       短链接业务
+├── auth/        管理员 session / 守卫 / 登录审计
+├── infra/       logger · error · network · utils · client · url-rules · kv/
+└── components/  React UI + 相关 hooks
+tests/           测试用例（按 mirror src/ 分目录）
+```
+
+## 快速开始
+
+```bash
+bun install
+bun run dev     # Turbopack 开发
+bun run build   # 生产构建
+bun run test    # 单元测试
+bun run lint    # ESLint
+```
+
+## 开发规约
+
+- 文件和目录统一 kebab-case
+- 所有 API 路由使用 Edge Runtime（`export const runtime = 'edge'`）
+- 依赖方向只允许 `infra → protocols → templates → conversion/links/auth/components → app`
+- 公开 URL：`/sub`、`/api/shorten`、`/s/[id]`、`/api/admin/*`、`/admin`
+- 测试文件：`tests/<layer>/<name>.test.ts`，目录结构与 `src/` 镜像
+
+更详细说明请见 [CLAUDE.md](./CLAUDE.md) 与领域术语 [CONTEXT.md](./CONTEXT.md)。
 
 ## Getting Started
 
