@@ -335,6 +335,7 @@ export const defaultConfig: ClashConfig = {
     'DOMAIN,speedtest-babybus.apple-cdn.net,Emby',
     'DOMAIN-SUFFIX,apple-cdn.net,DIRECT',
     'DOMAIN,a.115cdn.de,DIRECT',
+    'DOMAIN-SUFFIX,wodenas.xin,DIRECT',
     'AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((RULE-SET,cn),(GEOIP,CN)))))),REJECT',
 
     'DOMAIN,sub.xqd.pp.ua,DIRECT',
