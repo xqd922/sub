@@ -46,6 +46,31 @@ describe('detectRegion', () => {
     ['USA-West', 'US', 'United States'],
     ['RUS-01', 'RU', 'Russia'],
     ['🇺🇸 US-Node', 'US', 'United States'],
+    // Intl.DisplayNames 自动覆盖的冷门国家（简/繁/英文）与港澳台前缀
+    ['卢森堡 01', 'LU', 'Luxembourg'],
+    ['爱沙尼亚节点', 'EE', 'Estonia'],
+    ['塞浦路斯 01', 'CY', 'Cyprus'],
+    ['賽普勒斯 BGP', 'CY', 'Cyprus'],
+    ['喬治亞 01', 'GE', 'Georgia'],
+    ['塞尔维亚', 'RS', 'Serbia'],
+    ['白俄罗斯', 'BY', 'Belarus'],
+    ['乌兹别克斯坦', 'UZ', 'Uzbekistan'],
+    ['Luxembourg-01', 'LU', 'Luxembourg'],
+    ['Estonia-Node', 'EE', 'Estonia'],
+    ['中国香港 01', 'HK', 'Hong Kong'],
+    ['中国台湾 01', 'TW', 'Taiwan'],
+    // 仅写机房城市或 IATA 机场代码
+    ['圣何塞 BGP', 'US', 'United States'],
+    ['硅谷 01', 'US', 'United States'],
+    ['LAX-01', 'US', 'United States'],
+    ['东京 02', 'JP', 'Japan'],
+    ['NRT-01', 'JP', 'Japan'],
+    ['法兰克福 01', 'DE', 'Germany'],
+    ['Frankfurt-01', 'DE', 'Germany'],
+    ['迪拜专线', 'AE', 'United Arab Emirates'],
+    ['苏黎世 01', 'CH', 'Switzerland'],
+    ['IN-01', 'IN', 'India'],
+    ['LU-01', 'LU', 'Luxembourg'],
   ])('detects "%s" as %s (%s)', (input, expectedCode, expectedName) => {
     const region = detectRegion(input)
     expect(region).not.toBeNull()
@@ -53,7 +78,17 @@ describe('detectRegion', () => {
     expect(region!.name).toBe(expectedName)
   })
 
-  it('returns null for unrecognizable or empty names', () => {
+  it('avoids false positives on ambiguous 2-letter tokens like AI/SS/WS/Me/TV/CF/NF/TG/ms and lowercase words', () => {
+    expect(detectRegion('AI 专线 01')).toBeNull()
+    expect(detectRegion('SS Node 01')).toBeNull()
+    expect(detectRegion('WS Relay 01')).toBeNull()
+    expect(detectRegion('Me')).toBeNull()
+    expect(detectRegion('TV 流媒体')).toBeNull()
+    expect(detectRegion('CF 优选节点')).toBeNull()
+    expect(detectRegion('NF 解锁专线')).toBeNull()
+    expect(detectRegion('TG 频道节点')).toBeNull()
+    expect(detectRegion('relay 50 ms')).toBeNull()
+    expect(detectRegion('node in relay')).toBeNull()
     expect(detectRegion('random-server-xyz')).toBeNull()
     expect(detectRegion('')).toBeNull()
   })
