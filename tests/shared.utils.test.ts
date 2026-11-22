@@ -10,6 +10,7 @@ import {
 import { escapeCsvCell, formatBytes, formatCount, formatShortDate } from '@/shared/format.utils'
 import {
   buildConversionUrl,
+  extractFileNameFromUrlPath,
   extractNameFromUrl,
   isAllowedSubscriptionInput,
   isValidUrl,
@@ -122,10 +123,32 @@ describe('url.utils', () => {
     expect(() => assertPublicHttpUrl('http://127.0.0.1/secret')).toThrow()
   })
 
-  it('extracts name from query params, nested url param, or hostname', () => {
+  it('extracts name from query params, nested url param, path filename suffix, or hostname', () => {
     expect(extractNameFromUrl('https://example.com/sub?name=MyNode')).toBe('MyNode')
     expect(extractNameFromUrl('https://example.com/sub?remarks=备注')).toBe('备注')
     expect(extractNameFromUrl('https://example.com/sub')).toBe('example.com')
+
+    // Gist / GitHub Raw 路径后缀提取（自动去除常见扩展名、忽略通用路径与 commit hash）
+    expect(
+      extractNameFromUrl(
+        'https://gist.githubusercontent.com/xqd922/9a563c7cdddce77803009d8fe22d7d8b/raw/6757a56570d76ee09259c59d76978d6620afc2b2/Mine',
+      ),
+    ).toBe('Mine')
+    expect(
+      extractNameFromUrl('https://gist.githubusercontent.com/u/id/raw/Work.yaml'),
+    ).toBe('Work')
+    expect(
+      extractNameFromUrl(
+        'https://raw.githubusercontent.com/user/repo/main/nodes/%E8%87%AA%E5%BB%BA.txt',
+      ),
+    ).toBe('自建')
+    expect(extractFileNameFromUrlPath('https://example.com/api/v1/client/subscribe')).toBeNull()
+    expect(
+      extractFileNameFromUrlPath(
+        'https://gist.githubusercontent.com/xqd922/9a563c7cdddce77803009d8fe22d7d8b/raw/6757a56570d76ee09259c59d76978d6620afc2b2',
+      ),
+    ).toBeNull()
+    expect(extractNameFromUrl('anytls://pw@example.net:443#HK-BestVM')).toBe('HK-BestVM')
 
     const inner = encodeURIComponent('https://api.test.com/link?name=Inner')
     expect(extractNameFromUrl(`https://example.com/sub?url=${inner}`)).toBe('Inner')

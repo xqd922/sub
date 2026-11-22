@@ -174,7 +174,8 @@ async function processSingleSource(source: string): Promise<SubscriptionResult> 
   if (isGistUrl(source)) {
     logger.info('检测到 Gist 订阅，获取所有节点')
     const { proxies } = await fetchNodesFromRemote(source, fetchSubscriptionResponse)
-    return { proxies, subscription: createDefaultSubscription() }
+    const gistName = extractNameFromUrl(source, 'Gist')
+    return { proxies, subscription: createDefaultSubscription(gistName) }
   }
 
   if (isProxyUri(source)) {
@@ -183,7 +184,8 @@ async function processSingleSource(source: string): Promise<SubscriptionResult> 
     if (proxies.length === 0) {
       throw new Error('无效的节点链接')
     }
-    return { proxies, subscription: createDefaultSubscription() }
+    const nodeSubName = proxies[0]?.name || extractNameFromUrl(source, 'Node')
+    return { proxies, subscription: createDefaultSubscription(nodeSubName) }
   }
 
   const response = await fetchSubscriptionResponse(source)
@@ -216,7 +218,7 @@ export async function processSubscription(rawInput: string): Promise<Subscriptio
   for (const outcome of results) {
     if (outcome.status === 'fulfilled') {
       mergedProxies.push(...outcome.value.proxies)
-      if (!primarySubscription && outcome.value.subscription.name !== 'Me') {
+      if (!primarySubscription && outcome.value.subscription.name && outcome.value.subscription.name !== 'Me') {
         primarySubscription = outcome.value.subscription
       }
     } else {

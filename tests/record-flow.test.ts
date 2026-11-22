@@ -96,9 +96,24 @@ describe('record and short-link KV flows', () => {
       created!.id,
     )
     expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Disposition')).toContain(
+      `filename*=UTF-8''${encodeURIComponent('HK-Test')}`,
+    )
     const body = await response.text()
     expect(body).toContain('proxies:')
     expect(body).toContain('1.2.3.4')
+
+    // 支持显式 ?name= 覆盖 Clash 客户端显示的订阅卡片名称
+    const renamedResponse = await handleShortLinkRedirect(
+      new Request(`https://sub.example.com/s/${created!.id}?name=${encodeURIComponent('自建专线')}`, {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      created!.id,
+    )
+    expect(renamedResponse.status).toBe(200)
+    expect(renamedResponse.headers.get('Content-Disposition')).toContain(
+      `filename*=UTF-8''${encodeURIComponent('自建专线')}`,
+    )
   })
 
   it('supports Sink-style custom slug, expiration, maxHits, disabled state, password key, telemetry, and import', async () => {

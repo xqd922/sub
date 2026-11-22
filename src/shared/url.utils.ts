@@ -122,6 +122,78 @@ export function unwrapConversionUrl(rawUrl: string): {
   return { subscriptionUrl: current, target }
 }
 
+const GENERIC_PATH_SEGMENTS = new Set([
+  'raw',
+  'sub',
+  'subscribe',
+  'subscription',
+  'link',
+  'links',
+  'api',
+  'get',
+  'download',
+  'fetch',
+  'client',
+  'clash',
+  'v2ray',
+  'v2rayng',
+  'singbox',
+  'sing-box',
+  'profile',
+  'config',
+  'index',
+  'default',
+  'v1',
+  'v2',
+  'v3',
+])
+
+const STRIP_EXTENSION_RE = /\.(txt|ya?ml|json|conf|sub|list|ini|nodes)$/i
+const HEX_HASH_RE = /^[0-9a-f]{16,}$/i
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * 从 URL 路径末段提取语义化文件名（如 Gist / GitHub Raw 链接末尾的 `Mine`、`Work.yaml`），
+ * 自动过滤通用接口路径（`sub`、`subscribe`、`raw` 等）和无意义哈希段。
+ */
+export function extractFileNameFromUrlPath(rawUrl: string): string | null {
+  try {
+    const { subscriptionUrl } = unwrapConversionUrl(rawUrl)
+    const urlObj = new URL(subscriptionUrl)
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+      return null
+    }
+
+    const segments = urlObj.pathname.split('/').filter(Boolean)
+    if (segments.length === 0) return null
+
+    const rawLast = segments[segments.length - 1]
+    let decoded = rawLast
+    try {
+      decoded = decodeURIComponent(rawLast)
+    } catch {
+      decoded = rawLast
+    }
+
+    const cleaned = decoded.replace(STRIP_EXTENSION_RE, '').trim()
+    if (!cleaned) return null
+
+    const lower = cleaned.toLowerCase()
+    if (
+      GENERIC_PATH_SEGMENTS.has(lower) ||
+      HEX_HASH_RE.test(cleaned) ||
+      UUID_RE.test(cleaned) ||
+      /^\d+$/.test(cleaned)
+    ) {
+      return null
+    }
+
+    return cleaned
+  } catch {
+    return null
+  }
+}
+
 export function extractNameFromUrl(url: string, fallback = '未知订阅'): string {
   try {
     const { subscriptionUrl } = unwrapConversionUrl(url)
@@ -131,7 +203,13 @@ export function extractNameFromUrl(url: string, fallback = '未知订阅'): stri
       urlObj.searchParams.get('name') ||
       urlObj.searchParams.get('remarks') ||
       urlObj.searchParams.get('tag')
-    if (name) return decodeURIComponent(name)
+    if (name) {
+      try {
+        return decodeURIComponent(name)
+      } catch {
+        return name
+      }
+    }
 
     if (urlObj.hash && urlObj.hash.length > 1) {
       try {
@@ -140,6 +218,9 @@ export function extractNameFromUrl(url: string, fallback = '未知订阅'): stri
         return urlObj.hash.slice(1)
       }
     }
+
+    const pathFileName = extractFileNameFromUrlPath(subscriptionUrl)
+    if (pathFileName) return pathFileName
 
     return urlObj.hostname || fallback
   } catch {

@@ -65,6 +65,28 @@ function handleConversionError(
   })
 }
 
+const GENERIC_SUBSCRIPTION_NAMES = new Set(['Me', 'Sub', 'Merged', 'Gist', 'Node', '未知订阅'])
+
+function isGenericSubscriptionName(name: string, sourceUrl: string): boolean {
+  const trimmed = name.trim()
+  if (!trimmed || GENERIC_SUBSCRIPTION_NAMES.has(trimmed)) return true
+  try {
+    return trimmed === new URL(sourceUrl).hostname
+  } catch {
+    return false
+  }
+}
+
+function decodeShortLinkNameHeader(request: Request): string | undefined {
+  const raw = request.headers.get('x-short-link-name')?.trim()
+  if (!raw) return undefined
+  try {
+    return decodeURIComponent(raw).trim() || undefined
+  } catch {
+    return raw
+  }
+}
+
 export async function handleConversionRequest(request: Request): Promise<NextResponse> {
   const startedAt = Date.now()
   const userAgent = request.headers.get('user-agent') || ''
@@ -74,6 +96,8 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
     const requestUrl = new URL(request.url)
     const rawUrl = requestUrl.searchParams.get('url')?.trim()
     const explicitTarget = requestUrl.searchParams.get('target')?.trim() || undefined
+    const explicitName = requestUrl.searchParams.get('name')?.trim() || undefined
+    const shortLinkFallbackName = decodeShortLinkNameHeader(request)
 
     if (!rawUrl) {
       throw AppError.validation('缺少订阅链接参数', 'url')
@@ -102,6 +126,16 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
         422,
         ErrorSeverity.LOW,
       )
+    }
+
+    if (explicitName) {
+      subscription.name = explicitName
+    } else if (
+      shortLinkFallbackName &&
+      isGenericSubscriptionName(subscription.name, url) &&
+      !isGenericSubscriptionName(shortLinkFallbackName, url)
+    ) {
+      subscription.name = shortLinkFallbackName
     }
 
     // 原始订阅缺少 profile-web-page-url 时，使用当前转换器域名作为首页

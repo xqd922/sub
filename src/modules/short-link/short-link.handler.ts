@@ -138,9 +138,19 @@ export async function handleShortLinkRedirect(
       conversionUrl.searchParams.set('target', effectiveTarget)
     }
 
+    const incomingName = incomingUrl.searchParams.get('name')?.trim()
+    if (incomingName) {
+      conversionUrl.searchParams.set('name', incomingName)
+    }
+
+    const forwardedHeaders = new Headers(request.headers)
+    if (resolved.link.name) {
+      forwardedHeaders.set('x-short-link-name', encodeURIComponent(resolved.link.name))
+    }
+
     const forwardedRequest = new Request(conversionUrl.toString(), {
       method: 'GET',
-      headers: new Headers(request.headers),
+      headers: forwardedHeaders,
     })
 
     return handleConversionRequest(forwardedRequest)
