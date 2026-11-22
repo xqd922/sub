@@ -92,6 +92,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-variant-ligatures: contextual;
   font-kerning: normal;
+  overflow-x: clip;
+}
+
+@media (min-width: 1024px) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+
+button,
+a,
+[role="button"],
+[role="tab"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent browser autofill from painting an off-palette yellow/blue box */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text-primary);
+  caret-color: var(--color-text-primary);
+  transition: background-color 99999s ease-out 0s;
 }
 
 html {
@@ -114,6 +138,56 @@ body {
     transparent 1px
   );
   background-size: 20px 20px;
+}
+
+.login-cover-grid {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--color-cover-border) 95%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+.login-cover-glow {
+  background:
+    radial-gradient(
+      65% 55% at 15% 12%,
+      color-mix(in oklch, var(--color-accent-500) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 45% at 88% 88%,
+      color-mix(in oklch, var(--color-brand-cloudflare) 14%, transparent),
+      transparent 70%
+    );
+}
+
+/* Harmonize Kumo Table / Empty / Meter typography with BoardUI's composite scale
+ * (explicitly sets font-medium/font-normal to clear Kumo's --tw-font-weight
+ * overrides such as [&_th]:font-semibold and Empty heading font-semibold). */
+.console-table {
+  @apply text-body-2-regular font-normal text-text-primary;
+}
+.console-table thead th {
+  @apply text-caption-1-medium font-medium text-text-secondary whitespace-nowrap;
+}
+.console-table tbody td {
+  @apply text-body-2-regular font-normal;
+}
+
+.console-empty h2 {
+  @apply text-headline-semibold font-semibold text-text-primary;
+}
+.console-empty p {
+  @apply text-body-2-regular font-normal text-text-secondary;
+}
+
+.console-meter > div:first-child > span:first-child {
+  @apply text-body-2-medium font-medium text-text-primary;
+}
+.console-meter > div:first-child > span:last-child {
+  @apply text-body-2-regular font-normal tabular-nums text-text-secondary;
 }
 
 /* Theme-aware monochrome BoardUI mark. Both images keep their intrinsic

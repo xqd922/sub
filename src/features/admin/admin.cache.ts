@@ -7,6 +7,7 @@ import type {
   CustomClientRule,
   CustomRoutingRule,
   DailyStats,
+  HourlyStats,
   ShortLink,
   StatsData,
 } from '@/shared/admin.types'
@@ -18,6 +19,7 @@ const SOFT_FRESH_MS = 8_000
 export interface AdminBootstrapPayload {
   stats: StatsData
   daily: DailyStats[]
+  hourly?: HourlyStats[]
   records: ConvertRecord[]
   shortLinks: ShortLink[]
   routingRules: CustomRoutingRule[]
@@ -30,6 +32,7 @@ export interface AdminCacheState {
   bootstrapping: boolean
   stats: StatsData | null
   daily: DailyStats[]
+  hourly: HourlyStats[]
   records: ConvertRecord[]
   shortLinks: ShortLink[]
   routingRules: CustomRoutingRule[]
@@ -42,6 +45,7 @@ const INITIAL_STATE: AdminCacheState = {
   bootstrapping: false,
   stats: null,
   daily: [],
+  hourly: [],
   records: [],
   shortLinks: [],
   routingRules: [],
@@ -108,6 +112,7 @@ function persistSnapshot(snapshot: AdminCacheState) {
       JSON.stringify({
         stats: snapshot.stats,
         daily: snapshot.daily,
+        hourly: snapshot.hourly,
         records: snapshot.records,
         shortLinks: snapshot.shortLinks,
         routingRules: snapshot.routingRules,
@@ -143,6 +148,7 @@ export function hydrateAdminCacheFromStorage(): boolean {
       bootstrapping: state.bootstrapping,
       stats: parsed.stats ?? null,
       daily: Array.isArray(parsed.daily) ? parsed.daily : [],
+      hourly: Array.isArray(parsed.hourly) ? parsed.hourly : [],
       records: parsed.records,
       shortLinks: parsed.shortLinks,
       routingRules: Array.isArray(parsed.routingRules) ? parsed.routingRules : [],
@@ -190,6 +196,7 @@ export async function bootstrapAdminCache(options?: {
         bootstrapping: false,
         stats: data.stats,
         daily: data.daily || [],
+        hourly: data.hourly || [],
         records: data.records || [],
         shortLinks: data.shortLinks || [],
         routingRules: data.routingRules || [],

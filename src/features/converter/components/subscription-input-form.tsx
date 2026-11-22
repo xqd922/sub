@@ -1,7 +1,6 @@
 'use client'
 
-import { RiArrowRightLine, RiCloseLine, RiTerminalLine } from '@remixicon/react'
-import { Kbd } from '@/components/base/kbd/kbd'
+import { RiArrowRightLine, RiCloseLine, RiLinkM } from '@remixicon/react'
 import { cx } from '@/utils/cx'
 
 interface SubscriptionInputFormProps {
@@ -51,7 +50,7 @@ export function SubscriptionInputForm({
             'border-border-error-default focus-within:border-border-error-default focus-within:ring-border-error-default/20',
         )}
       >
-        <RiTerminalLine
+        <RiLinkM
           className={cx(
             'size-4 shrink-0 transition-colors duration-150',
             hasValue ? 'text-accent-500' : 'text-foreground-icon-tertiary',
@@ -88,20 +87,16 @@ export function SubscriptionInputForm({
           >
             <RiCloseLine className="size-3.5" aria-hidden />
           </button>
-        ) : (
-          <Kbd className="hidden sm:inline-flex">↵</Kbd>
-        )}
+        ) : null}
 
         <button
           type="submit"
           disabled={disabled}
           className={cx(
-            'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-body-2-medium transition-[background-color,color,opacity,transform] duration-150 active:scale-[0.98]',
+            'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-button-primary px-4 text-body-2-medium text-text-white shadow-xs transition-[opacity,transform] duration-150 active:scale-[0.98]',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring focus-visible:ring-offset-1',
-            hasValue
-              ? 'bg-button-primary text-text-white shadow-xs'
-              : 'border border-separator-border bg-background-secondary-default text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary',
+            !hasValue && 'opacity-90 hover:opacity-100',
           )}
         >
           <span>{loading ? '转换中…' : '转换'}</span>

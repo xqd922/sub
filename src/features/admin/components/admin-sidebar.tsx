@@ -85,9 +85,10 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   return (
     <>
+      {/* Desktop Sidebar */}
       <aside
         aria-label="后台导航"
-        className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[236px] lg:shrink-0 lg:flex-col lg:border-e lg:border-separator-border lg:bg-background-secondary-default lg:px-3 lg:py-3.5"
+        className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-[236px] lg:shrink-0 lg:flex-col lg:border-e lg:border-separator-border lg:bg-background-secondary-default lg:px-3 lg:py-3.5"
       >
         <Link
           href="/"
@@ -98,11 +99,11 @@ export function AdminSidebar({
               aria-hidden
               className="size-2 shrink-0 rounded-full bg-brand-cloudflare shadow-[0_0_8px_var(--color-brand-cloudflare)]"
             />
-            <span className="truncate font-mono text-body-2-semibold tracking-tight text-text-primary">
+            <span className="truncate text-body-semibold tracking-[-0.015em] text-text-primary">
               SubConvert
             </span>
           </span>
-          <span className="rounded border border-separator-border bg-background-primary-default px-1.5 py-0.5 font-mono text-caption-2-medium text-text-tertiary">
+          <span className="rounded border border-separator-border bg-background-primary-default px-1.5 py-0.5 text-caption-2-medium tracking-wider text-text-tertiary">
             EDGE
           </span>
         </Link>
@@ -110,7 +111,7 @@ export function AdminSidebar({
         <button
           type="button"
           onClick={onOpenCommandPalette}
-          className="mt-3 flex h-8.5 w-full cursor-pointer items-center justify-between rounded-lg border border-separator-border bg-background-primary-default px-2.5 text-caption-1-regular text-text-tertiary shadow-2xs transition-colors duration-150 hover:border-border-button-hover hover:text-text-secondary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+          className="mt-3 flex h-8.5 w-full cursor-pointer items-center justify-between rounded-lg border border-separator-border bg-background-primary-default px-2.5 text-body-2-regular text-text-tertiary shadow-2xs transition-colors duration-150 hover:border-border-button-hover hover:text-text-secondary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
         >
           <span className="inline-flex items-center gap-2">
             <RiSearchLine className="size-3.5 shrink-0" aria-hidden />
@@ -119,7 +120,7 @@ export function AdminSidebar({
           <Kbd>⌘K</Kbd>
         </button>
 
-        <div className="mt-5 px-2 font-mono text-caption-2-semibold tracking-wider text-text-tertiary uppercase">
+        <div className="mt-5 px-2 text-caption-2-medium tracking-wider text-text-tertiary uppercase">
           Workspace
         </div>
 
@@ -135,10 +136,10 @@ export function AdminSidebar({
                 onClick={() => onSelectTab(tab.key)}
                 aria-current={active ? 'page' : undefined}
                 className={cx(
-                  'relative flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 text-body-2-medium transition-[background-color,color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring',
+                  'relative flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border px-2.5 transition-[background-color,color,border-color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring',
                   active
-                    ? 'bg-background-primary-default text-text-primary shadow-2xs ring-1 ring-separator-border'
-                    : 'text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary',
+                    ? 'border-separator-border bg-background-primary-default text-body-medium text-text-primary shadow-2xs'
+                    : 'border-transparent text-body-regular text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary',
                 )}
               >
                 {active ? (
@@ -160,7 +161,7 @@ export function AdminSidebar({
                 {count !== null ? (
                   <span
                     className={cx(
-                      'rounded-md px-1.5 py-0.5 font-mono text-caption-2-medium tabular-nums',
+                      'rounded-md px-1.5 py-0.5 text-caption-1-medium tabular-nums',
                       active
                         ? 'bg-background-secondary-default text-text-primary'
                         : 'text-text-tertiary',
@@ -177,7 +178,7 @@ export function AdminSidebar({
         <div className="mt-3 flex items-center justify-between gap-1 border-t border-separator-border pt-3">
           <Link
             href="/"
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-body-2-regular text-text-secondary transition-colors duration-150 hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
           >
             <RiArrowLeftLine className="size-3.5" aria-hidden />
             <span>转换首页</span>
@@ -187,6 +188,7 @@ export function AdminSidebar({
             <ThemeIconButton className="hover:bg-background-primary-default" />
             <Tooltip
               content="退出登录"
+              side="top"
               render={
                 <button
                   type="button"
@@ -202,11 +204,12 @@ export function AdminSidebar({
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 flex flex-col border-b border-separator-border bg-background-primary-default/95 backdrop-blur-md lg:hidden">
-        <div className="flex h-13 items-center justify-between gap-3 px-4">
+      {/* Mobile Fixed-Geometry Sticky Topbar (zero hover-tooltip / scroll-jitter on tap) */}
+      <header className="sticky top-0 z-30 flex transform-gpu flex-col border-b border-separator-border bg-background-primary-default/95 backdrop-blur-md lg:hidden">
+        <div className="flex h-12 items-center justify-between gap-2 px-3.5">
           <Link
             href="/"
-            className="flex min-w-0 items-center gap-2 font-mono text-body-2-semibold text-text-primary"
+            className="flex min-w-0 items-center gap-2 text-body-semibold tracking-[-0.015em] text-text-primary"
           >
             <span
               aria-hidden
@@ -222,30 +225,34 @@ export function AdminSidebar({
               type="button"
               onClick={onOpenCommandPalette}
               aria-label="命令面板"
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 hover:bg-background-secondary-default hover:text-text-primary"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 active:bg-background-secondary-default"
             >
               <RiSearchLine className="size-4" aria-hidden />
             </button>
             <Link
               href="/"
               aria-label="返回首页"
-              className="inline-flex size-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 hover:bg-background-secondary-default hover:text-text-primary"
+              className="inline-flex size-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 active:bg-background-secondary-default"
             >
               <RiArrowLeftLine className="size-4" aria-hidden />
             </Link>
-            <ThemeIconButton />
+            <ThemeIconButton disableTooltip />
             <button
               type="button"
               onClick={onLogout}
               aria-label="退出登录"
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 hover:bg-background-secondary-default hover:text-text-error-primary"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 active:bg-background-secondary-default"
             >
               <RiLogoutBoxRLine className="size-4" aria-hidden />
             </button>
           </div>
         </div>
 
-        <nav className="flex gap-1 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Fixed 4-column tab grid prevents diagonal-swipe horizontal wobble on touchscreens */}
+        <nav
+          aria-label="控制台分页"
+          className="grid grid-cols-4 gap-1 px-3 pb-2"
+        >
           {ADMIN_TABS.map((tab) => {
             const Icon = tab.icon
             const active = activeTab === tab.key
@@ -254,13 +261,16 @@ export function AdminSidebar({
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => onSelectTab(tab.key)}
+                onClick={(event) => {
+                  event.currentTarget.blur()
+                  onSelectTab(tab.key)
+                }}
                 aria-current={active ? 'page' : undefined}
                 className={cx(
-                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-caption-1-medium whitespace-nowrap transition-colors duration-150',
+                  'inline-flex h-8 w-full cursor-pointer items-center justify-center gap-1 rounded-lg border px-1.5 whitespace-nowrap transition-colors duration-150 outline-none',
                   active
-                    ? 'bg-background-secondary-default text-text-primary ring-1 ring-separator-border'
-                    : 'text-text-secondary hover:bg-background-secondary-default/60 hover:text-text-primary',
+                    ? 'border-separator-border bg-background-secondary-default text-body-2-medium text-text-primary shadow-2xs'
+                    : 'border-transparent text-body-2-regular text-text-secondary active:bg-background-secondary-default/60',
                 )}
               >
                 <Icon
@@ -269,7 +279,7 @@ export function AdminSidebar({
                 />
                 <span>{tab.label}</span>
                 {count !== null ? (
-                  <span className="font-mono text-caption-2-medium tabular-nums text-text-tertiary">
+                  <span className="hidden text-caption-1-regular tabular-nums text-text-tertiary min-[390px]:inline">
                     {count}
                   </span>
                 ) : null}

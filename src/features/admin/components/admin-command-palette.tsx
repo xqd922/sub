@@ -191,10 +191,10 @@ export function AdminCommandPalette({
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-2.5">
                         <Icon className="size-4 shrink-0 text-kumo-subtle" aria-hidden />
-                        <span className="truncate text-body-2-medium text-kumo-default">
+                        <span className="truncate text-body-medium text-kumo-default">
                           {item.title}
                         </span>
-                        <span className="hidden truncate text-caption-1-regular text-kumo-subtle sm:inline">
+                        <span className="hidden truncate text-body-2-regular text-kumo-subtle sm:inline">
                           {item.hint}
                         </span>
                       </span>
@@ -208,19 +208,19 @@ export function AdminCommandPalette({
         <CommandPalette.Empty>未找到匹配的页面或命令</CommandPalette.Empty>
       </CommandPalette.List>
       <CommandPalette.Footer>
-        <span className="flex items-center gap-1.5 text-caption-2-regular text-kumo-subtle">
+        <span className="flex items-center gap-1.5 text-caption-1-regular text-kumo-subtle">
           <kbd className="rounded border border-kumo-hairline bg-kumo-base px-1.5 py-0.5 font-mono text-caption-2-medium">
             ↑↓
           </kbd>
           <span>选择</span>
         </span>
-        <span className="flex items-center gap-1.5 text-caption-2-regular text-kumo-subtle">
+        <span className="flex items-center gap-1.5 text-caption-1-regular text-kumo-subtle">
           <kbd className="rounded border border-kumo-hairline bg-kumo-base px-1.5 py-0.5 font-mono text-caption-2-medium">
             ↵
           </kbd>
           <span>执行</span>
         </span>
-        <span className="flex items-center gap-1.5 text-caption-2-regular text-kumo-subtle">
+        <span className="flex items-center gap-1.5 text-caption-1-regular text-kumo-subtle">
           <kbd className="rounded border border-kumo-hairline bg-kumo-base px-1.5 py-0.5 font-mono text-caption-2-medium">
             Esc
           </kbd>

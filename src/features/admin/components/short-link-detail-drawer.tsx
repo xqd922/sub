@@ -116,7 +116,7 @@ export function ShortLinkDetailDrawer({
           {/* Copyable Endpoints */}
           <section className="flex flex-col gap-3">
             <div>
-              <span className="mb-1.5 block text-caption-1-medium text-text-secondary">
+              <span className="mb-1.5 block text-body-2-medium text-text-secondary">
                 短链地址{link.password ? '（含访问密钥）' : ''}
               </span>
               <div dir="ltr">
@@ -131,7 +131,7 @@ export function ShortLinkDetailDrawer({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-separator-border bg-background-secondary-default/40 px-3 py-2">
-              <span className="text-caption-2-medium text-text-tertiary">格式直链：</span>
+              <span className="text-caption-1-medium text-text-secondary">格式直链：</span>
               {(['.yaml', '.json', '.txt'] as const).map((suffix) => {
                 const suffixUrl = origin
                   ? buildShortLinkPublicUrl(origin, `${link.id}${suffix}`, link.password)
@@ -150,7 +150,7 @@ export function ShortLinkDetailDrawer({
             </div>
 
             <div>
-              <span className="mb-1.5 block text-caption-1-medium text-text-secondary">
+              <span className="mb-1.5 block text-body-2-medium text-text-secondary">
                 目标订阅地址
               </span>
               <div dir="ltr">
@@ -166,7 +166,7 @@ export function ShortLinkDetailDrawer({
 
             {link.password ? (
               <div>
-                <span className="mb-1.5 block text-caption-1-medium text-text-secondary">
+                <span className="mb-1.5 block text-body-2-medium text-text-secondary">
                   访问密钥（默认掩码）
                 </span>
                 <div dir="ltr">
@@ -194,48 +194,49 @@ export function ShortLinkDetailDrawer({
                 value={quotaPct}
                 max={100}
                 customValue={`${link.hits} / ${link.maxHits}（${quotaPct}%）`}
+                className="console-meter"
                 indicatorClassName={quotaPct >= 90 ? 'bg-kumo-danger' : 'bg-accent-500'}
               />
             </section>
           ) : null}
 
           <section className="flex flex-col gap-2.5">
-            <h3 className="font-mono text-caption-2-semibold tracking-wider text-text-tertiary uppercase">
+            <h3 className="text-caption-2-medium tracking-wider text-text-tertiary uppercase">
               Metadata
             </h3>
-            <dl className="grid grid-cols-2 gap-3 rounded-xl border border-separator-border bg-background-secondary-default/35 p-3.5 text-caption-1-regular">
+            <dl className="grid grid-cols-2 gap-3 rounded-xl border border-separator-border bg-background-secondary-default/35 p-3.5 text-body-2-regular">
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">默认输出格式</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">默认输出格式</dt>
                 <dd className="mt-0.5 text-text-primary">
                   {TARGET_LABELS[link.defaultTarget || 'auto']}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">累计命中</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-primary">
+                <dt className="text-caption-1-regular text-text-tertiary">累计命中</dt>
+                <dd className="mt-0.5 tabular-nums text-text-primary">
                   {link.maxHits ? `${link.hits} / ${link.maxHits}` : `${link.hits} 次`}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">过期时间</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-secondary">
+                <dt className="text-caption-1-regular text-text-tertiary">过期时间</dt>
+                <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">创建时间</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-secondary">
+                <dt className="text-caption-1-regular text-text-tertiary">创建时间</dt>
+                <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(link.createdAt)}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">最近客户端</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">最近客户端</dt>
                 <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
                   {link.lastClientType || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">最近 IP</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">最近 IP</dt>
                 <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
                   {link.lastIp || '—'}
                 </dd>
@@ -243,16 +244,16 @@ export function ShortLinkDetailDrawer({
 
               {link.comment ? (
                 <div className="col-span-2 border-t border-separator-border pt-2.5">
-                  <dt className="text-caption-2-regular text-text-tertiary">备注说明</dt>
+                  <dt className="text-caption-1-regular text-text-tertiary">备注说明</dt>
                   <dd className="mt-0.5 text-text-secondary">{link.comment}</dd>
                 </div>
               ) : null}
 
               <div className="col-span-2 border-t border-separator-border pt-2.5">
-                <dt className="text-caption-2-regular text-text-tertiary">最近 User-Agent</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">最近 User-Agent</dt>
                 <dd
                   dir="ltr"
-                  className="mt-1 select-all rounded-md bg-background-primary-default px-2.5 py-1.5 font-mono text-caption-2-regular break-all text-text-secondary ring-1 ring-separator-border"
+                  className="mt-1 select-all rounded-md bg-background-primary-default px-2.5 py-1.5 font-mono text-caption-1-regular break-all text-text-secondary ring-1 ring-separator-border"
                 >
                   {link.lastUserAgent || '—'}
                 </dd>
@@ -260,7 +261,7 @@ export function ShortLinkDetailDrawer({
 
               {clientEntries.length > 0 ? (
                 <div className="col-span-2 border-t border-separator-border pt-2.5">
-                  <dt className="mb-1.5 text-caption-2-regular text-text-tertiary">客户端分布</dt>
+                  <dt className="mb-1.5 text-caption-1-regular text-text-tertiary">客户端分布</dt>
                   <dd className="flex flex-wrap gap-1.5">
                     {clientEntries.map(([client, count]) => (
                       <Badge key={client} variant="secondary" className="font-mono">

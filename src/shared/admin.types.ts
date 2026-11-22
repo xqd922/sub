@@ -98,6 +98,13 @@ export interface DailyStats {
   uniqueUrls: number
 }
 
+export interface HourlyStats {
+  /** UTC hour bucket key, e.g. '2026-11-22T15' */
+  hour: string
+  totalHits: number
+  uniqueUrls: number
+}
+
 export interface LoginAttempt {
   time: number
   ip: string

@@ -113,12 +113,12 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
         <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-body-semibold text-text-primary">自定义分流规则</h2>
-              <Badge variant="outline" className="font-mono">
+              <h2 className="text-headline-semibold text-text-primary">自定义分流规则</h2>
+              <Badge variant="outline" className="tabular-nums">
                 {rules.length}
               </Badge>
             </div>
-            <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
+            <p className="mt-0.5 text-body-2-regular text-text-secondary">
               优先级高于内置规则集，同时注入 Clash / Mihomo 与 sing-box，实时生效无需重新部署
             </p>
           </div>
@@ -134,11 +134,11 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
 
         <div className="overflow-x-auto bg-background-primary-default">
           {loading ? (
-            <div className="py-12 text-center font-mono text-caption-1-regular text-text-tertiary">
+            <div className="py-12 text-center text-body-2-regular text-text-tertiary">
               加载分流规则中…
             </div>
           ) : rules.length === 0 ? (
-            <div className="p-6">
+            <div className="console-empty p-6">
               <Empty
                 size="sm"
                 icon={<RiSplitCellsHorizontal className="size-7 text-text-tertiary" aria-hidden />}
@@ -147,7 +147,7 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
               />
             </div>
           ) : (
-            <Table className="min-w-[560px]">
+            <Table className="console-table min-w-[560px]">
               <Table.Header variant="compact">
                 <Table.Row>
                   <Table.Head>匹配类型</Table.Head>
@@ -173,7 +173,7 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
                         {rule.action}
                       </Badge>
                     </Table.Cell>
-                    <Table.Cell className="text-caption-1-regular text-text-secondary">
+                    <Table.Cell className="text-body-2-regular text-text-secondary">
                       {rule.note || '—'}
                     </Table.Cell>
                     <Table.Cell className="text-end">

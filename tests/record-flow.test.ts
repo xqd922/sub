@@ -14,9 +14,11 @@ import {
   createRecordManually,
   deleteRecordPermanently,
   getRecentDailyStats,
+  getRecentHourlyStats,
   getStats,
   isUrlEnabled,
   listAllRecordsForAdmin,
+  logConversion,
   setRecordEnabled,
   softDeleteRecord,
 } from '@/modules/record/record.repository'
@@ -358,5 +360,36 @@ describe('record and short-link KV flows', () => {
     expect(batch.get('k:a')).toEqual({ n: 1 })
     expect(batch.get('k:b')).toEqual({ n: 2 })
     expect(batch.get('k:missing')).toBeNull()
+  })
+
+  it('tracks hourly and daily conversion stats with deduplicated uniqueUrls', async () => {
+    await logConversion({
+      originalUrl: 'https://example.com/hourly-sub-1',
+      clientType: 'clash',
+      nodeCount: 12,
+      clientIp: '203.0.113.10',
+    })
+    await logConversion({
+      originalUrl: 'https://example.com/hourly-sub-1',
+      clientType: 'clash',
+      nodeCount: 12,
+      clientIp: '203.0.113.10',
+    })
+    await logConversion({
+      originalUrl: 'https://example.com/hourly-sub-2',
+      clientType: 'singbox',
+      nodeCount: 8,
+      clientIp: '203.0.113.11',
+    })
+
+    const [daily, hourly] = await Promise.all([getRecentDailyStats(7), getRecentHourlyStats(24)])
+    expect(daily).toHaveLength(1)
+    expect(daily[0].totalHits).toBe(3)
+    expect(daily[0].uniqueUrls).toBe(2)
+
+    expect(hourly).toHaveLength(1)
+    expect(hourly[0].hour).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}$/)
+    expect(hourly[0].totalHits).toBe(3)
+    expect(hourly[0].uniqueUrls).toBe(2)
   })
 })

@@ -302,11 +302,12 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
   return (
     <div className="flex flex-col gap-4">
       <LayerCard className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:px-4">
-          <div className="min-w-[200px] flex-1">
+        <div className="flex flex-col gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:px-4">
+          <div className="w-full sm:min-w-[200px] sm:flex-1">
             <SearchField
               size="small"
               shape="rounded"
+              fieldClassName="h-9 sm:h-8"
               value={search}
               onChange={setSearch}
               placeholder="搜索短链名称、短码、备注或目标链接"
@@ -314,79 +315,85 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
             />
           </div>
 
-          <Tabs
-            variant="segmented"
-            size="sm"
-            tabs={STATUS_TABS}
-            value={statusFilter}
-            onValueChange={(next) => setStatusFilter(next as StatusFilter)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Tabs
+              variant="segmented"
+              size="sm"
+              tabs={STATUS_TABS}
+              value={statusFilter}
+              onValueChange={(next) => setStatusFilter(next as StatusFilter)}
+            />
 
-          <Select
-            aria-label="排序方式"
-            size="sm"
-            selectedKey={sortKey}
-            onSelectionChange={(key) => {
-              if (key) setSortKey(String(key) as SortKey)
-            }}
-            className="w-32"
-          >
-            <SelectItem id="createdAt">创建时间</SelectItem>
-            <SelectItem id="hits">命中次数</SelectItem>
-            <SelectItem id="lastAccess">最近访问</SelectItem>
-          </Select>
+            <Select
+              aria-label="排序方式"
+              size="sm"
+              selectedKey={sortKey}
+              onSelectionChange={(key) => {
+                if (key) setSortKey(String(key) as SortKey)
+              }}
+              className="w-30"
+            >
+              <SelectItem id="createdAt">创建时间</SelectItem>
+              <SelectItem id="hits">命中次数</SelectItem>
+              <SelectItem id="lastAccess">最近访问</SelectItem>
+            </Select>
 
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => void handleImportFile(event)}
-            className="hidden"
-          />
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => void handleImportFile(event)}
+              className="hidden"
+            />
 
-          <Tooltip
-            content={importing ? '导入中…' : '导入 JSON 备份（兼容 Sink）'}
-            render={
-              <Button
-                variant="secondary"
-                size="small"
-                iconOnly
-                leadingIcon={RiUploadLine}
-                aria-label="导入 JSON"
-                disabled={importing}
-                onClick={() => importInputRef.current?.click()}
+            <div className="ms-auto flex items-center gap-1.5 sm:ms-0">
+              <Tooltip
+                content={importing ? '导入中…' : '导入 JSON 备份（兼容 Sink）'}
+                side="bottom"
+                render={
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    iconOnly
+                    leadingIcon={RiUploadLine}
+                    aria-label="导入 JSON"
+                    disabled={importing}
+                    onClick={() => importInputRef.current?.click()}
+                  />
+                }
               />
-            }
-          />
 
-          <Tooltip
-            content="导出 JSON 备份"
-            render={
-              <Button
-                variant="secondary"
-                size="small"
-                iconOnly
-                leadingIcon={RiDownloadLine}
-                aria-label="导出 JSON"
-                disabled={filteredLinks.length === 0}
-                onClick={() => exportShortLinksJson(filteredLinks)}
+              <Tooltip
+                content="导出 JSON 备份"
+                side="bottom"
+                render={
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    iconOnly
+                    leadingIcon={RiDownloadLine}
+                    aria-label="导出 JSON"
+                    disabled={filteredLinks.length === 0}
+                    onClick={() => exportShortLinksJson(filteredLinks)}
+                  />
+                }
               />
-            }
-          />
 
-          <Button
-            variant="primary"
-            size="small"
-            leadingIcon={RiAddLine}
-            onClick={() => setCreateModalOpen(true)}
-          >
-            创建短链
-          </Button>
+              <Button
+                variant="primary"
+                size="small"
+                leadingIcon={RiAddLine}
+                onClick={() => setCreateModalOpen(true)}
+              >
+                创建短链
+              </Button>
+            </div>
+          </div>
         </div>
 
         {selectedIds.size > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-4 py-2.5">
-            <span className="font-mono text-caption-1-medium text-text-primary">
+            <span className="text-body-2-medium tabular-nums text-text-primary">
               已选中 {selectedIds.size} 条短链接
             </span>
             <div className="flex items-center gap-1.5">
@@ -421,11 +428,11 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
 
         <div className="overflow-x-auto bg-background-primary-default">
           {loading ? (
-            <div className="py-16 text-center font-mono text-caption-1-regular text-text-tertiary">
+            <div className="py-16 text-center text-body-2-regular text-text-tertiary">
               加载短链列表中…
             </div>
           ) : filteredLinks.length === 0 ? (
-            <div className="p-6">
+            <div className="console-empty p-6">
               <Empty
                 size="sm"
                 icon={<RiLinkM className="size-8 text-text-tertiary" aria-hidden />}
@@ -450,7 +457,7 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
               />
             </div>
           ) : (
-            <Table className="min-w-[720px]">
+            <Table className="console-table min-w-[720px]">
               <Table.Header variant="compact">
                 <Table.Row>
                   <Table.CheckHead
@@ -526,14 +533,14 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
                       <Table.Cell className="max-w-56">
                         <p
                           dir="ltr"
-                          className="truncate font-mono text-caption-2-regular text-text-secondary"
+                          className="truncate font-mono text-caption-1-regular text-text-secondary"
                           title={link.targetUrl}
                         >
                           {link.targetUrl}
                         </p>
                         {link.comment ? (
                           <p
-                            className="mt-0.5 truncate text-caption-2-regular text-text-tertiary"
+                            className="mt-0.5 truncate text-caption-1-regular text-text-tertiary"
                             title={link.comment}
                           >
                             {link.comment}
@@ -541,12 +548,12 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
                         ) : null}
                       </Table.Cell>
 
-                      <Table.Cell className="text-end font-mono text-caption-1-regular tabular-nums text-text-primary">
+                      <Table.Cell className="text-end text-body-2-regular tabular-nums text-text-primary">
                         {link.maxHits ? `${link.hits}/${link.maxHits}` : link.hits}
                       </Table.Cell>
 
                       <Table.Cell
-                        className="font-mono text-caption-1-regular whitespace-nowrap text-text-secondary"
+                        className="text-body-2-regular whitespace-nowrap tabular-nums text-text-secondary"
                         title={link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
                       >
                         {link.expiresAt
@@ -555,7 +562,7 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
                       </Table.Cell>
 
                       <Table.Cell
-                        className="text-caption-1-regular whitespace-nowrap text-text-secondary"
+                        className="text-body-2-regular whitespace-nowrap text-text-secondary"
                         title={formatDateTime(link.lastAccess)}
                       >
                         {formatRelativeTime(link.lastAccess)}
@@ -656,7 +663,7 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
         </div>
       </LayerCard>
 
-      <p className="text-center font-mono text-caption-2-regular text-text-tertiary">
+      <p className="text-center text-caption-1-regular tabular-nums text-text-tertiary">
         共 {shortLinks.length} 条短链 · 点击行查看配额与格式直链 · 导入导出兼容 Sink JSON
       </p>
 

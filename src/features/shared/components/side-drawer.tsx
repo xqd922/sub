@@ -71,7 +71,7 @@ export function SideDrawer({
               <div className="flex flex-wrap items-center gap-2">
                 <AriaHeading
                   slot="title"
-                  className="truncate text-headline-semibold text-text-primary"
+                  className="truncate text-title-3-semibold text-text-primary"
                 >
                   {title}
                 </AriaHeading>

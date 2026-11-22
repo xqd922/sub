@@ -1,7 +1,7 @@
 import { getKvStore, getManyJson, isKvAvailable, listKeysByPrefix } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS, type RecordIndex } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
-import type { ConvertRecord, DailyStats, StatsData } from '@/shared/admin.types'
+import type { ConvertRecord, DailyStats, HourlyStats, StatsData } from '@/shared/admin.types'
 import { extractNameFromUrl } from '@/shared/url.utils'
 
 export async function generateRecordId(url: string): Promise<string> {
@@ -104,38 +104,68 @@ async function incrementDailyHits(recordId: string): Promise<boolean> {
   if (!kv) return false
 
   try {
-    const today = new Date().toISOString().slice(0, 10)
-    const key = `${KV_KEYS.DAILY_PREFIX}${today}`
-    const todayUrlsKey = `${KV_KEYS.DAILY_PREFIX}${today}:urls`
+    const nowIso = new Date().toISOString()
+    const today = nowIso.slice(0, 10)
+    const currentHour = nowIso.slice(0, 13)
+    const dailyKey = `${KV_KEYS.DAILY_PREFIX}${today}`
+    const dailyUrlsKey = `${KV_KEYS.DAILY_PREFIX}${today}:urls`
+    const hourlyKey = `${KV_KEYS.HOURLY_PREFIX}${currentHour}`
+    const hourlyUrlsKey = `${KV_KEYS.HOURLY_PREFIX}${currentHour}:urls`
 
-    const [current, urlsData] = await Promise.all([
+    const [currentDaily, dailyUrlsData, currentHourly, hourlyUrlsData] = await Promise.all([
       getDailyStats(today),
-      kv.get(todayUrlsKey, 'json') as Promise<{ ids: string[] } | null>,
+      kv.get(dailyUrlsKey, 'json') as Promise<{ ids: string[] } | null>,
+      kv.get(hourlyKey, 'json') as Promise<HourlyStats | null>,
+      kv.get(hourlyUrlsKey, 'json') as Promise<{ ids: string[] } | null>,
     ])
 
-    const visitedUrls = new Set(urlsData?.ids || [])
-    const isNewToday = !visitedUrls.has(recordId)
-
-    const stats: DailyStats = {
+    const visitedDailyUrls = new Set(dailyUrlsData?.ids || [])
+    const isNewToday = !visitedDailyUrls.has(recordId)
+    const dailyStats: DailyStats = {
       date: today,
-      totalHits: (current?.totalHits || 0) + 1,
-      uniqueUrls: (current?.uniqueUrls || 0) + (isNewToday ? 1 : 0),
+      totalHits: (currentDaily?.totalHits || 0) + 1,
+      uniqueUrls: (currentDaily?.uniqueUrls || 0) + (isNewToday ? 1 : 0),
     }
+
+    const visitedHourlyUrls = new Set(hourlyUrlsData?.ids || [])
+    const isNewThisHour = !visitedHourlyUrls.has(recordId)
+    const hourlyStats: HourlyStats = {
+      hour: currentHour,
+      totalHits: (currentHourly?.totalHits || 0) + 1,
+      uniqueUrls: (currentHourly?.uniqueUrls || 0) + (isNewThisHour ? 1 : 0),
+    }
+
+    const writes: Promise<void>[] = [
+      kv.put(dailyKey, JSON.stringify(dailyStats), {
+        expirationTtl: KV_TTL_SECONDS.THIRTY_DAYS,
+      }),
+      kv.put(hourlyKey, JSON.stringify(hourlyStats), {
+        expirationTtl: KV_TTL_SECONDS.TWO_DAYS,
+      }),
+    ]
 
     if (isNewToday) {
-      visitedUrls.add(recordId)
-      await kv.put(todayUrlsKey, JSON.stringify({ ids: Array.from(visitedUrls) }), {
-        expirationTtl: KV_TTL_SECONDS.TWO_DAYS,
-      })
+      visitedDailyUrls.add(recordId)
+      writes.push(
+        kv.put(dailyUrlsKey, JSON.stringify({ ids: Array.from(visitedDailyUrls) }), {
+          expirationTtl: KV_TTL_SECONDS.TWO_DAYS,
+        }),
+      )
     }
 
-    await kv.put(key, JSON.stringify(stats), {
-      expirationTtl: KV_TTL_SECONDS.THIRTY_DAYS,
-    })
+    if (isNewThisHour) {
+      visitedHourlyUrls.add(recordId)
+      writes.push(
+        kv.put(hourlyUrlsKey, JSON.stringify({ ids: Array.from(visitedHourlyUrls) }), {
+          expirationTtl: KV_TTL_SECONDS.TWO_DAYS,
+        }),
+      )
+    }
 
+    await Promise.all(writes)
     return true
   } catch (error) {
-    logger.error('[RecordRepo] 更新每日统计失败:', error)
+    logger.error('[RecordRepo] 更新统计失败:', error)
     return false
   }
 }
@@ -403,4 +433,31 @@ export async function getRecentDailyStats(days: number): Promise<DailyStats[]> {
   }
 
   return results.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export async function getRecentHourlyStats(hours = 24): Promise<HourlyStats[]> {
+  if (hours <= 0) return []
+
+  const now = new Date()
+  now.setUTCMinutes(0, 0, 0)
+  const targetKeys = new Set<string>()
+  for (let i = 0; i < hours; i++) {
+    const bucket = new Date(now.getTime() - i * 3_600_000)
+    targetKeys.add(`${KV_KEYS.HOURLY_PREFIX}${bucket.toISOString().slice(0, 13)}`)
+  }
+
+  const existingKeys = (await listKeysByPrefix(KV_KEYS.HOURLY_PREFIX)).filter((key) =>
+    targetKeys.has(key),
+  )
+  if (existingKeys.length === 0) return []
+
+  const values = await getManyJson<HourlyStats>(existingKeys)
+  const results: HourlyStats[] = []
+  for (const item of values.values()) {
+    if (item && typeof item.hour === 'string') {
+      results.push(item)
+    }
+  }
+
+  return results.sort((a, b) => a.hour.localeCompare(b.hour))
 }

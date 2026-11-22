@@ -19,6 +19,7 @@ export function useAdminStats(onUnauthorized?: () => void) {
   return {
     stats: cache.stats,
     daily: cache.daily,
+    hourly: cache.hourly,
     records: cache.records,
     loading: !cache.hydrated,
     refresh,

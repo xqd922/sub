@@ -1,37 +1,53 @@
 'use client'
 
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { LayerCard } from '@cloudflare/kumo/components/layer-card'
 import { Tabs } from '@cloudflare/kumo/components/tabs'
 import { Skeleton } from '@/components/base/skeleton/skeleton'
-import type { DailyStats } from '@/shared/admin.types'
-import { formatCount, formatShortDate } from '@/shared/format.utils'
+import type { DailyStats, HourlyStats } from '@/shared/admin.types'
+import {
+  formatCount,
+  formatHourDateTime,
+  formatHourTick,
+  formatShortDate,
+} from '@/shared/format.utils'
 
-type RangeKey = '7' | '14' | '30'
+type RangeKey = '24h' | '7d' | '30d'
 
 interface TrendChartCardProps {
   daily: DailyStats[]
+  hourly: HourlyStats[]
   loading: boolean
 }
 
 const RANGE_TABS: Array<{ value: RangeKey; label: string }> = [
-  { value: '7', label: '7 天' },
-  { value: '14', label: '14 天' },
-  { value: '30', label: '30 天' },
+  { value: '24h', label: '24 小时' },
+  { value: '7d', label: '7 天' },
+  { value: '30d', label: '30 天' },
 ]
 
-interface ChartPoint {
-  x: number
-  y: number
-  date: string
+const RANGE_SUMMARY_LABEL: Record<RangeKey, string> = {
+  '24h': '近 24 小时累计',
+  '7d': '近 7 天累计',
+  '30d': '近 30 天累计',
+}
+
+interface SeriesItem {
+  key: string
+  tickLabel: string
+  readoutLabel: string
   hits: number
   uniqueUrls: number
 }
 
-const VIEW_WIDTH = 760
-const VIEW_HEIGHT = 188
-const PAD_LEFT = 42
-const PAD_RIGHT = 14
+interface ChartPoint extends SeriesItem {
+  x: number
+  y: number
+}
+
+const CHART_HEIGHT = 204
+const PAD_LEFT = 38
+const PAD_RIGHT = 12
 const PAD_TOP = 16
 const PAD_BOTTOM = 28
 
@@ -50,54 +66,149 @@ function buildSmoothLinePath(points: ChartPoint[]): string {
   return d
 }
 
-export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
+function buildHourlySeries(hourly: HourlyStats[]): SeriesItem[] {
+  const byHour = new Map(hourly.map((item) => [item.hour, item]))
+  const anchor = new Date()
+  anchor.setUTCMinutes(0, 0, 0)
+
+  const items: SeriesItem[] = []
+  for (let i = 23; i >= 0; i--) {
+    const bucket = new Date(anchor.getTime() - i * 3_600_000)
+    const hourKey = bucket.toISOString().slice(0, 13)
+    const matched = byHour.get(hourKey)
+    items.push({
+      key: hourKey,
+      tickLabel: formatHourTick(hourKey),
+      readoutLabel: formatHourDateTime(hourKey),
+      hits: matched?.totalHits || 0,
+      uniqueUrls: matched?.uniqueUrls || 0,
+    })
+  }
+  return items
+}
+
+function buildDailySeries(daily: DailyStats[], days: number): SeriesItem[] {
+  const byDate = new Map(daily.map((item) => [item.date, item]))
+  const anchor = new Date()
+  anchor.setUTCHours(0, 0, 0, 0)
+
+  const items: SeriesItem[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const bucket = new Date(anchor.getTime() - i * 86_400_000)
+    const dateKey = bucket.toISOString().slice(0, 10)
+    const matched = byDate.get(dateKey)
+    const label = formatShortDate(dateKey)
+    items.push({
+      key: dateKey,
+      tickLabel: label,
+      readoutLabel: label,
+      hits: matched?.totalHits || 0,
+      uniqueUrls: matched?.uniqueUrls || 0,
+    })
+  }
+  return items
+}
+
+export function TrendChartCard({ daily, hourly, loading }: TrendChartCardProps) {
   const gradientId = useId()
-  const [range, setRange] = useState<RangeKey>('14')
-  const [hoveredDate, setHoveredDate] = useState<string | null>(null)
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
+  const [chartWidth, setChartWidth] = useState(960)
+  const [range, setRange] = useState<RangeKey>('24h')
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null)
 
-  const visibleDaily = useMemo(() => daily.slice(-Number(range)), [daily, range])
+  // 通过回调 ref 跟踪真实挂载的图表容器宽度，确保从 loading/空态切换为有数据后
+  // ResizeObserver 仍能第一时间绑定，让折线图在任意屏幕 100% 铺满且不变形
+  useEffect(() => {
+    if (!containerEl) return
 
-  const rangeTotal = useMemo(
-    () => visibleDaily.reduce((sum, item) => sum + item.totalHits, 0),
-    [visibleDaily],
+    const updateWidth = () => {
+      const measured = Math.round(containerEl.getBoundingClientRect().width)
+      if (measured <= 0) return
+      const next = Math.max(measured, 280)
+      setChartWidth((prev) => (prev === next ? prev : next))
+    }
+
+    updateWidth()
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(containerEl)
+    return () => observer.disconnect()
+  }, [containerEl])
+
+  const hasAnyHistory = useMemo(
+    () =>
+      daily.some((item) => item.totalHits > 0) || hourly.some((item) => item.totalHits > 0),
+    [daily, hourly],
   )
 
-  const maxDaily = useMemo(() => {
-    const peak = Math.max(...visibleDaily.map((item) => item.totalHits), 0)
+  const series = useMemo<SeriesItem[]>(() => {
+    if (!hasAnyHistory) return []
+    if (range === '24h') return buildHourlySeries(hourly)
+    return buildDailySeries(daily, range === '7d' ? 7 : 30)
+  }, [hasAnyHistory, range, hourly, daily])
+
+  const rangeTotal = useMemo(
+    () => series.reduce((sum, item) => sum + item.hits, 0),
+    [series],
+  )
+
+  const maxValue = useMemo(() => {
+    const peak = Math.max(...series.map((item) => item.hits), 0)
     if (peak <= 4) return Math.max(peak, 4)
     const magnitude = Math.pow(10, Math.floor(Math.log10(peak)))
     return Math.ceil(peak / magnitude) * magnitude
-  }, [visibleDaily])
+  }, [series])
 
-  const plotWidth = VIEW_WIDTH - PAD_LEFT - PAD_RIGHT
-  const plotHeight = VIEW_HEIGHT - PAD_TOP - PAD_BOTTOM
+  const plotWidth = Math.max(chartWidth - PAD_LEFT - PAD_RIGHT, 120)
+  const plotHeight = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM
   const baselineY = PAD_TOP + plotHeight
 
   const points = useMemo<ChartPoint[]>(() => {
-    const count = visibleDaily.length
+    const count = series.length
     if (count === 0) return []
-    return visibleDaily.map((item, idx) => {
+    return series.map((item, idx) => {
       const x = count === 1 ? PAD_LEFT + plotWidth / 2 : PAD_LEFT + (idx / (count - 1)) * plotWidth
-      const ratio = maxDaily > 0 ? item.totalHits / maxDaily : 0
+      const ratio = maxValue > 0 ? item.hits / maxValue : 0
       const y = baselineY - ratio * plotHeight
       return {
+        ...item,
         x,
         y,
-        date: item.date,
-        hits: item.totalHits,
-        uniqueUrls: item.uniqueUrls,
       }
     })
-  }, [visibleDaily, plotWidth, plotHeight, baselineY, maxDaily])
+  }, [series, plotWidth, plotHeight, baselineY, maxValue])
+
+  // 按实际像素间距计算 X 轴标签步长，避免最右侧相邻刻度重叠
+  const visibleLabelIndices = useMemo(() => {
+    const count = points.length
+    const shown = new Set<number>()
+    if (count === 0) return shown
+    if (count === 1) {
+      shown.add(0)
+      return shown
+    }
+
+    const minPxGap = chartWidth < 480 ? 64 : 78
+    const maxLabels = Math.max(2, Math.floor(plotWidth / minPxGap) + 1)
+    const step = Math.max(1, Math.ceil((count - 1) / (maxLabels - 1)))
+
+    shown.add(0)
+    for (let idx = step; idx < count - 1; idx += step) {
+      if (points[count - 1].x - points[idx].x >= minPxGap * 0.72) {
+        shown.add(idx)
+      }
+    }
+    shown.add(count - 1)
+    return shown
+  }, [points, chartWidth, plotWidth])
 
   const activePoint = useMemo(() => {
     if (points.length === 0) return null
-    if (hoveredDate) {
-      const found = points.find((pt) => pt.date === hoveredDate)
+    if (hoveredKey) {
+      const found = points.find((pt) => pt.key === hoveredKey)
       if (found) return found
     }
     return points[points.length - 1]
-  }, [points, hoveredDate])
+  }, [points, hoveredKey])
 
   const linePath = useMemo(() => buildSmoothLinePath(points), [points])
   const areaPath = useMemo(() => {
@@ -107,18 +218,25 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
     return `${linePath} L ${last.x.toFixed(2)} ${baselineY.toFixed(2)} L ${first.x.toFixed(2)} ${baselineY.toFixed(2)} Z`
   }, [linePath, points, baselineY])
 
-  const yTicks = [0, Math.round(maxDaily / 2), maxDaily]
+  const yTicks = [0, Math.round(maxValue / 2), maxValue]
+
+  const metaNote =
+    range === '24h'
+      ? rangeTotal === 0 && daily.length > 0
+        ? '小时级数据实时采集中，可切 7 天 / 30 天查看历史'
+        : '按小时实时聚合 · 本地时区'
+      : 'Cloudflare KV 按日汇总'
 
   return (
     <LayerCard className="overflow-hidden">
-      <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-        <div className="flex flex-wrap items-baseline gap-3">
+      <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
           <h2 className="text-body-semibold text-text-primary">转换请求趋势</h2>
-          <span className="font-mono text-title-3-semibold tabular-nums text-text-primary">
+          <span className="text-headline-semibold tracking-[-0.015em] tabular-nums text-text-primary">
             {loading ? '—' : formatCount(rangeTotal)}
           </span>
-          <span className="font-mono text-caption-2-regular text-text-tertiary">
-            近 {range} 天累计
+          <span className="text-caption-1-regular tabular-nums text-text-tertiary">
+            {RANGE_SUMMARY_LABEL[range]}
           </span>
         </div>
 
@@ -129,26 +247,26 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
           value={range}
           onValueChange={(next) => {
             setRange(next as RangeKey)
-            setHoveredDate(null)
+            setHoveredKey(null)
           }}
         />
       </LayerCard.Secondary>
 
       <LayerCard.Primary className="p-4 sm:p-5">
         {loading ? (
-          <Skeleton className="h-[188px] w-full rounded-lg" />
-        ) : visibleDaily.length === 0 ? (
-          <div className="flex h-[188px] items-center justify-center rounded-lg border border-dashed border-separator-border bg-background-secondary-default/40 text-body-2-regular text-text-tertiary">
+          <Skeleton className="h-[228px] w-full rounded-lg" />
+        ) : series.length === 0 ? (
+          <div className="flex h-[204px] items-center justify-center rounded-lg border border-dashed border-separator-border bg-background-secondary-default/40 text-body-2-regular text-text-tertiary">
             暂无趋势数据，完成首次订阅转换后将自动生成曲线
           </div>
         ) : (
           <>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 font-mono text-caption-1-regular tabular-nums">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-body-2-regular tabular-nums">
               {activePoint ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-text-secondary">
-                  <span className="inline-flex items-center gap-1.5 text-text-primary">
+                <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-text-secondary">
+                  <span className="inline-flex items-center gap-1.5 text-body-2-semibold text-text-primary">
                     <span className="size-2 rounded-full bg-accent-500" aria-hidden />
-                    {formatShortDate(activePoint.date)}
+                    {activePoint.readoutLabel}
                   </span>
                   <span>
                     <strong className="font-semibold text-text-primary">
@@ -164,36 +282,38 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
                   </span>
                 </div>
               ) : (
-                <span className="text-text-tertiary">移动指针查看每日请求明细</span>
+                <span className="text-text-tertiary">移动或轻触查看时段明细</span>
               )}
-              <span className="font-sans text-caption-2-regular text-text-tertiary">
-                Cloudflare KV 分钟级汇总
+              <span className="hidden text-caption-1-regular text-text-tertiary sm:inline">
+                {metaNote}
               </span>
             </div>
 
-            <div className="w-full" dir="ltr">
+            <div ref={setContainerEl} className="w-full" dir="ltr">
               <svg
-                viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-                className="h-[188px] w-full overflow-visible select-none"
+                viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT}`}
+                width="100%"
+                height={CHART_HEIGHT}
+                className="block h-[204px] w-full overflow-visible select-none"
                 role="img"
-                aria-label={`近 ${visibleDaily.length} 天每日转换次数趋势图`}
-                onMouseLeave={() => setHoveredDate(null)}
+                aria-label={`${RANGE_SUMMARY_LABEL[range]}趋势图`}
+                onMouseLeave={() => setHoveredKey(null)}
               >
                 <defs>
                   <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-accent-500)" stopOpacity="0.24" />
+                    <stop offset="0%" stopColor="var(--color-accent-500)" stopOpacity="0.22" />
                     <stop offset="100%" stopColor="var(--color-accent-500)" stopOpacity="0.01" />
                   </linearGradient>
                 </defs>
 
                 {/* Horizontal gridlines + Y-axis labels */}
                 {yTicks.map((tick) => {
-                  const y = baselineY - (maxDaily > 0 ? (tick / maxDaily) * plotHeight : 0)
+                  const y = baselineY - (maxValue > 0 ? (tick / maxValue) * plotHeight : 0)
                   return (
                     <g key={tick}>
                       <line
                         x1={PAD_LEFT}
-                        x2={VIEW_WIDTH - PAD_RIGHT}
+                        x2={chartWidth - PAD_RIGHT}
                         y1={y}
                         y2={y}
                         stroke="var(--color-separator-border)"
@@ -205,7 +325,7 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
                         y={y + 3.5}
                         textAnchor="end"
                         fill="var(--color-text-tertiary)"
-                        fontSize={10.5}
+                        fontSize={11}
                         fontFamily="var(--font-mono)"
                       >
                         {formatCount(tick)}
@@ -243,14 +363,14 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
                     <circle
                       cx={activePoint.x}
                       cy={activePoint.y}
-                      r={6}
+                      r={6.5}
                       fill="var(--color-accent-500)"
                       fillOpacity={0.18}
                     />
                     <circle
                       cx={activePoint.x}
                       cy={activePoint.y}
-                      r={3.25}
+                      r={3.5}
                       fill="var(--color-background-primary-default)"
                       stroke="var(--color-accent-500)"
                       strokeWidth={2}
@@ -260,49 +380,45 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
 
                 {/* X-axis labels */}
                 {points.map((pt, idx) => {
-                  const showLabel =
-                    range === '7' ||
-                    (range === '14' && (idx % 2 === 0 || idx === points.length - 1)) ||
-                    (range === '30' && (idx % 5 === 0 || idx === points.length - 1))
-                  if (!showLabel) return null
-                  const isActive = activePoint?.date === pt.date
+                  if (!visibleLabelIndices.has(idx)) return null
+                  const isActive = activePoint?.key === pt.key
                   return (
                     <text
-                      key={pt.date}
+                      key={pt.key}
                       x={pt.x}
-                      y={VIEW_HEIGHT - 6}
+                      y={CHART_HEIGHT - 6}
                       textAnchor={
                         idx === 0 ? 'start' : idx === points.length - 1 ? 'end' : 'middle'
                       }
                       fill={isActive ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)'}
-                      fontWeight={isActive ? 600 : 400}
-                      fontSize={10.5}
+                      fontWeight={isActive ? 500 : 400}
+                      fontSize={11}
                       fontFamily="var(--font-mono)"
                     >
-                      {formatShortDate(pt.date)}
+                      {pt.tickLabel}
                     </text>
                   )
                 })}
 
-                {/* Interactive hover slices */}
+                {/* Interactive hover & touch slices */}
                 {points.map((pt, idx) => {
                   const step = points.length > 1 ? plotWidth / (points.length - 1) : plotWidth
                   const sliceX = Math.max(PAD_LEFT, pt.x - step / 2)
-                  const sliceWidth =
-                    idx === 0 || idx === points.length - 1 ? step / 2 : step
+                  const sliceWidth = idx === 0 || idx === points.length - 1 ? step / 2 : step
                   return (
                     <rect
-                      key={`hit-${pt.date}`}
+                      key={`hit-${pt.key}`}
                       x={sliceX}
                       y={PAD_TOP}
                       width={Math.max(sliceWidth, 8)}
                       height={plotHeight + PAD_BOTTOM}
                       fill="transparent"
                       className="cursor-crosshair"
-                      onMouseEnter={() => setHoveredDate(pt.date)}
-                      onFocus={() => setHoveredDate(pt.date)}
+                      onMouseEnter={() => setHoveredKey(pt.key)}
+                      onPointerDown={() => setHoveredKey(pt.key)}
+                      onFocus={() => setHoveredKey(pt.key)}
                       tabIndex={0}
-                      aria-label={`${formatShortDate(pt.date)}：${pt.hits} 次转换`}
+                      aria-label={`${pt.readoutLabel}：${pt.hits} 次转换`}
                     />
                   )
                 })}
@@ -310,19 +426,19 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
             </div>
 
             <table className="sr-only">
-              <caption>近 {visibleDaily.length} 天每日转换次数</caption>
+              <caption>{RANGE_SUMMARY_LABEL[range]}明细</caption>
               <thead>
                 <tr>
-                  <th scope="col">日期</th>
+                  <th scope="col">{range === '24h' ? '时段' : '日期'}</th>
                   <th scope="col">转换次数</th>
-                  <th scope="col">订阅数</th>
+                  <th scope="col">活跃订阅</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleDaily.map((item) => (
-                  <tr key={item.date}>
-                    <td>{item.date}</td>
-                    <td>{item.totalHits}</td>
+                {series.map((item) => (
+                  <tr key={item.key}>
+                    <td>{item.readoutLabel}</td>
+                    <td>{item.hits}</td>
                     <td>{item.uniqueUrls}</td>
                   </tr>
                 ))}

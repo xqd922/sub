@@ -279,11 +279,12 @@ export function RecordsPanel({
   return (
     <div className="flex flex-col gap-4">
       <LayerCard className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:px-4">
-          <div ref={searchContainerRef} className="min-w-[200px] flex-1">
+        <div className="flex flex-col gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:px-4">
+          <div ref={searchContainerRef} className="w-full sm:min-w-[200px] sm:flex-1">
             <SearchField
               size="small"
               shape="rounded"
+              fieldClassName="h-9 sm:h-8"
               value={search}
               onChange={setSearch}
               placeholder="搜索订阅名称、链接、客户端或 ID"
@@ -291,57 +292,62 @@ export function RecordsPanel({
             />
           </div>
 
-          <Tabs
-            variant="segmented"
-            size="sm"
-            tabs={STATUS_TABS}
-            value={statusFilter}
-            onValueChange={(next) => setStatusFilter(next as StatusFilter)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Tabs
+              variant="segmented"
+              size="sm"
+              tabs={STATUS_TABS}
+              value={statusFilter}
+              onValueChange={(next) => setStatusFilter(next as StatusFilter)}
+            />
 
-          <Select
-            aria-label="排序方式"
-            size="sm"
-            selectedKey={sortKey}
-            onSelectionChange={(key) => {
-              if (key) setSortKey(String(key) as SortKey)
-            }}
-            className="w-34"
-          >
-            <SelectItem id="lastAccess">最近访问</SelectItem>
-            <SelectItem id="hits">命中次数</SelectItem>
-            <SelectItem id="createdAt">创建时间</SelectItem>
-            <SelectItem id="nodeCount">节点数量</SelectItem>
-          </Select>
+            <Select
+              aria-label="排序方式"
+              size="sm"
+              selectedKey={sortKey}
+              onSelectionChange={(key) => {
+                if (key) setSortKey(String(key) as SortKey)
+              }}
+              className="w-32"
+            >
+              <SelectItem id="lastAccess">最近访问</SelectItem>
+              <SelectItem id="hits">命中次数</SelectItem>
+              <SelectItem id="createdAt">创建时间</SelectItem>
+              <SelectItem id="nodeCount">节点数量</SelectItem>
+            </Select>
 
-          <Tooltip
-            content="导出当前列表为 CSV"
-            render={
-              <Button
-                variant="secondary"
-                size="small"
-                iconOnly
-                leadingIcon={RiDownloadLine}
-                aria-label="导出 CSV"
-                disabled={filteredRecords.length === 0}
-                onClick={() => exportRecordsCsv(filteredRecords)}
+            <div className="ms-auto flex items-center gap-1.5 sm:ms-0">
+              <Tooltip
+                content="导出当前列表为 CSV"
+                side="bottom"
+                render={
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    iconOnly
+                    leadingIcon={RiDownloadLine}
+                    aria-label="导出 CSV"
+                    disabled={filteredRecords.length === 0}
+                    onClick={() => exportRecordsCsv(filteredRecords)}
+                  />
+                }
               />
-            }
-          />
 
-          <Button
-            variant="primary"
-            size="small"
-            leadingIcon={RiAddLine}
-            onClick={() => setAddModalOpen(true)}
-          >
-            登记订阅
-          </Button>
+              <Button
+                variant="primary"
+                size="small"
+                leadingIcon={RiAddLine}
+                onClick={() => setAddModalOpen(true)}
+              >
+                登记订阅
+              </Button>
+            </div>
+          </div>
         </div>
 
         {selectedIds.size > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-4 py-2.5">
-            <span className="font-mono text-caption-1-medium text-text-primary">
+            <span className="text-body-2-medium tabular-nums text-text-primary">
               已选中 {selectedIds.size} 条记录
             </span>
             <div className="flex items-center gap-1.5">
@@ -376,11 +382,11 @@ export function RecordsPanel({
 
         <div className="overflow-x-auto bg-background-primary-default">
           {loading ? (
-            <div className="py-16 text-center font-mono text-caption-1-regular text-text-tertiary">
+            <div className="py-16 text-center text-body-2-regular text-text-tertiary">
               加载订阅记录中…
             </div>
           ) : filteredRecords.length === 0 ? (
-            <div className="p-6">
+            <div className="console-empty p-6">
               <Empty
                 size="sm"
                 icon={<RiFileList3Line className="size-8 text-text-tertiary" aria-hidden />}
@@ -405,7 +411,7 @@ export function RecordsPanel({
               />
             </div>
           ) : (
-            <Table className="min-w-[680px]">
+            <Table className="console-table min-w-[680px]">
               <Table.Header variant="compact">
                 <Table.Row>
                   <Table.CheckHead
@@ -450,7 +456,7 @@ export function RecordsPanel({
                         </p>
                         <p
                           dir="ltr"
-                          className="mt-0.5 truncate font-mono text-caption-2-regular text-text-tertiary"
+                          className="mt-0.5 truncate font-mono text-caption-1-regular text-text-tertiary"
                           title={record.originalUrl}
                         >
                           {record.originalUrl}
@@ -469,14 +475,14 @@ export function RecordsPanel({
                         </span>
                       </Table.Cell>
 
-                      <Table.Cell className="text-end font-mono text-caption-1-regular tabular-nums">
+                      <Table.Cell className="text-end text-body-2-regular tabular-nums">
                         <span className="text-text-primary">{record.nodeCount}</span>
                         <span className="mx-1 text-text-tertiary">/</span>
                         <span className="text-text-secondary">{record.hits}</span>
                       </Table.Cell>
 
                       <Table.Cell
-                        className="text-caption-1-regular whitespace-nowrap text-text-secondary"
+                        className="text-body-2-regular whitespace-nowrap text-text-secondary"
                         title={formatDateTime(record.lastAccess)}
                       >
                         {formatRelativeTime(record.lastAccess)}
@@ -591,7 +597,7 @@ export function RecordsPanel({
         </div>
       </LayerCard>
 
-      <p className="text-center font-mono text-caption-2-regular text-text-tertiary">
+      <p className="text-center text-caption-1-regular tabular-nums text-text-tertiary">
         共 {records.length} 条记录（点击任意行展开侧边详情抽屉 · 禁用后订阅将立即返回 400）
       </p>
 

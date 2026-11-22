@@ -24,17 +24,22 @@ export async function POST(request: Request) {
     return jsonError(AppError.validation('请求体格式错误'))
   }
 
-  const { username = '', password } = body
-  if (!password || typeof password !== 'string') {
+  const username = typeof body.username === 'string' ? body.username.trim() : ''
+  const password = typeof body.password === 'string' ? body.password : ''
+
+  if (!username) {
+    return jsonError(AppError.validation('请输入管理员用户名', 'username'))
+  }
+  if (!password) {
     return jsonError(AppError.validation('请输入密码', 'password'))
   }
 
   const { username: expectedUsername, password: expectedPassword } = getAdminCredentials()
-  if (!expectedPassword) {
+  if (!expectedUsername || !expectedPassword) {
     return jsonError(
       new AppError(
         ErrorCode.AUTH_FAILED,
-        '服务端未配置管理员密码，请在环境变量中设置 ADMIN_PASSWORD',
+        '服务端未配置管理员凭据，请在环境变量中设置 ADMIN_USERNAME 与 ADMIN_PASSWORD',
         500,
         ErrorSeverity.CRITICAL,
       ),
@@ -49,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   const [usernameValid, passwordValid] = await Promise.all([
-    expectedUsername ? verifySecretEqual(username, expectedUsername) : Promise.resolve(true),
+    verifySecretEqual(username, expectedUsername),
     verifySecretEqual(password, expectedPassword),
   ])
 

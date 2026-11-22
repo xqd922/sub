@@ -55,6 +55,9 @@ export function AdminConsole() {
     else url.searchParams.set('tab', nextTab)
     window.history.replaceState(null, '', url.toString())
     for (const listener of tabListeners) listener()
+    if (window.innerWidth < 1024 && window.scrollY > 0) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
   }, [])
 
   // 切回浏览器标签页时单点静默同步全量控制台快照
@@ -93,7 +96,7 @@ export function AdminConsole() {
     return (
       <section className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background-full text-text-tertiary">
         <Spinner size="md" aria-label="加载控制台" />
-        <p className="font-mono text-caption-1-regular">加载控制台…</p>
+        <p className="text-body-2-regular">加载控制台…</p>
       </section>
     )
   }
@@ -118,19 +121,19 @@ export function AdminConsole() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="border-b border-separator-border bg-background-primary-default/75 px-5 py-3.5 backdrop-blur-sm sm:px-8">
-          <div className="mx-auto flex w-full max-w-[1160px] flex-wrap items-center justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-1.5 font-mono text-caption-2-regular text-text-tertiary">
+        <div className="border-b border-separator-border bg-background-primary-default/75 py-3 backdrop-blur-sm sm:py-3.5">
+          <div className="mx-auto flex w-full max-w-[1160px] flex-wrap items-center justify-between gap-2 px-4 sm:px-8">
+            <div className="min-w-0 flex-1">
+              <div className="hidden items-center gap-1.5 text-caption-1-regular text-text-tertiary sm:flex">
                 <span>Console</span>
                 <span>/</span>
                 <span className="text-text-secondary">{currentTab.code}</span>
               </div>
-              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                <h1 className="text-title-3-semibold tracking-tight text-text-primary">
+              <div className="flex min-w-0 items-baseline gap-x-3 sm:mt-0.5">
+                <h1 className="shrink-0 text-title-3-semibold tracking-[-0.015em] text-text-primary sm:text-title-2-semibold">
                   {currentTab.label}
                 </h1>
-                <p className="text-caption-1-regular text-text-tertiary">
+                <p className="min-w-0 truncate text-body-2-regular text-text-secondary">
                   {currentTab.description}
                 </p>
               </div>
@@ -138,7 +141,7 @@ export function AdminConsole() {
           </div>
         </div>
 
-        <main className="mx-auto flex w-full max-w-[1160px] flex-1 flex-col px-5 py-6 sm:px-8">
+        <main className="mx-auto flex w-full max-w-[1160px] flex-1 flex-col px-4 py-5 sm:px-8 sm:py-6">
           {activeTab === 'stats' ? <StatsPanel onUnauthorized={resetAuthentication} /> : null}
           {activeTab === 'records' ? (
             <RecordsPanel

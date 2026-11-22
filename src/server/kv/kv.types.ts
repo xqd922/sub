@@ -21,6 +21,7 @@ export const KV_KEYS = {
   RECORD_PREFIX: 'record:',
   RECORD_INDEX: 'index:records',
   DAILY_PREFIX: 'stats:daily:',
+  HOURLY_PREFIX: 'stats:hourly:',
   SHORT_PREFIX: 'short:',
   SHORT_URL_PREFIX: 'short:url:',
   SHORT_INDEX: 'index:shortlinks',

@@ -257,7 +257,7 @@ export function ModalHeader({
             <Icon className="size-5" aria-hidden />
           </span>
         ) : null}
-        <AriaHeading slot="title" className="text-title-3-medium text-text-primary">
+        <AriaHeading slot="title" className="text-title-3-semibold text-text-primary">
           {title}
         </AriaHeading>
         {hasDescription ? (

@@ -22,8 +22,6 @@ const PROTOCOL_PREVIEW = [
   'Snell',
   'TUIC',
   'WireGuard',
-  'AnyTLS',
-  'SS-2022',
 ] as const
 
 export function ConverterPage() {
@@ -70,23 +68,23 @@ export function ConverterPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-background-full text-text-primary">
+    <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-background-full text-text-primary">
       {/* Subtle technical dot-grid backdrop faded toward outer edges */}
       <div
         aria-hidden
         className="console-dot-grid pointer-events-none fixed inset-0 opacity-65 [mask-image:radial-gradient(ellipse_62%_50%_at_50%_26%,#000_25%,transparent_100%)]"
       />
 
-      <header className="relative z-10 flex h-13 items-center justify-between border-b border-separator-border/80 bg-background-full/80 px-4 backdrop-blur-md sm:px-6">
+      <header className="sticky top-0 z-20 flex h-13 transform-gpu items-center justify-between border-b border-separator-border/80 bg-background-full/85 px-4 backdrop-blur-md sm:px-6">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden
             className="size-2 rounded-full bg-brand-cloudflare shadow-[0_0_8px_var(--color-brand-cloudflare)]"
           />
-          <span className="font-mono text-body-2-semibold tracking-tight text-text-primary">
+          <span className="text-body-semibold tracking-[-0.015em] text-text-primary">
             SubConvert
           </span>
-          <Badge variant="outline" className="hidden font-mono sm:inline-flex">
+          <Badge variant="outline" className="hidden tabular-nums sm:inline-flex">
             Edge · 18 协议
           </Badge>
         </div>
@@ -94,22 +92,22 @@ export function ConverterPage() {
         <div className="flex items-center gap-1">
           <Link
             href="/admin"
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-transparent px-2.5 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:border-separator-border hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-transparent px-2.5 text-body-2-regular text-text-secondary transition-colors duration-150 hover:border-separator-border hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
           >
             <RiSettings3Line className="size-3.5" aria-hidden />
             <span>控制台</span>
           </Link>
-          <ThemeIconButton />
+          <ThemeIconButton disableTooltip />
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-1 flex-col items-center px-5 pt-[15vh] pb-20 sm:px-6 sm:pt-[19vh]">
+      <main className="relative z-10 flex flex-1 flex-col items-center px-4 pt-[11vh] pb-20 sm:px-6 sm:pt-[18vh]">
         <div className="flex w-full max-w-[640px] flex-col">
-          <div className="mb-7 text-center">
-            <h1 className="text-title-1-semibold tracking-tight text-text-primary">
+          <div className="mb-8 text-center">
+            <h1 className="text-title-1-semibold tracking-[-0.02em] text-text-primary sm:text-display-4-semibold sm:tracking-[-0.025em]">
               通用订阅转换
             </h1>
-            <p className="mt-1.5 text-body-2-regular text-text-secondary">
+            <p className="mt-2.5 text-body-2-regular text-text-secondary sm:text-body-regular">
               自动识别客户端 UA，边缘实时输出 Clash、sing-box 与 v2rayNG 配置
             </p>
           </div>
@@ -128,13 +126,13 @@ export function ConverterPage() {
               {PROTOCOL_PREVIEW.map((protocol) => (
                 <span
                   key={protocol}
-                  className="rounded-md border border-separator-border/80 bg-background-primary-default/75 px-2 py-0.5 font-mono text-caption-2-regular text-text-tertiary"
+                  className="rounded-md border border-separator-border/80 bg-background-primary-default/75 px-2 py-0.5 font-mono text-caption-1-regular text-text-tertiary"
                 >
                   {protocol}
                 </span>
               ))}
-              <span className="rounded-md border border-separator-border/60 bg-background-secondary-default/70 px-2 py-0.5 font-mono text-caption-2-medium text-text-secondary">
-                +9 协议
+              <span className="rounded-md border border-separator-border/60 bg-background-secondary-default/70 px-2 py-0.5 text-caption-1-medium tabular-nums text-text-secondary">
+                +11 协议
               </span>
             </div>
           ) : null}
@@ -173,12 +171,12 @@ export function ConverterPage() {
                               className="size-full rounded-md object-contain"
                             />
                           ) : (
-                            <span className="font-mono text-caption-2-regular text-text-tertiary">
+                            <span className="text-caption-1-regular text-text-tertiary">
                               生成中…
                             </span>
                           )}
                         </div>
-                        <span className="text-caption-2-regular text-text-tertiary">
+                        <span className="text-caption-1-regular text-text-tertiary">
                           使用代理客户端扫描二维码导入
                         </span>
                       </div>

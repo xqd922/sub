@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { POST as loginPost } from '@/app/api/admin/login/route'
 import { requireAdmin, withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import {
   LOGIN_WINDOW_MS,
@@ -173,5 +174,41 @@ describe('admin guard and rate limiting', () => {
 
     clearLoginAttempts('1.2.3.4')
     expect(checkLoginRateLimit('1.2.3.4', FIXED_NOW).allowed).toBe(true)
+  })
+
+  it('requires both ADMIN_USERNAME and ADMIN_PASSWORD on /api/admin/login', async () => {
+    const postLogin = (payload: Record<string, unknown>, ip = '9.9.9.9') =>
+      loginPost(
+        new Request('https://example.com/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-forwarded-for': ip },
+          body: JSON.stringify(payload),
+        }),
+      )
+
+    clearLoginAttempts('9.9.9.9')
+
+    // Missing username in request -> 400
+    process.env.ADMIN_USERNAME = 'admin'
+    process.env.ADMIN_PASSWORD = TEST_PASSWORD
+    expect((await postLogin({ password: TEST_PASSWORD })).status).toBe(400)
+    expect((await postLogin({ username: '   ', password: TEST_PASSWORD })).status).toBe(400)
+
+    // Missing ADMIN_USERNAME env -> 500 fail closed
+    delete process.env.ADMIN_USERNAME
+    expect((await postLogin({ username: 'admin', password: TEST_PASSWORD })).status).toBe(500)
+
+    // Wrong username or wrong password -> 401
+    process.env.ADMIN_USERNAME = 'admin'
+    expect((await postLogin({ username: 'wrong', password: TEST_PASSWORD })).status).toBe(401)
+    expect((await postLogin({ username: 'admin', password: 'wrong' })).status).toBe(401)
+
+    // Matching username + password -> 200 + session cookie
+    const okRes = await postLogin({ username: 'admin', password: TEST_PASSWORD })
+    expect(okRes.status).toBe(200)
+    expect(okRes.headers.get('set-cookie')).toContain(`${ADMIN_COOKIE_NAME}=`)
+
+    delete process.env.ADMIN_USERNAME
+    clearLoginAttempts('9.9.9.9')
   })
 })

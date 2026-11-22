@@ -2,6 +2,7 @@ import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import {
   computeStatsFromData,
   getRecentDailyStats,
+  getRecentHourlyStats,
   listAllRecordsForAdmin,
 } from '@/modules/record/record.repository'
 import { listKeysByPrefix } from '@/server/kv/kv.client'
@@ -11,9 +12,10 @@ import { jsonOk } from '@/server/route.utils'
 export const runtime = 'edge'
 
 export const GET = withAdminAuth('获取统计', async () => {
-  const [records, daily, shortKeys] = await Promise.all([
+  const [records, daily, hourly, shortKeys] = await Promise.all([
     listAllRecordsForAdmin(),
     getRecentDailyStats(30),
+    getRecentHourlyStats(24),
     listKeysByPrefix(KV_KEYS.SHORT_PREFIX),
   ])
 
@@ -24,5 +26,5 @@ export const GET = withAdminAuth('获取统计', async () => {
   ).length
   const stats = computeStatsFromData(records, todayHits, totalShortLinks)
 
-  return jsonOk({ stats, daily, records })
+  return jsonOk({ stats, daily, hourly, records })
 })

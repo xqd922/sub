@@ -96,12 +96,12 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
         <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-body-semibold text-text-primary">客户端 UA 适配规则</h2>
-              <Badge variant="outline" className="font-mono">
+              <h2 className="text-headline-semibold text-text-primary">客户端 UA 适配规则</h2>
+              <Badge variant="outline" className="tabular-nums">
                 {rules.length}
               </Badge>
             </div>
-            <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
+            <p className="mt-0.5 text-body-2-regular text-text-secondary">
               按 User-Agent 关键词覆写目标输出格式（不区分大小写，优先级高于内置识别表）
             </p>
           </div>
@@ -117,11 +117,11 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
 
         <div className="overflow-x-auto bg-background-primary-default">
           {loading ? (
-            <div className="py-12 text-center font-mono text-caption-1-regular text-text-tertiary">
+            <div className="py-12 text-center text-body-2-regular text-text-tertiary">
               加载客户端适配规则中…
             </div>
           ) : rules.length === 0 ? (
-            <div className="p-6">
+            <div className="console-empty p-6">
               <Empty
                 size="sm"
                 icon={<RiRouteLine className="size-7 text-text-tertiary" aria-hidden />}
@@ -130,7 +130,7 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
               />
             </div>
           ) : (
-            <Table className="min-w-[520px]">
+            <Table className="console-table min-w-[520px]">
               <Table.Header variant="compact">
                 <Table.Row>
                   <Table.Head>User-Agent 关键词</Table.Head>
@@ -146,11 +146,9 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
                       {rule.keyword}
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge variant="info" className="font-mono">
-                        {TARGET_LABEL[rule.target]}
-                      </Badge>
+                      <Badge variant="info">{TARGET_LABEL[rule.target]}</Badge>
                     </Table.Cell>
-                    <Table.Cell className="text-caption-1-regular text-text-secondary">
+                    <Table.Cell className="text-body-2-regular text-text-secondary">
                       {rule.note || '—'}
                     </Table.Cell>
                     <Table.Cell className="text-end">

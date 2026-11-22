@@ -138,7 +138,7 @@ export function RecordDetailDrawer({
           {/* Quick URL Copy Blocks */}
           <section className="flex flex-col gap-3">
             <div>
-              <span className="mb-1.5 block text-caption-1-medium text-text-secondary">
+              <span className="mb-1.5 block text-body-2-medium text-text-secondary">
                 转换订阅地址
               </span>
               <div dir="ltr">
@@ -153,7 +153,7 @@ export function RecordDetailDrawer({
             </div>
 
             <div>
-              <span className="mb-1.5 block text-caption-1-medium text-text-secondary">
+              <span className="mb-1.5 block text-body-2-medium text-text-secondary">
                 原始上游地址
               </span>
               <div dir="ltr">
@@ -172,8 +172,8 @@ export function RecordDetailDrawer({
           <section className="rounded-xl border border-separator-border bg-background-secondary-default/45 p-4">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h3 className="text-body-2-semibold text-text-primary">上游节点检测</h3>
-                <p className="text-caption-2-regular text-text-tertiary">
+                <h3 className="text-body-semibold text-text-primary">上游节点检测</h3>
+                <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
                   实时拉取上游订阅并解析节点协议、地区与流量配额
                 </p>
               </div>
@@ -189,7 +189,7 @@ export function RecordDetailDrawer({
             </div>
 
             {inspecting ? (
-              <div className="mt-4 flex items-center gap-2 border-t border-separator-border pt-3 text-caption-1-regular text-text-secondary">
+              <div className="mt-4 flex items-center gap-2 border-t border-separator-border pt-3 text-body-2-regular text-text-secondary">
                 <Spinner size="sm" aria-label="正在检测" />
                 <span>正在拉取上游订阅并解析节点…</span>
               </div>
@@ -203,7 +203,7 @@ export function RecordDetailDrawer({
                     {inspection.durationMs} ms
                   </Badge>
                   {expireText ? (
-                    <Badge variant="secondary" className="font-mono">
+                    <Badge variant="secondary" className="tabular-nums">
                       到期 {expireText}
                     </Badge>
                   ) : null}
@@ -215,6 +215,7 @@ export function RecordDetailDrawer({
                     value={traffic.percent}
                     max={100}
                     customValue={traffic.summary}
+                    className="console-meter"
                     indicatorClassName={
                       traffic.percent >= 85 ? 'bg-kumo-danger' : 'bg-accent-500'
                     }
@@ -223,7 +224,7 @@ export function RecordDetailDrawer({
 
                 {Object.keys(inspection.protocolCounts).length > 0 ? (
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-caption-2-medium text-text-tertiary">协议分布</span>
+                    <span className="text-caption-1-medium text-text-secondary">协议分布</span>
                     <div className="flex flex-wrap gap-1.5">
                       {Object.entries(inspection.protocolCounts)
                         .sort(([, a], [, b]) => b - a)
@@ -238,10 +239,10 @@ export function RecordDetailDrawer({
 
                 {inspection.regionCounts.length > 0 ? (
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-caption-2-medium text-text-tertiary">地区分布</span>
+                    <span className="text-caption-1-medium text-text-secondary">地区分布</span>
                     <div className="flex flex-wrap gap-1.5">
                       {inspection.regionCounts.slice(0, 12).map((region) => (
-                        <Badge key={region.code} variant="outline" className="font-mono">
+                        <Badge key={region.code} variant="outline" className="tabular-nums">
                           {region.flag} {region.name} · {region.count}
                         </Badge>
                       ))}
@@ -254,51 +255,51 @@ export function RecordDetailDrawer({
 
           {/* Structured Telemetry Metadata */}
           <section className="flex flex-col gap-2.5">
-            <h3 className="font-mono text-caption-2-semibold tracking-wider text-text-tertiary uppercase">
+            <h3 className="text-caption-2-medium tracking-wider text-text-tertiary uppercase">
               Metadata
             </h3>
-            <dl className="grid grid-cols-2 gap-3 rounded-xl border border-separator-border bg-background-secondary-default/35 p-3.5 text-caption-1-regular">
+            <dl className="grid grid-cols-2 gap-3 rounded-xl border border-separator-border bg-background-secondary-default/35 p-3.5 text-body-2-regular">
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">最近客户端</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">最近客户端</dt>
                 <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
                   {record.clientType || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">节点数 / 命中次数</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-primary">
+                <dt className="text-caption-1-regular text-text-tertiary">节点数 / 命中次数</dt>
+                <dd className="mt-0.5 tabular-nums text-text-primary">
                   {record.nodeCount} 节点 · {record.hits} 次
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">最后访问 IP</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">最后访问 IP</dt>
                 <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
                   {record.lastIp || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">最后访问时间</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-secondary">
+                <dt className="text-caption-1-regular text-text-tertiary">最后访问时间</dt>
+                <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(record.lastAccess)}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">首次登记</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-secondary">
+                <dt className="text-caption-1-regular text-text-tertiary">首次登记</dt>
+                <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(record.createdAt)}
                 </dd>
               </div>
               <div>
-                <dt className="text-caption-2-regular text-text-tertiary">最近更新</dt>
-                <dd className="mt-0.5 font-mono tabular-nums text-text-secondary">
+                <dt className="text-caption-1-regular text-text-tertiary">最近更新</dt>
+                <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(record.updatedAt)}
                 </dd>
               </div>
               <div className="col-span-2 border-t border-separator-border pt-2.5">
-                <dt className="text-caption-2-regular text-text-tertiary">最近 User-Agent</dt>
+                <dt className="text-caption-1-regular text-text-tertiary">最近 User-Agent</dt>
                 <dd
                   dir="ltr"
-                  className="mt-1 select-all rounded-md bg-background-primary-default px-2.5 py-1.5 font-mono text-caption-2-regular break-all text-text-secondary ring-1 ring-separator-border"
+                  className="mt-1 select-all rounded-md bg-background-primary-default px-2.5 py-1.5 font-mono text-caption-1-regular break-all text-text-secondary ring-1 ring-separator-border"
                 >
                   {record.lastUserAgent || '—'}
                 </dd>

@@ -34,6 +34,13 @@
    * --------------------------------------------------------------------------*/
   --color-brand-cloudflare: #f6821f;
 
+  /* Split-screen cover surface tokens (intentionally dark editorial canvas) */
+  --color-cover-bg:      oklch(11.5% 0 0);
+  --color-cover-surface: oklch(16% 0 0);
+  --color-cover-border:  oklch(26% 0 0);
+  --color-cover-text:    oklch(97% 0 0);
+  --color-cover-muted:   oklch(68% 0 0);
+
   --color-accent-50:  var(--color-blue-50);
   --color-accent-100: var(--color-blue-100);
   --color-accent-200: var(--color-blue-200);
@@ -47,20 +54,11 @@
   --color-accent-950: var(--color-blue-950);
 
   /* ----- Typography ----------------------------------------------------------
-   * Font sizes, weights, line-heights, and tracking all match Tailwind v4
-   * defaults. Inter for Latin paired with crisp Chinese system UI fallbacks.
+   * Delegate fonts completely to each device's browser defaults / user settings
+   * via pure generic families — zero webfonts and zero forced OS font stacks.
    * --------------------------------------------------------------------------*/
-  --font-sans: var(--font-inter), "PingFang SC", "Hiragino Sans GB",
-               "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC",
-               ui-sans-serif, system-ui, sans-serif,
-               "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-               "Noto Color Emoji";
-
-  /* Monospace ramp for code blocks. Loaded via next/font in app/layout.tsx
-   * (--font-mono-source → JetBrains Mono). Figma's spec uses IBM Plex Mono;
-   * JetBrains Mono is the closest already-bundled face. */
-  --font-mono: var(--font-mono-source), ui-monospace, "SFMono-Regular", Menlo,
-               Consolas, "Liberation Mono", monospace;
+  --font-sans: sans-serif;
+  --font-mono: monospace;
 
   /* ----- Radii ---------------------------------------------------------------
    * Extra step between lg (8) and xl (12). Used by medium-size buttons.
@@ -179,8 +177,8 @@
 
   /* Text */
   --color-text-primary:         var(--color-neutral-950);
-  --color-text-secondary:       var(--color-neutral-500);
-  --color-text-tertiary:        var(--color-neutral-400);
+  --color-text-secondary:       oklch(44% 0 0);
+  --color-text-tertiary:        oklch(55% 0 0);
   --color-text-disabled:        var(--color-neutral-300);
   --color-text-disabled-danger: var(--color-red-300);
   --color-text-placeholder:     var(--color-neutral-400);

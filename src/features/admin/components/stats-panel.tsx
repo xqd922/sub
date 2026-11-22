@@ -11,7 +11,7 @@ import {
   RiPulseLine,
 } from '@remixicon/react'
 import { Skeleton } from '@/components/base/skeleton/skeleton'
-import { ActivityHeatmapCard } from '@/features/admin/components/activity-heatmap-card'
+import { ActivityHeatmapCard, TopRecordsCard } from '@/features/admin/components/activity-heatmap-card'
 import { TrendChartCard } from '@/features/admin/components/trend-chart-card'
 import { useAdminStats } from '@/features/admin/hooks/use-admin-stats'
 import { formatCount } from '@/shared/format.utils'
@@ -22,9 +22,9 @@ interface StatsPanelProps {
 }
 
 export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
-  const { stats, daily, records, loading } = useAdminStats(onUnauthorized)
+  const { stats, daily, hourly, records, loading } = useAdminStats(onUnauthorized)
 
-  const clientTypes = useMemo(() => {
+  const { clientTypes, totalClientHits } = useMemo(() => {
     const counts = new Map<string, number>()
     let sum = 0
     for (const record of records) {
@@ -32,14 +32,22 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
       counts.set(type, (counts.get(type) || 0) + record.hits)
       sum += record.hits
     }
-    return Array.from(counts.entries())
-      .map(([type, hits]) => ({
-        type,
-        hits,
-        percent: sum > 0 ? Math.round((hits / sum) * 100) : 0,
-      }))
+    const list = Array.from(counts.entries())
+      .map(([type, hits]) => {
+        const rawPercent = sum > 0 ? (hits / sum) * 100 : 0
+        const percentLabel =
+          rawPercent > 0 && rawPercent < 1 ? '<1%' : `${Math.round(rawPercent)}%`
+        return {
+          type,
+          hits,
+          barValue: rawPercent > 0 ? Math.max(rawPercent, 1.5) : 0,
+          percentLabel,
+        }
+      })
       .sort((a, b) => b.hits - a.hits)
       .slice(0, 6)
+
+    return { clientTypes: list, totalClientHits: sum }
   }, [records])
 
   const activeRate =
@@ -89,7 +97,8 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
   ]
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4 sm:gap-5">
+      {/* Row 1: 4-Column KPI Telemetry Strip */}
       <LayerCard className="overflow-hidden p-0">
         <div className="grid grid-cols-2 bg-background-primary-default xl:grid-cols-4">
           {tiles.map((tile, idx) => {
@@ -98,16 +107,16 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
               <div
                 key={tile.label}
                 className={cx(
-                  'flex flex-col gap-2 p-4 sm:p-5',
+                  'flex flex-col gap-1.5 p-3.5 sm:gap-2 sm:p-5',
                   idx % 2 === 1 && 'border-s border-separator-border',
                   idx >= 2 && 'border-t border-separator-border xl:border-t-0',
                   idx === 2 && 'xl:border-s xl:border-separator-border',
                 )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-caption-1-medium text-text-secondary">
-                    <Icon className="size-3.5 text-foreground-icon-tertiary" aria-hidden />
-                    {tile.label}
+                <div className="flex min-h-5 items-center justify-between gap-1.5">
+                  <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-body-2-medium text-text-secondary">
+                    <Icon className="size-3.5 shrink-0 text-foreground-icon-tertiary" aria-hidden />
+                    <span className="truncate">{tile.label}</span>
                   </span>
                   {tile.statusBadge ? (
                     <Badge variant={tile.statusBadge.variant} appearance="dot">
@@ -118,40 +127,45 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
                 {loading && !stats ? (
                   <Skeleton className="h-8 w-24" />
                 ) : (
-                  <p className="font-mono text-title-1-semibold tracking-tight tabular-nums text-text-primary">
+                  <p className="text-title-2-semibold tracking-[-0.02em] tabular-nums text-text-primary sm:text-title-1-semibold">
                     {tile.value}
                   </p>
                 )}
-                <p className="text-caption-2-regular text-text-tertiary">{tile.hint}</p>
+                <p className="truncate text-caption-1-regular text-text-tertiary">{tile.hint}</p>
               </div>
             )
           })}
         </div>
       </LayerCard>
 
-      <TrendChartCard daily={daily} loading={loading} />
+      {/* Row 2: Full-Width Edge-to-Edge Smooth Area Trend Chart */}
+      <TrendChartCard daily={daily} hourly={hourly} loading={loading} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <LayerCard className="overflow-hidden">
+      {/* Row 3: Geometrically Balanced 50/50 Split */}
+      <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-5 lg:grid-cols-2">
+        <LayerCard className="flex h-full flex-col overflow-hidden">
           <LayerCard.Secondary className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
             <h2 className="text-body-semibold text-text-primary">客户端分布</h2>
-            <span className="font-mono text-caption-2-regular text-text-tertiary">BY REQUESTS</span>
+            <span className="text-caption-1-regular tabular-nums text-text-tertiary">
+              {totalClientHits > 0 ? `${formatCount(totalClientHits)} 次请求` : '暂无请求'}
+            </span>
           </LayerCard.Secondary>
 
-          <LayerCard.Primary className="p-4 sm:p-5">
+          <LayerCard.Primary className="flex flex-1 flex-col justify-between p-4 sm:p-5">
             {clientTypes.length === 0 ? (
               <p className="py-10 text-center text-body-2-regular text-text-tertiary">
                 暂无客户端请求数据
               </p>
             ) : (
-              <div className="flex flex-col gap-4">
-                {clientTypes.map(({ type, hits, percent }, index) => (
+              <div className="flex flex-col gap-3.5">
+                {clientTypes.map(({ type, hits, barValue, percentLabel }, index) => (
                   <Meter
                     key={type}
                     label={type}
-                    value={Math.max(percent, 2)}
+                    value={barValue}
                     max={100}
-                    customValue={`${formatCount(hits)} · ${percent}%`}
+                    customValue={`${formatCount(hits)} · ${percentLabel}`}
+                    className="console-meter"
                     indicatorClassName={index === 0 ? 'bg-accent-500' : 'bg-accent-500/55'}
                   />
                 ))}
@@ -160,8 +174,11 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
           </LayerCard.Primary>
         </LayerCard>
 
-        <ActivityHeatmapCard daily={daily} records={records} />
+        <TopRecordsCard records={records} />
       </div>
+
+      {/* Row 4: Full-Width 30-Day Activity Strip */}
+      <ActivityHeatmapCard daily={daily} />
     </div>
   )
 }

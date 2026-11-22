@@ -38,7 +38,7 @@ export const PREVIEW_STYLES = `
   }
   body {
     margin: 0;
-    font-family: Inter, "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -89,7 +89,7 @@ export const PREVIEW_STYLES = `
     background: var(--surface-2);
     color: var(--muted);
     font-size: 11.5px;
-    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: monospace;
     font-variant-numeric: tabular-nums;
   }
   .pill.accent {
@@ -122,7 +122,7 @@ export const PREVIEW_STYLES = `
     background: transparent;
     color: var(--text);
     font-size: 12px;
-    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: monospace;
   }
   .filter-input::placeholder {
     color: var(--muted);
@@ -131,7 +131,7 @@ export const PREVIEW_STYLES = `
   .filter-count {
     font-size: 11px;
     color: var(--muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: monospace;
     font-variant-numeric: tabular-nums;
   }
   .tabs {
@@ -226,7 +226,7 @@ export const PREVIEW_STYLES = `
   .meta-tag {
     font-size: 11px;
     color: var(--muted);
-    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: monospace;
     font-variant-numeric: tabular-nums;
   }
   .actions {
@@ -268,7 +268,7 @@ export const PREVIEW_STYLES = `
     margin: 0;
     padding: 14px 16px;
     background: var(--code-bg);
-    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: monospace;
     white-space: pre-wrap;
     word-break: break-all;
     font-size: 12px;
