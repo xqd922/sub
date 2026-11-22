@@ -28,7 +28,7 @@ import { ShortLinkDetailRow } from '@/features/admin/components/short-link-detai
 import { ShortLinkEditModal } from '@/features/admin/components/short-link-edit-modal'
 import { useAdminShortLinks } from '@/features/admin/hooks/use-admin-short-links'
 import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
-import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { CreateShortLinkInput, ShortLink, TargetClientOverride } from '@/shared/admin.types'
@@ -37,8 +37,6 @@ import { buildShortLinkPublicUrl } from '@/shared/url.utils'
 import { cx } from '@/utils/cx'
 
 interface ShortLinksPanelProps {
-  autoRefresh: boolean
-  refreshSignal?: number
   onUnauthorized?: () => void
   onCountChange?: (count: number) => void
 }
@@ -97,12 +95,7 @@ function exportShortLinksJson(links: ShortLink[]): void {
   URL.revokeObjectURL(url)
 }
 
-export function ShortLinksPanel({
-  autoRefresh,
-  refreshSignal = 0,
-  onUnauthorized,
-  onCountChange,
-}: ShortLinksPanelProps) {
+export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPanelProps) {
   const {
     shortLinks,
     loading,
@@ -145,13 +138,7 @@ export function ShortLinksPanel({
     return () => window.clearInterval(timer)
   }, [])
 
-  useAutoRefresh(refresh, autoRefresh)
-
-  useEffect(() => {
-    if (refreshSignal > 0) {
-      void refresh()
-    }
-  }, [refreshSignal, refresh])
+  useFocusRefresh(refresh)
 
   useEffect(() => {
     return () => {

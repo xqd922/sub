@@ -1,17 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RiAddLine, RiDeleteBinLine, RiRouteLine } from '@remixicon/react'
 import { Chip } from '@/components/base/badges/chip'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
 import { Select, SelectItem } from '@/components/base/select/select'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { CustomClientRule } from '@/shared/admin.types'
 
 interface ClientRulesCardProps {
-  refreshSignal?: number
   onUnauthorized?: () => void
 }
 
@@ -22,7 +22,7 @@ const TARGET_LABEL: Record<CustomClientRule['target'], string> = {
   browser: '浏览器预览',
 }
 
-export function ClientRulesCard({ refreshSignal = 0, onUnauthorized }: ClientRulesCardProps) {
+export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
   const [rules, setRules] = useState<CustomClientRule[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState('')
@@ -30,6 +30,19 @@ export function ClientRulesCard({ refreshSignal = 0, onUnauthorized }: ClientRul
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await adminFetch<{ rules: CustomClientRule[] }>(
+        '/api/admin/system/client-rules',
+      )
+      setRules(data.rules || [])
+    } catch (error) {
+      handleAdminFetchError(error, onUnauthorized)
+    } finally {
+      setLoading(false)
+    }
+  }, [onUnauthorized])
 
   useEffect(() => {
     let active = true
@@ -49,7 +62,9 @@ export function ClientRulesCard({ refreshSignal = 0, onUnauthorized }: ClientRul
     return () => {
       active = false
     }
-  }, [onUnauthorized, refreshSignal])
+  }, [onUnauthorized])
+
+  useFocusRefresh(refresh)
 
   const handleAdd = async (event: React.FormEvent) => {
     event.preventDefault()

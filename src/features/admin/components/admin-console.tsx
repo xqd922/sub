@@ -1,10 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { RiRefreshLine } from '@remixicon/react'
-import { Button } from '@/components/base/buttons/button'
 import { Spinner } from '@/components/base/spinner/spinner'
-import { Switch } from '@/components/base/switch/switch'
 import { AdminLoginView } from '@/features/admin/components/admin-login-view'
 import {
   ADMIN_TABS,
@@ -42,11 +39,9 @@ function subscribeTabUrl(onStoreChange: () => void): () => void {
 export function AdminConsole() {
   const { checking, authenticated, login, logout, resetAuthentication } = useAdminSession()
   const activeTab = useSyncExternalStore(subscribeTabUrl, readTabFromUrl, getServerTab)
-  const [autoRefresh, setAutoRefresh] = useState(false)
   const [recordCount, setRecordCount] = useState<number | null>(null)
   const [shortLinkCount, setShortLinkCount] = useState<number | null>(null)
   const [focusSearchSignal, setFocusSearchSignal] = useState(0)
-  const [refreshSignal, setRefreshSignal] = useState(0)
 
   const setActiveTab = useCallback((nextTab: AdminTabKey) => {
     if (typeof window === 'undefined') return
@@ -109,47 +104,25 @@ export function AdminConsole() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="border-b border-separator-border px-5 py-4 sm:px-8">
-          <div className="mx-auto flex w-full max-w-[1060px] flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-headline-semibold tracking-tight text-text-primary">
-                {currentTab.label}
-              </h1>
-              <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
-                {currentTab.description}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {activeTab !== 'config' ? (
-                <Switch size="sm" isSelected={autoRefresh} onChange={setAutoRefresh}>
-                  <span className="text-caption-1-medium text-text-secondary">自动刷新</span>
-                </Switch>
-              ) : null}
-              <Button
-                variant="secondary"
-                size="small"
-                leadingIcon={RiRefreshLine}
-                onClick={() => setRefreshSignal((count) => count + 1)}
-              >
-                刷新
-              </Button>
-            </div>
+          <div className="mx-auto w-full max-w-[1060px]">
+            <h1 className="text-headline-semibold tracking-tight text-text-primary">
+              {currentTab.label}
+            </h1>
+            <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
+              {currentTab.description}
+            </p>
           </div>
         </div>
 
         <main className="mx-auto flex w-full max-w-[1060px] flex-1 flex-col px-5 py-6 sm:px-8">
           {activeTab === 'stats' ? (
             <StatsPanel
-              autoRefresh={autoRefresh}
-              refreshSignal={refreshSignal}
               onUnauthorized={resetAuthentication}
               onCountsLoaded={handleStatsCountsLoaded}
             />
           ) : null}
           {activeTab === 'records' ? (
             <RecordsPanel
-              autoRefresh={autoRefresh}
-              refreshSignal={refreshSignal}
               onUnauthorized={resetAuthentication}
               onCountChange={setRecordCount}
               focusSearchSignal={focusSearchSignal}
@@ -157,15 +130,11 @@ export function AdminConsole() {
           ) : null}
           {activeTab === 'shortLinks' ? (
             <ShortLinksPanel
-              autoRefresh={autoRefresh}
-              refreshSignal={refreshSignal}
               onUnauthorized={resetAuthentication}
               onCountChange={setShortLinkCount}
             />
           ) : null}
-          {activeTab === 'config' ? (
-            <RulesPanel refreshSignal={refreshSignal} onUnauthorized={resetAuthentication} />
-          ) : null}
+          {activeTab === 'config' ? <RulesPanel onUnauthorized={resetAuthentication} /> : null}
         </main>
       </div>
     </div>

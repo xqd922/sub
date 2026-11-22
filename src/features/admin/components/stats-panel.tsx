@@ -13,37 +13,24 @@ import { ActivityHeatmapCard } from '@/features/admin/components/activity-heatma
 import { TrendChartCard } from '@/features/admin/components/trend-chart-card'
 import { useAdminRecords } from '@/features/admin/hooks/use-admin-records'
 import { useAdminStats } from '@/features/admin/hooks/use-admin-stats'
-import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { formatCount } from '@/shared/format.utils'
 import { cx } from '@/utils/cx'
 
 interface StatsPanelProps {
-  autoRefresh: boolean
-  refreshSignal?: number
   onUnauthorized?: () => void
   onCountsLoaded?: (recordsTotal: number, shortLinksTotal: number) => void
 }
 
-export function StatsPanel({
-  autoRefresh,
-  refreshSignal = 0,
-  onUnauthorized,
-  onCountsLoaded,
-}: StatsPanelProps) {
+export function StatsPanel({ onUnauthorized, onCountsLoaded }: StatsPanelProps) {
   const { stats, daily, loading, refresh } = useAdminStats(onUnauthorized)
   const { records, refresh: refreshRecords } = useAdminRecords(onUnauthorized)
 
-  const refreshAll = useCallback(async () => {
-    await Promise.all([refresh(), refreshRecords()])
+  const refreshAll = useCallback(() => {
+    void Promise.all([refresh(), refreshRecords()])
   }, [refresh, refreshRecords])
 
-  useAutoRefresh(refreshAll, autoRefresh)
-
-  useEffect(() => {
-    if (refreshSignal > 0) {
-      void refreshAll()
-    }
-  }, [refreshSignal, refreshAll])
+  useFocusRefresh(refreshAll)
 
   useEffect(() => {
     if (stats) {

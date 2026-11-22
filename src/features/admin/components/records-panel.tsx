@@ -29,7 +29,7 @@ import { RecordDetailRow } from '@/features/admin/components/record-detail-row'
 import { RenameEntityModal } from '@/features/admin/components/rename-entity-modal'
 import { useAdminRecords } from '@/features/admin/hooks/use-admin-records'
 import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
-import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { ConvertRecord, InspectSubscriptionResult, ShortLink } from '@/shared/admin.types'
@@ -38,8 +38,6 @@ import { buildConversionUrl } from '@/shared/url.utils'
 import { cx } from '@/utils/cx'
 
 interface RecordsPanelProps {
-  autoRefresh: boolean
-  refreshSignal?: number
   onUnauthorized?: () => void
   onCountChange?: (count: number) => void
   focusSearchSignal?: number
@@ -86,8 +84,6 @@ function exportRecordsCsv(records: ConvertRecord[]): void {
 }
 
 export function RecordsPanel({
-  autoRefresh,
-  refreshSignal = 0,
   onUnauthorized,
   onCountChange,
   focusSearchSignal = 0,
@@ -125,13 +121,7 @@ export function RecordsPanel({
   >({})
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
 
-  useAutoRefresh(refresh, autoRefresh)
-
-  useEffect(() => {
-    if (refreshSignal > 0) {
-      void refresh()
-    }
-  }, [refreshSignal, refresh])
+  useFocusRefresh(refresh)
 
   useEffect(() => {
     return () => {

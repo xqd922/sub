@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RiAddLine, RiDeleteBinLine, RiSplitCellsHorizontal } from '@remixicon/react'
 import { Chip } from '@/components/base/badges/chip'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
 import { Select, SelectItem } from '@/components/base/select/select'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type {
   CustomRoutingRule,
@@ -15,7 +16,6 @@ import type {
 } from '@/shared/admin.types'
 
 interface RoutingRulesCardProps {
-  refreshSignal?: number
   onUnauthorized?: () => void
 }
 
@@ -34,7 +34,7 @@ const VALUE_PLACEHOLDER: Record<RoutingRuleType, string> = {
   'IP-CIDR': '例如：95.161.76.100/31',
 }
 
-export function RoutingRulesCard({ refreshSignal = 0, onUnauthorized }: RoutingRulesCardProps) {
+export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
   const [rules, setRules] = useState<CustomRoutingRule[]>([])
   const [loading, setLoading] = useState(true)
   const [ruleType, setRuleType] = useState<RoutingRuleType>('DOMAIN-SUFFIX')
@@ -43,6 +43,17 @@ export function RoutingRulesCard({ refreshSignal = 0, onUnauthorized }: RoutingR
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await adminFetch<{ rules: CustomRoutingRule[] }>('/api/admin/rules/routing')
+      setRules(data.rules || [])
+    } catch (error) {
+      handleAdminFetchError(error, onUnauthorized)
+    } finally {
+      setLoading(false)
+    }
+  }, [onUnauthorized])
 
   useEffect(() => {
     let active = true
@@ -60,7 +71,9 @@ export function RoutingRulesCard({ refreshSignal = 0, onUnauthorized }: RoutingR
     return () => {
       active = false
     }
-  }, [onUnauthorized, refreshSignal])
+  }, [onUnauthorized])
+
+  useFocusRefresh(refresh)
 
   const handleAdd = async (event: React.FormEvent) => {
     event.preventDefault()
