@@ -1,49 +1,43 @@
-﻿interface ShortUrlGeneratorProps {
-  hasConvertedUrl: boolean
+﻿'use client'
+
+import { useState } from 'react'
+import { cx } from '@/utils/cx'
+
+interface ShortUrlGeneratorProps {
   shortUrl: string
-  loading: boolean
-  onGenerate: () => void
-  onCopy: () => void
+  onCopy: () => Promise<boolean> | void
 }
 
-export default function ShortUrlGenerator({
-  hasConvertedUrl,
-  shortUrl,
-  loading,
-  onGenerate,
-  onCopy
-}: ShortUrlGeneratorProps) {
-  if (!hasConvertedUrl) return null
+export default function ShortUrlGenerator({ shortUrl, onCopy }: ShortUrlGeneratorProps) {
+  const [copied, setCopied] = useState(false)
 
-  if (!shortUrl) {
-    return (
-      <div className="flex justify-between items-center px-1">
-        <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
-        <button
-          onClick={onGenerate}
-          disabled={loading}
-          className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors disabled:opacity-50"
-        >
-          {loading ? '生成中...' : '生成短链接'}
-        </button>
-      </div>
-    )
+  if (!shortUrl) return null
+
+  const handleCopy = async () => {
+    const result = await onCopy()
+    if (result !== false) {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    }
   }
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between items-center px-1">
-        <span className="text-[10px] sm:text-xs text-gray-400">短链接</span>
+    <div className="flex justify-end">
+      <div className="inline-flex max-w-full items-center gap-3 rounded-lg bg-background-secondary-default px-3 py-2 text-body-2-regular text-text-primary">
+        <span dir="ltr" className="truncate font-mono text-caption-1-regular">
+          {shortUrl}
+        </span>
         <button
-          onClick={onCopy}
-          className="text-[10px] sm:text-xs text-blue-500/80 hover:text-blue-600 transition-colors"
+          type="button"
+          onClick={() => void handleCopy()}
+          className={cx(
+            'shrink-0 cursor-pointer border-0 bg-transparent p-0 text-caption-1-medium text-text-primary underline decoration-text-primary/35 decoration-1 underline-offset-4 transition-colors duration-150 hover:decoration-text-primary',
+            copied && 'text-status-lime-text decoration-status-lime-text/50',
+          )}
         >
-          复制
+          {copied ? '已复制' : '复制'}
         </button>
-      </div>
-      <div className="p-2.5 sm:p-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg text-[10px] sm:text-xs font-mono break-all border border-gray-200/50 dark:border-gray-700/50">
-        {shortUrl}
       </div>
     </div>
   )
-}
+}

@@ -1,6 +1,10 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
+import { RiFileCopyLine, RiQrCodeLine } from '@remixicon/react'
+import { Button } from '@/components/base/buttons/button'
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
+import { Spinner } from '@/components/base/spinner/spinner'
 import { showToast } from '@/components/use-toast'
 import { useClipboard } from '@/components/use-clipboard'
 
@@ -29,55 +33,51 @@ export default function QrCodeModal({ url, title, onClose }: QrCodeModalProps) {
     }
 
     void generate()
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-
     return () => {
       cancelled = true
-      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [url, onClose])
+  }, [url])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-5 max-w-xs w-full space-y-3"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate" title={title}>{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm leading-none" aria-label="关闭">
-            ✕
-          </button>
-        </div>
-
-        <div className="flex items-center justify-center min-h-64">
+    <Modal isOpen onOpenChange={(open) => { if (!open) onClose() }} size="sm">
+      <ModalHeader
+        title={title}
+        description="使用代理客户端扫码即可直接导入"
+        icon={RiQrCodeLine}
+        closeLabel="关闭"
+      />
+      <ModalBody>
+        <div className="flex min-h-60 flex-col items-center justify-center gap-3 rounded-2xl border border-separator-border bg-background-secondary-default p-5">
           {failed ? (
-            <p className="text-xs text-red-500">二维码生成失败</p>
+            <p className="text-body-2-regular text-text-error-primary">二维码生成失败</p>
           ) : dataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={dataUrl} alt={`${title} 的二维码`} className="rounded-lg" />
+            <div className="rounded-xl bg-white p-2.5 shadow-xs">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={dataUrl} alt={`${title} 的二维码`} className="size-48 rounded-md" />
+            </div>
           ) : (
-            <p className="text-xs text-gray-400">生成中...</p>
+            <Spinner size="md" aria-label="生成二维码中" />
           )}
+          <p dir="ltr" className="max-w-full truncate font-mono text-caption-1-regular text-text-tertiary">
+            {url}
+          </p>
         </div>
-
-        <button
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="secondary" onClick={onClose}>
+          关闭
+        </Button>
+        <Button
+          variant="primary"
+          leadingIcon={RiFileCopyLine}
           onClick={async () => {
             const copied = await copyToClipboard(url)
             showToast(copied ? '链接已复制' : '复制失败', copied ? 'success' : 'error')
           }}
-          className="w-full py-1.5 text-xs rounded-lg border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-black/50"
         >
           复制链接
-        </button>
-      </div>
-    </div>
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 }

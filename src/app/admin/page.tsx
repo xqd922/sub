@@ -1,8 +1,4 @@
-﻿'use client'
-
-import dynamic from 'next/dynamic'
-
-const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), { ssr: false })
+﻿import AdminDashboard from '@/components/admin-dashboard'
 
 export default function AdminPage() {
   return <AdminDashboard />

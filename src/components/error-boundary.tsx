@@ -1,6 +1,8 @@
 ﻿'use client'
 
 import { Component, ReactNode, ErrorInfo } from 'react'
+import { RiErrorWarningLine, RiRefreshLine } from '@remixicon/react'
+import { Button } from '@/components/base/buttons/button'
 import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
 import { handleError } from '@/infra/error-reporter'
 import { logger } from '@/infra/logger'
@@ -21,35 +23,34 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
   constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = {
-      hasError: false
+      hasError: false,
     }
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-
-    const appError = error instanceof AppError 
-      ? error 
-      : new AppError(
-          ErrorCode.UNKNOWN_ERROR,
-          error.message || '应用发生未知错误',
-          500,
-          ErrorSeverity.HIGH,
-          { 
-            originalError: error.name,
-            stack: error.stack?.split('\n').slice(0, 5).join('\n') 
-          }
-        )
+    const appError =
+      error instanceof AppError
+        ? error
+        : new AppError(
+            ErrorCode.UNKNOWN_ERROR,
+            error.message || '应用发生未知错误',
+            500,
+            ErrorSeverity.HIGH,
+            {
+              originalError: error.name,
+              stack: error.stack?.split('\n').slice(0, 5).join('\n'),
+            },
+          )
 
     return {
       hasError: true,
       error: appError,
-      errorId: appError.requestId
+      errorId: appError.requestId,
     }
   }
 
   override async componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     try {
-
       const appError = this.state.error || AppError.fromError(error)
 
       const enhancedError = new AppError(
@@ -60,9 +61,9 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
         {
           ...appError.metadata,
           componentStack: errorInfo.componentStack?.split('\n').slice(0, 10).join('\n'),
-          errorBoundary: true
+          errorBoundary: true,
         },
-        appError.cause
+        appError.cause,
       )
 
       await handleError(enhancedError, {
@@ -70,8 +71,8 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
         url: typeof window !== 'undefined' ? window.location.href : undefined,
         additionalData: {
           reactErrorInfo: errorInfo,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       })
 
       this.props.onError?.(enhancedError, errorInfo)
@@ -80,35 +81,26 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
         logger.error('React Error Boundary caught an error:', {
           error: enhancedError,
           errorInfo,
-          componentStack: errorInfo.componentStack
+          componentStack: errorInfo.componentStack,
         })
       }
     } catch (reportingError) {
-
       logger.error('Failed to report error from Error Boundary:', reportingError)
       logger.error('Original error:', error)
     }
   }
 
   retry = () => {
-    this.setState({
-      hasError: false
-    })
+    this.setState({ hasError: false })
   }
 
   override render() {
     if (this.state.hasError && this.state.error) {
-
       if (this.props.fallback) {
         return this.props.fallback(this.state.error, this.retry)
       }
 
-      return (
-        <DefaultErrorFallback 
-          error={this.state.error}
-          retry={this.retry}
-        />
-      )
+      return <DefaultErrorFallback error={this.state.error} retry={this.retry} />
     }
 
     return this.props.children
@@ -124,96 +116,60 @@ function DefaultErrorFallback({ error, retry }: DefaultErrorFallbackProps) {
   const isDevelopment = process.env.NODE_ENV === 'development'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        {}
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-            <svg 
-              className="w-6 h-6 text-red-600 dark:text-red-400" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-              />
-            </svg>
+    <div className="flex min-h-screen items-center justify-center bg-background-secondary-default p-4 text-text-primary">
+      <div className="w-full max-w-md rounded-3xl border border-border-button-default bg-background-primary-default p-6 shadow-card">
+        <div className="mb-4 flex justify-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-notification-error-background text-notification-error-foreground">
+            <RiErrorWarningLine className="size-6" aria-hidden />
           </div>
         </div>
 
-        {}
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center mb-2">
-          出现错误
-        </h1>
+        <h1 className="mb-2 text-center text-title-3-medium text-text-primary">出现错误</h1>
+        <p className="mb-4 text-center text-body-regular text-text-secondary">{error.toUserMessage()}</p>
 
-        {}
-        <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-          {error.toUserMessage()}
-        </p>
-
-        {}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded p-3 mb-4">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">错误ID（用于技术支持）</div>
-          <code className="text-xs font-mono text-gray-800 dark:text-gray-200">
+        <div className="mb-4 rounded-xl border border-separator-border bg-background-secondary-default p-3">
+          <div className="mb-1 text-caption-1-medium text-text-tertiary">错误 ID</div>
+          <code dir="ltr" className="font-mono text-caption-1-regular text-text-primary">
             {error.requestId}
           </code>
         </div>
 
-        {}
-        {isDevelopment && (
+        {isDevelopment ? (
           <details className="mb-4">
-            <summary className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer mb-2">
+            <summary className="mb-2 cursor-pointer text-body-2-medium text-text-secondary">
               开发者信息
             </summary>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded p-3 text-xs">
-              <div className="mb-2">
-                <span className="font-semibold">错误码：</span>
-                <code className="ml-1">{error.code}</code>
+            <div className="rounded-xl border border-separator-border bg-background-secondary-default p-3 text-caption-1-regular text-text-secondary">
+              <div className="mb-1.5">
+                <span className="font-medium text-text-primary">错误码：</span>
+                <code className="ms-1 font-mono">{error.code}</code>
               </div>
-              <div className="mb-2">
-                <span className="font-semibold">严重级别：</span>
-                <span className="ml-1">{error.severity}</span>
+              <div className="mb-1.5">
+                <span className="font-medium text-text-primary">严重级别：</span>
+                <span className="ms-1">{error.severity}</span>
               </div>
-              {error.metadata && (
-                <div className="mb-2">
-                  <span className="font-semibold">元数据：</span>
-                  <pre className="mt-1 text-xs overflow-x-auto">
-                    {JSON.stringify(error.metadata, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {error.stack && (
-                <div>
-                  <span className="font-semibold">堆栈跟踪：</span>
-                  <pre className="mt-1 text-xs overflow-x-auto whitespace-pre-wrap">
-                    {error.stack}
-                  </pre>
-                </div>
-              )}
+              {error.stack ? (
+                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap font-mono text-caption-2-regular">
+                  {error.stack}
+                </pre>
+              ) : null}
             </div>
           </details>
-        )}
+        ) : null}
 
-        {}
         <div className="flex gap-2">
-          <button
-            onClick={retry}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-          >
+          <Button variant="primary" className="flex-1" onClick={retry}>
             重试
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            leadingIcon={RiRefreshLine}
+            className="flex-1"
             onClick={() => window.location.reload()}
-            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
             刷新页面
-          </button>
+          </Button>
         </div>
-
       </div>
     </div>
   )

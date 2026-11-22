@@ -1,6 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { RiArrowLeftLine, RiLockPasswordLine, RiShieldKeyholeLine, RiUserLine } from '@remixicon/react'
+import { ThemeToggle } from '@/components/application/theme/theme-toggle'
+import { Button } from '@/components/base/buttons/button'
+import { Input } from '@/components/base/input/input'
 
 interface AdminLoginProps {
   onSubmit: (username: string, password: string) => Promise<boolean>
@@ -24,63 +29,68 @@ export default function AdminLogin({ onSubmit }: AdminLoginProps) {
   }
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-black dark:to-gray-800 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center space-y-1 mb-8">
-          <h1 className="text-2xl sm:text-3xl font-light tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            后台管理
-          </h1>
-          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">请登录以继续</p>
-        </div>
+    <section className="relative flex min-h-screen flex-col items-center justify-center bg-background-secondary-default px-4 py-10 text-text-primary sm:px-6">
+      <div className="fixed end-5 top-5 z-10">
+        <ThemeToggle appearance="segmented" size="small" />
+      </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-6"
-        >
-          <div className="space-y-1.5">
-            <label htmlFor="admin-username" className="text-xs text-gray-600 dark:text-gray-400">
-              用户名
-            </label>
-            <input
-              id="admin-username"
+      <div className="w-full max-w-[400px]">
+        <div className="rounded-3xl border border-border-button-default bg-background-primary-default p-6 shadow-card sm:p-7">
+          <div className="mb-6 flex flex-col items-start gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-button-primary text-text-white shadow-xs">
+              <RiShieldKeyholeLine className="size-5" aria-hidden />
+            </div>
+            <div>
+              <h1 className="text-title-2-medium text-text-primary">Sub Console</h1>
+              <p className="mt-1 text-body-2-regular text-text-secondary">
+                验证管理员身份以访问订阅转换控制台
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input
+              label="用户名"
               type="text"
               value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              onChange={setUsername}
               placeholder="未配置则留空"
               autoComplete="username"
-              className="w-full px-3 py-2 text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-100"
+              leadingIcon={RiUserLine}
             />
-          </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="admin-password" className="text-xs text-gray-600 dark:text-gray-400">
-              密码
-            </label>
-            <input
-              id="admin-password"
+            <Input
+              label="密码"
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={setPassword}
               placeholder="请输入管理员密码"
               autoComplete="current-password"
-              required
-              className="w-full px-3 py-2 text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-100"
+              isRequired
+              leadingIcon={RiLockPasswordLine}
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="relative w-full py-2.5 bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 text-white dark:text-gray-900 text-xs sm:text-sm font-medium rounded-lg disabled:opacity-50 transition-all hover:opacity-90 hover:shadow-lg hover:shadow-gray-500/10 overflow-hidden"
+            <Button
+              type="submit"
+              variant="primary"
+              size="medium"
+              disabled={loading || !password}
+              className="mt-1 w-full"
+            >
+              {loading ? '验证中…' : '进入控制台'}
+            </Button>
+          </form>
+        </div>
+
+        <div className="mt-5 flex justify-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
           >
-            {loading && (
-              <div className="absolute inset-0 w-full h-full">
-                <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-400/20 animate-progress-indeterminate"></div>
-              </div>
-            )}
-            <span className="relative">{loading ? '登录中...' : '登录'}</span>
-          </button>
-        </form>
+            <RiArrowLeftLine className="size-3.5" aria-hidden />
+            返回首页
+          </Link>
+        </div>
       </div>
     </section>
   )

@@ -1,20 +1,37 @@
 ﻿'use client'
 
-import { Fragment, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  RiAddLine,
+  RiDeleteBinLine,
+  RiEditLine,
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiQrCodeLine,
+} from '@remixicon/react'
 import type { ShortLink } from '@/infra/kv/types'
+import { Button } from '@/components/base/buttons/button'
+import { Checkbox } from '@/components/base/checkbox/checkbox'
+import { Input } from '@/components/base/input/input'
+import { AlertDialog, Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
+import { SearchField } from '@/components/base/search-field/search-field'
+import { Select, SelectItem } from '@/components/base/select/select'
 import { useAdminShortLinks, useAutoRefresh } from '@/components/use-admin-data'
 import { useClipboard } from '@/components/use-clipboard'
 import { showToast } from '@/components/use-toast'
+import { cx } from '@/utils/cx'
 import QrCodeModal from './qr-code'
 
 interface AdminShortLinksProps {
   autoRefresh: boolean
   onUnauthorized?: () => void
+  onCountChange?: (count: number) => void
 }
 
 type SortKey = 'createdAt' | 'hits' | 'lastAccess'
 
 function getShortLinkUrl(id: string): string {
+  if (typeof window === 'undefined') return `/s/${id}`
   return `${window.location.origin}/s/${id}`
 }
 
@@ -28,8 +45,13 @@ function formatRelativeTime(timestamp: number): string {
   return new Date(timestamp).toISOString().slice(0, 10)
 }
 
-export default function AdminShortLinks({ autoRefresh, onUnauthorized }: AdminShortLinksProps) {
-  const { shortLinks, loading, refresh, renameLink, deleteLinks, createLink } = useAdminShortLinks(onUnauthorized)
+export default function AdminShortLinks({
+  autoRefresh,
+  onUnauthorized,
+  onCountChange,
+}: AdminShortLinksProps) {
+  const { shortLinks, loading, refresh, renameLink, deleteLinks, createLink } =
+    useAdminShortLinks(onUnauthorized)
   const { copyToClipboard } = useClipboard()
 
   const [search, setSearch] = useState('')
@@ -39,38 +61,48 @@ export default function AdminShortLinks({ autoRefresh, onUnauthorized }: AdminSh
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newTargetUrl, setNewTargetUrl] = useState('')
   const [qrLink, setQrLink] = useState<ShortLink | null>(null)
+  const [renamingLink, setRenamingLink] = useState<ShortLink | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
 
   useAutoRefresh(refresh, autoRefresh)
+
+  useEffect(() => {
+    onCountChange?.(shortLinks.length)
+  }, [shortLinks.length, onCountChange])
 
   const filteredLinks = useMemo(() => {
     const keyword = search.trim().toLowerCase()
     const filtered = keyword
       ? shortLinks.filter(
-          link =>
+          (link) =>
             link.name.toLowerCase().includes(keyword) ||
             link.targetUrl.toLowerCase().includes(keyword) ||
-            link.id.includes(keyword)
+            link.id.toLowerCase().includes(keyword),
         )
       : [...shortLinks]
 
     return filtered.sort((a, b) => b[sortKey] - a[sortKey])
   }, [shortLinks, search, sortKey])
 
-  const allVisibleSelected = filteredLinks.length > 0 && filteredLinks.every(link => selectedIds.has(link.id))
+  const allVisibleSelected =
+    filteredLinks.length > 0 && filteredLinks.every((link) => selectedIds.has(link.id))
+  const someVisibleSelected =
+    !allVisibleSelected && filteredLinks.some((link) => selectedIds.has(link.id))
 
   const toggleSelectAll = () => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       if (allVisibleSelected) {
         const next = new Set(prev)
         for (const link of filteredLinks) next.delete(link.id)
         return next
       }
-      return new Set([...prev, ...filteredLinks.map(link => link.id)])
+      return new Set([...prev, ...filteredLinks.map((link) => link.id)])
     })
   }
 
   const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
         next.delete(id)
@@ -87,13 +119,25 @@ export default function AdminShortLinks({ autoRefresh, onUnauthorized }: AdminSh
   }
 
   const handleOpenTarget = (link: ShortLink) => {
-    window.open(`/s/${link.id}`, '_blank')
+    window.open(`/s/${link.id}`, '_blank', 'noopener,noreferrer')
   }
 
-  const handleRename = async (link: ShortLink) => {
-    const name = window.prompt('修改短链接名称', link.name)
-    if (name === null || name.trim() === '' || name === link.name) return
-    await renameLink(link.id, name.trim())
+  const openRenameModal = (link: ShortLink) => {
+    setRenamingLink(link)
+    setRenameDraft(link.name)
+  }
+
+  const handleRenameConfirm = async () => {
+    if (!renamingLink) return
+    const trimmed = renameDraft.trim()
+    if (!trimmed || trimmed === renamingLink.name) {
+      setRenamingLink(null)
+      return
+    }
+    const ok = await renameLink(renamingLink.id, trimmed)
+    if (ok) {
+      setRenamingLink(null)
+    }
   }
 
   const handleDeleteClick = (id: string) => {
@@ -103,19 +147,19 @@ export default function AdminShortLinks({ autoRefresh, onUnauthorized }: AdminSh
       return
     }
     setConfirmingDeleteId(id)
-    setTimeout(() => {
-      setConfirmingDeleteId(prev => (prev === id ? null : prev))
+    window.setTimeout(() => {
+      setConfirmingDeleteId((prev) => (prev === id ? null : prev))
     }, 3000)
   }
 
-  const handleBatchDelete = async () => {
-    if (!window.confirm(`确认删除选中的 ${selectedIds.size} 条短链接？此操作不可恢复。`)) return
+  const handleBatchDeleteConfirm = async () => {
     const ids = Array.from(selectedIds)
     await deleteLinks(ids)
     setSelectedIds(new Set())
   }
 
-  const handleCreate = async () => {
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault()
     if (!newTargetUrl.trim()) return
     const created = await createLink(newTargetUrl.trim())
     if (created) {
@@ -124,134 +168,266 @@ export default function AdminShortLinks({ autoRefresh, onUnauthorized }: AdminSh
     }
   }
 
-  const actionButtonClass = 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 whitespace-nowrap'
-  const dangerButtonClass = confirmingDeleteId
-    ? 'text-red-600 dark:text-red-400 font-medium whitespace-nowrap'
-    : 'text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 whitespace-nowrap'
-
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="搜索名称 / 目标链接 / ID"
-          className="flex-1 min-w-40 px-3 py-1.5 text-xs bg-white/50 dark:bg-black/50 border border-gray-200/50 dark:border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-100"
-        />
-        <select
-          value={sortKey}
-          onChange={(event) => setSortKey(event.target.value as SortKey)}
-          className="px-2 py-1.5 text-xs bg-white/50 dark:bg-black/50 border border-gray-200/50 dark:border-gray-700/50 rounded-lg focus:outline-none dark:text-gray-100"
-        >
-          <option value="createdAt">按创建时间</option>
-          <option value="hits">按命中次数</option>
-          <option value="lastAccess">按最近访问</option>
-        </select>
-        <button onClick={() => setShowCreateForm(prev => !prev)} className="px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 text-white dark:text-gray-900 hover:opacity-90">
-          {showCreateForm ? '收起' : '创建短链'}
-        </button>
-      </div>
+    <div className="flex flex-col gap-4">
+      <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default shadow-card">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2.5 p-4">
+          <div className="min-w-[200px] flex-1">
+            <SearchField
+              size="small"
+              shape="rounded"
+              value={search}
+              onChange={setSearch}
+              placeholder="搜索短链名称、目标链接或 ID"
+              clearLabel="清除搜索"
+            />
+          </div>
 
-      {showCreateForm && (
-        <div className="flex flex-wrap items-center gap-2 bg-white/50 dark:bg-black/50 border border-gray-200/50 dark:border-gray-700/50 rounded-lg p-3">
-          <input
-            type="url"
-            value={newTargetUrl}
-            onChange={(event) => setNewTargetUrl(event.target.value)}
-            placeholder="https://example.com/target"
-            className="flex-1 min-w-48 px-3 py-1.5 text-xs bg-transparent border border-gray-200/50 dark:border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-100"
-          />
-          <button
-            onClick={handleCreate}
-            disabled={!newTargetUrl.trim()}
-            className="px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 text-white dark:text-gray-900 disabled:opacity-40"
+          <Select
+            aria-label="排序方式"
+            size="sm"
+            selectedKey={sortKey}
+            onSelectionChange={(key) => {
+              if (key) setSortKey(String(key) as SortKey)
+            }}
+            className="w-36"
           >
-            创建
-          </button>
-        </div>
-      )}
+            <SelectItem id="createdAt">按创建时间</SelectItem>
+            <SelectItem id="hits">按命中次数</SelectItem>
+            <SelectItem id="lastAccess">按最近访问</SelectItem>
+          </Select>
 
-      {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <span className="text-xs text-gray-600 dark:text-gray-300">已选 {selectedIds.size} 项</span>
-          <button onClick={handleBatchDelete} className="text-xs text-red-600 dark:text-red-400 hover:underline">
-            批量删除
-          </button>
-          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-400 hover:underline">
-            取消选择
-          </button>
+          <Button
+            variant="primary"
+            size="small"
+            leadingIcon={RiAddLine}
+            onClick={() => setShowCreateForm((prev) => !prev)}
+          >
+            {showCreateForm ? '收起表单' : '创建短链'}
+          </Button>
         </div>
-      )}
 
-      <div className="bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg sm:rounded-xl overflow-hidden">
+        {/* Inline Create Form */}
+        {showCreateForm ? (
+          <form
+            onSubmit={handleCreate}
+            className="flex flex-wrap items-end gap-3 border-t border-separator-border bg-background-secondary-default px-4 py-3.5"
+          >
+            <Input
+              label="目标地址"
+              size="small"
+              type="url"
+              inputDir="ltr"
+              value={newTargetUrl}
+              onChange={setNewTargetUrl}
+              placeholder="https://example.com/target"
+              className="min-w-[240px] flex-1"
+            />
+            <Button type="submit" variant="primary" size="small" disabled={!newTargetUrl.trim()}>
+              立即创建
+            </Button>
+          </form>
+        ) : null}
+
+        {/* Batch Selection Bar */}
+        {selectedIds.size > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-separator-border bg-status-blue-background/50 px-4 py-2.5">
+            <span className="text-body-2-medium text-text-primary">已选中 {selectedIds.size} 条短链接</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="danger"
+                size="xs"
+                leadingIcon={RiDeleteBinLine}
+                onClick={() => setBatchDeleteOpen(true)}
+              >
+                批量删除
+              </Button>
+              <Button variant="ghost" size="xs" onClick={() => setSelectedIds(new Set())}>
+                取消选择
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* BoardUI Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left">
+          <table className="bui-table min-w-[760px]">
             <thead>
-              <tr className="border-b border-gray-200/50 dark:border-gray-700/50 text-[10px] text-gray-400 dark:text-gray-500">
-                <th className="pl-4 pr-2 py-2.5 w-8">
-                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} aria-label="全选" />
+              <tr>
+                <th className="w-10 ps-4">
+                  <Checkbox
+                    size="sm"
+                    isSelected={allVisibleSelected}
+                    isIndeterminate={someVisibleSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="全选"
+                  />
                 </th>
-                <th className="px-2 py-2.5">短链地址</th>
-                <th className="px-2 py-2.5">目标链接</th>
-                <th className="px-2 py-2.5 text-right">命中</th>
-                <th className="px-2 py-2.5">创建时间</th>
-                <th className="px-2 pr-4 py-2.5 text-right">操作</th>
+                <th>短链地址</th>
+                <th>目标链接</th>
+                <th className="text-end">命中</th>
+                <th>创建时间</th>
+                <th className="pe-4 text-end">操作</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="py-10 text-center text-xs text-gray-400">加载中...</td></tr>
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-body-2-regular text-text-tertiary">
+                    加载中…
+                  </td>
+                </tr>
               ) : filteredLinks.length === 0 ? (
-                <tr><td colSpan={6} className="py-10 text-center text-xs text-gray-400">
-                  {shortLinks.length === 0 ? '暂无短链接，转换后生成或手动创建' : '没有匹配的短链接'}
-                </td></tr>
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-body-2-regular text-text-tertiary">
+                    {shortLinks.length === 0 ? '暂无短链接，转换后生成或手动创建' : '没有匹配的短链接'}
+                  </td>
+                </tr>
               ) : (
-                filteredLinks.map(link => (
-                  <Fragment key={link.id}>
-                    <tr className="border-b border-gray-200/30 dark:border-gray-700/30 hover:bg-white/30 dark:hover:bg-white/5 text-xs">
-                      <td className="pl-4 pr-2 py-2.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(link.id)}
+                filteredLinks.map((link) => {
+                  const isRowConfirmingDelete = confirmingDeleteId === link.id
+                  return (
+                    <tr key={link.id} className="hover:bg-background-secondary-default/65">
+                      <td className="ps-4">
+                        <Checkbox
+                          size="sm"
+                          isSelected={selectedIds.has(link.id)}
                           onChange={() => toggleSelect(link.id)}
                           aria-label={`选择 ${link.name}`}
                         />
                       </td>
-                      <td className="px-2 py-2.5 max-w-48">
-                        <p className="truncate font-medium text-gray-800 dark:text-gray-200" title={link.name}>{link.name}</p>
-                        <p className="truncate text-[10px] font-mono text-blue-500 dark:text-blue-400">{getShortLinkUrl(link.id)}</p>
+                      <td className="max-w-52">
+                        <p className="truncate text-body-2-medium text-text-primary" title={link.name}>
+                          {link.name}
+                        </p>
+                        <p dir="ltr" className="truncate font-mono text-caption-1-regular text-accent-600 dark:text-accent-400">
+                          {getShortLinkUrl(link.id)}
+                        </p>
                       </td>
-                      <td className="px-2 py-2.5 max-w-56">
-                        <p className="truncate text-[10px] text-gray-500 dark:text-gray-400" title={link.targetUrl}>{link.targetUrl}</p>
+                      <td className="max-w-60">
+                        <p
+                          dir="ltr"
+                          className="truncate font-mono text-caption-1-regular text-text-secondary"
+                          title={link.targetUrl}
+                        >
+                          {link.targetUrl}
+                        </p>
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-gray-600 dark:text-gray-300">{link.hits}</td>
-                      <td className="px-2 py-2.5 text-gray-400 dark:text-gray-500">{formatRelativeTime(link.createdAt)}</td>
-                      <td className="px-2 pr-4 py-2.5">
-                        <div className="flex items-center justify-end gap-2.5 text-[11px]">
-                          <button onClick={() => void handleCopyShortLink(link)} className={actionButtonClass}>复制</button>
-                          <button onClick={() => handleOpenTarget(link)} className={actionButtonClass}>打开</button>
-                          <button onClick={() => setQrLink(link)} className={actionButtonClass}>二维码</button>
-                          <button onClick={() => void handleRename(link)} className={actionButtonClass}>改名</button>
-                          <button onClick={() => handleDeleteClick(link.id)} className={dangerButtonClass}>
-                            {confirmingDeleteId === link.id ? '确认删除？' : '删除'}
-                          </button>
+                      <td className="text-end font-mono text-body-2-regular tabular-nums text-text-primary">
+                        {link.hits}
+                      </td>
+                      <td className="text-caption-1-regular whitespace-nowrap text-text-secondary">
+                        {formatRelativeTime(link.createdAt)}
+                      </td>
+                      <td className="pe-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            leadingIcon={RiFileCopyLine}
+                            onClick={() => void handleCopyShortLink(link)}
+                          >
+                            复制
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            leadingIcon={RiExternalLinkLine}
+                            onClick={() => handleOpenTarget(link)}
+                          >
+                            打开
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            leadingIcon={RiQrCodeLine}
+                            onClick={() => setQrLink(link)}
+                          >
+                            二维码
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            leadingIcon={RiEditLine}
+                            onClick={() => openRenameModal(link)}
+                          >
+                            改名
+                          </Button>
+                          <Button
+                            variant={isRowConfirmingDelete ? 'danger' : 'ghost'}
+                            size="xs"
+                            className={cx(!isRowConfirmingDelete && 'text-text-tertiary hover:text-text-error-primary')}
+                            onClick={() => handleDeleteClick(link.id)}
+                          >
+                            {isRowConfirmingDelete ? '确认删除？' : '删除'}
+                          </Button>
                         </div>
                       </td>
                     </tr>
-                  </Fragment>
-                ))
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center">共 {shortLinks.length} 条短链接 · 删除后原短链将立即失效</p>
+      <p className="text-center text-caption-1-regular text-text-tertiary">
+        共 {shortLinks.length} 条短链接 · 删除后原短链将立即失效
+      </p>
 
-      {qrLink && (
-        <QrCodeModal url={getShortLinkUrl(qrLink.id)} title={qrLink.name} onClose={() => setQrLink(null)} />
-      )}
+      {qrLink ? (
+        <QrCodeModal
+          url={getShortLinkUrl(qrLink.id)}
+          title={qrLink.name}
+          onClose={() => setQrLink(null)}
+        />
+      ) : null}
+
+      <Modal
+        isOpen={renamingLink !== null}
+        onOpenChange={(open) => {
+          if (!open) setRenamingLink(null)
+        }}
+        size="sm"
+      >
+        <ModalHeader title="修改短链接名称" description="仅用于后台备注与快速查找" closeLabel="关闭" />
+        <ModalBody>
+          <Input
+            label="短链接名称"
+            value={renameDraft}
+            onChange={setRenameDraft}
+            placeholder="输入新的名称"
+            autoFocus
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                void handleRenameConfirm()
+              }
+            }}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setRenamingLink(null)}>
+            取消
+          </Button>
+          <Button variant="primary" disabled={!renameDraft.trim()} onClick={() => void handleRenameConfirm()}>
+            保存修改
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <AlertDialog
+        isOpen={batchDeleteOpen}
+        onOpenChange={setBatchDeleteOpen}
+        title={`删除选中的 ${selectedIds.size} 条短链接？`}
+        description="删除后对应短链将立即失效且无法恢复。"
+        confirmLabel="确认删除"
+        pendingLabel="删除中…"
+        cancelLabel="取消"
+        onConfirm={handleBatchDeleteConfirm}
+      />
     </div>
   )
 }

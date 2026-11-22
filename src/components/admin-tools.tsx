@@ -1,19 +1,31 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import {
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiLinkM,
+  RiLinksLine,
+  RiQrCodeLine,
+} from '@remixicon/react'
+import { Button } from '@/components/base/buttons/button'
+import { Input } from '@/components/base/input/input'
 import { useClipboard } from '@/components/use-clipboard'
 import { showToast } from '@/components/use-toast'
+import QrCodeModal from './qr-code'
 
 export default function AdminTools() {
   const [inputUrl, setInputUrl] = useState('')
   const [shortUrl, setShortUrl] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [qrTarget, setQrTarget] = useState<{ url: string; title: string } | null>(null)
   const { copyToClipboard } = useClipboard()
 
   const trimmedUrl = inputUrl.trim()
-  const conversionUrl = trimmedUrl
-    ? `${window.location.origin}/sub?url=${encodeURIComponent(trimmedUrl)}`
-    : ''
+  const conversionUrl =
+    trimmedUrl && typeof window !== 'undefined'
+      ? `${window.location.origin}/sub?url=${encodeURIComponent(trimmedUrl)}`
+      : ''
 
   const handleCopyConversion = async () => {
     if (!conversionUrl) return
@@ -21,13 +33,19 @@ export default function AdminTools() {
     showToast(copied ? '转换链接已复制' : '复制失败', copied ? 'success' : 'error')
   }
 
+  const handleCopyShort = async () => {
+    if (!shortUrl) return
+    const copied = await copyToClipboard(shortUrl)
+    showToast(copied ? '短链接已复制' : '复制失败', copied ? 'success' : 'error')
+  }
+
   const handlePreview = () => {
     if (!trimmedUrl) return
-    window.open(`/sub?url=${encodeURIComponent(trimmedUrl)}`, '_blank')
+    window.open(`/sub?url=${encodeURIComponent(trimmedUrl)}`, '_blank', 'noopener,noreferrer')
   }
 
   const handleGenerateShortLink = async () => {
-    if (!trimmedUrl || generating) return
+    if (!conversionUrl || generating) return
 
     setGenerating(true)
     setShortUrl('')
@@ -35,14 +53,14 @@ export default function AdminTools() {
       const response = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: conversionUrl })
+        body: JSON.stringify({ url: conversionUrl }),
       })
 
       if (!response.ok) {
         throw new Error('短链接生成服务暂时不可用')
       }
 
-      const data = await response.json() as { shortUrl?: string }
+      const data = (await response.json()) as { shortUrl?: string }
       if (data.shortUrl) {
         setShortUrl(data.shortUrl)
         const copied = await copyToClipboard(data.shortUrl)
@@ -57,58 +75,124 @@ export default function AdminTools() {
     }
   }
 
-  const inputClass = 'w-full px-3 py-2 text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-gray-100'
-  const buttonClass = 'px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 text-white dark:text-gray-900 disabled:opacity-40 transition-all hover:opacity-90'
-  const secondaryButtonClass = 'px-4 py-2 text-xs rounded-lg border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-black/50 disabled:opacity-40'
-
   return (
-    <div className="space-y-3 max-w-2xl mx-auto">
-      <div className="bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3">
-        <h2 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">快捷转换</h2>
-        <p className="text-[10px] text-gray-400 dark:text-gray-500">粘贴订阅链接，一键生成转换链接或短链接</p>
+    <div className="flex max-w-3xl flex-col gap-4">
+      <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+        <div className="mb-4">
+          <h2 className="text-headline-medium text-text-primary">快捷转换与短链工具</h2>
+          <p className="mt-1 text-body-2-regular text-text-secondary">
+            粘贴原始订阅链接，快速组装转换地址、打开浏览器预览或生成短链。
+          </p>
+        </div>
 
-        <input
-          type="url"
-          value={inputUrl}
-          onChange={(event) => {
-            setInputUrl(event.target.value)
-            setShortUrl('')
-          }}
-          placeholder="https://example.com/subscription"
-          className={inputClass}
-        />
+        <div className="flex flex-col gap-4">
+          <Input
+            label="原始订阅地址"
+            type="url"
+            inputDir="ltr"
+            leadingIcon={RiLinksLine}
+            value={inputUrl}
+            onChange={(value) => {
+              setInputUrl(value)
+              setShortUrl('')
+            }}
+            placeholder="https://example.com/subscription"
+          />
 
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => void handleCopyConversion()} disabled={!trimmedUrl} className={buttonClass}>
-            复制转换链接
-          </button>
-          <button onClick={handlePreview} disabled={!trimmedUrl} className={secondaryButtonClass}>
-            打开预览
-          </button>
-          <button onClick={() => void handleGenerateShortLink()} disabled={!trimmedUrl || generating} className={secondaryButtonClass}>
-            {generating ? '生成中...' : '生成短链接'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="primary"
+              size="small"
+              leadingIcon={RiFileCopyLine}
+              disabled={!trimmedUrl}
+              onClick={() => void handleCopyConversion()}
+            >
+              复制转换链接
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
+              leadingIcon={RiExternalLinkLine}
+              disabled={!trimmedUrl}
+              onClick={handlePreview}
+            >
+              配置预览
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
+              leadingIcon={RiLinkM}
+              disabled={!trimmedUrl || generating}
+              onClick={() => void handleGenerateShortLink()}
+            >
+              {generating ? '生成中…' : '生成短链接'}
+            </Button>
+            {conversionUrl ? (
+              <Button
+                variant="secondary"
+                size="small"
+                leadingIcon={RiQrCodeLine}
+                onClick={() =>
+                  setQrTarget({
+                    url: shortUrl || conversionUrl,
+                    title: shortUrl ? '短链接二维码' : '转换链接二维码',
+                  })
+                }
+              >
+                二维码
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      {conversionUrl && (
-        <div className="bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">转换链接</h3>
-            <button onClick={() => void handleCopyConversion()} className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">
+      {conversionUrl ? (
+        <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <h3 className="text-caption-1-semibold text-text-secondary">转换链接</h3>
+            <Button variant="ghost" size="xs" leadingIcon={RiFileCopyLine} onClick={() => void handleCopyConversion()}>
               复制
-            </button>
+            </Button>
           </div>
-          <p className="font-mono text-[11px] break-all text-gray-600 dark:text-gray-300">{conversionUrl}</p>
+          <div
+            dir="ltr"
+            className="rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 font-mono text-caption-1-regular break-all text-text-primary"
+          >
+            {conversionUrl}
+          </div>
         </div>
-      )}
+      ) : null}
 
-      {shortUrl && (
-        <div className="bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-1.5">
-          <h3 className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">短链接</h3>
-          <p className="font-mono text-sm break-all text-blue-600 dark:text-blue-400">{shortUrl}</p>
+      {shortUrl ? (
+        <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <h3 className="text-caption-1-semibold text-text-secondary">短链接</h3>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="xs"
+                leadingIcon={RiQrCodeLine}
+                onClick={() => setQrTarget({ url: shortUrl, title: '短链接二维码' })}
+              >
+                二维码
+              </Button>
+              <Button variant="ghost" size="xs" leadingIcon={RiFileCopyLine} onClick={() => void handleCopyShort()}>
+                复制
+              </Button>
+            </div>
+          </div>
+          <div
+            dir="ltr"
+            className="rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 font-mono text-body-2-medium break-all text-accent-600 dark:text-accent-400"
+          >
+            {shortUrl}
+          </div>
         </div>
-      )}
+      ) : null}
+
+      {qrTarget ? (
+        <QrCodeModal url={qrTarget.url} title={qrTarget.title} onClose={() => setQrTarget(null)} />
+      ) : null}
     </div>
   )
 }
