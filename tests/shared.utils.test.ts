@@ -13,8 +13,11 @@ import {
   extractFileNameFromUrlPath,
   extractNameFromUrl,
   isAllowedSubscriptionInput,
+  isAutoManagedShortLinkName,
   isValidUrl,
+  isWeakSubscriptionName,
   parsePort,
+  resolveShortLinkName,
   splitSubscriptionSources,
   unwrapConversionUrl,
 } from '@/shared/url.utils'
@@ -158,6 +161,80 @@ describe('url.utils', () => {
 
     expect(extractNameFromUrl('not-a-url')).toBe('未知订阅')
     expect(extractNameFromUrl('not-a-url', '自定义')).toBe('自定义')
+
+    // VMess Base64 JSON：优先解码 ps（并剥离国旗），避免回退成原始 Base64
+    const vmessWithPs = `vmess://${encodeBase64Utf8(
+      JSON.stringify({ v: '2', ps: '🇭🇰 HK-优途 | 01', add: '1.2.3.4', port: '443', id: 'uuid' }),
+    )}`
+    expect(extractNameFromUrl(vmessWithPs)).toBe('HK-优途 | 01')
+    expect(
+      extractNameFromUrl(`https://sub.xqd.pp.ua/sub?url=${encodeURIComponent(vmessWithPs)}`),
+    ).toBe('HK-优途 | 01')
+
+    const vmessWithoutPs = `vmess://${encodeBase64Utf8(
+      JSON.stringify({ v: '2', add: 'vmess.node.example', port: '443', id: 'uuid' }),
+    )}`
+    expect(extractNameFromUrl(vmessWithoutPs)).toBe('vmess.node.example')
+
+    // SSR Base64：优先解码 remarks，缺省回退服务器地址而非 Base64
+    const ssrWithRemarks = `ssr://${encodeBase64UrlUtf8(
+      `ssr.example.com:443:origin:aes-256-cfb:plain:${encodeBase64UrlUtf8('pass')}/?remarks=${encodeBase64UrlUtf8('🇯🇵 JP SSR 01')}`,
+    )}`
+    expect(extractNameFromUrl(ssrWithRemarks)).toBe('JP SSR 01')
+
+    // 传统 Base64 SS（无 @ 且无 #hash）：解码出服务器地址而非 Base64
+    const legacySs = `ss://${encodeBase64Utf8('aes-256-gcm:secret@ss.example.com:8388')}`
+    expect(extractNameFromUrl(legacySs)).toBe('ss.example.com')
+
+    // 多来源输入提取首条来源，不因换行或 | 损坏解析
+    expect(
+      extractNameFromUrl('anytls://pw@1.2.3.4:443#HK%20BestVM\nhttps://example.com/sub'),
+    ).toBe('HK BestVM')
+  })
+
+  it('detects weak/auto short-link names and resolves against subscription names', () => {
+    const wrappedSub =
+      'https://sub.xqd.pp.ua/sub?url=https%3A%2F%2Fairport.example.com%2Fapi%2Fv1%2Fclient%2Fsubscribe'
+    expect(isWeakSubscriptionName('sub.xqd.pp.ua', wrappedSub)).toBe(true)
+    expect(isWeakSubscriptionName('airport.example.com', wrappedSub)).toBe(true)
+    expect(isWeakSubscriptionName('主用机场', wrappedSub)).toBe(false)
+
+    // 历史落库为包装域名 sub.xqd.pp.ua 的短链，优先对齐订阅真实名称，其次解包后的真实域名
+    expect(
+      resolveShortLinkName({ name: 'sub.xqd.pp.ua', targetUrl: wrappedSub }, '花卷机场'),
+    ).toBe('花卷机场')
+    expect(
+      resolveShortLinkName({ name: 'sub.xqd.pp.ua', targetUrl: wrappedSub }, null),
+    ).toBe('airport.example.com')
+    // 即便历史订阅记录自身被污染为包装域名，也回退到解包后的真实域名
+    expect(
+      resolveShortLinkName({ name: 'sub.xqd.pp.ua', targetUrl: wrappedSub }, 'sub.xqd.pp.ua'),
+    ).toBe('airport.example.com')
+
+    // 历史落库为 VMess Raw Base64 的短链自动解码出 ps 名称
+    const vmessPayload = encodeBase64Utf8(
+      JSON.stringify({ v: '2', ps: 'HK-优途 | IPLC', add: '10.0.0.1', port: '443', id: 'u' }),
+    )
+    const wrappedVmess = `https://sub.xqd.pp.ua/sub?url=${encodeURIComponent(`vmess://${vmessPayload}`)}`
+    expect(
+      resolveShortLinkName({ name: vmessPayload, targetUrl: wrappedVmess }, null),
+    ).toBe('HK-优途 | IPLC')
+
+    // 历史手动改名的短链（无 customName 字段但不属于自动提取/弱名）保持不变
+    expect(
+      isAutoManagedShortLinkName({ name: '给朋友备用', targetUrl: wrappedSub }),
+    ).toBe(false)
+    expect(
+      resolveShortLinkName({ name: '给朋友备用', targetUrl: wrappedSub }, '花卷机场'),
+    ).toBe('给朋友备用')
+
+    // 显式 customName: true 永远不被订阅改名覆盖
+    expect(
+      resolveShortLinkName(
+        { name: 'airport.example.com', targetUrl: wrappedSub, customName: true },
+        '花卷机场',
+      ),
+    ).toBe('airport.example.com')
   })
 })
 

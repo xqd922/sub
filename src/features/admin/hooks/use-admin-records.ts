@@ -2,11 +2,17 @@ import { useCallback, useEffect } from 'react'
 import {
   bootstrapAdminCache,
   updateCachedRecords,
+  updateCachedShortLinks,
   useAdminCache,
 } from '@/features/admin/admin.cache'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { BatchOperationResult, ConvertRecord } from '@/shared/admin.types'
+import {
+  isAutoManagedShortLinkName,
+  resolveShortLinkName,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
 
 export function useAdminRecords(onUnauthorized?: () => void) {
   const cache = useAdminCache()
@@ -35,6 +41,17 @@ export function useAdminRecords(onUnauthorized?: () => void) {
           jsonBody('PATCH', { name }),
         )
         updateCachedRecords((prev) => prev.map((item) => (item.id === id ? data.record : item)))
+        const normalizedRecordUrl = unwrapConversionUrl(data.record.originalUrl).subscriptionUrl
+        updateCachedShortLinks((prev) =>
+          prev.map((link) => {
+            if (!isAutoManagedShortLinkName(link)) return link
+            if (unwrapConversionUrl(link.targetUrl).subscriptionUrl !== normalizedRecordUrl) {
+              return link
+            }
+            const nextName = resolveShortLinkName(link, data.record.name)
+            return nextName !== link.name ? { ...link, name: nextName, customName: false } : link
+          }),
+        )
         showToast('名称已更新', 'success')
         return true
       } catch (error) {

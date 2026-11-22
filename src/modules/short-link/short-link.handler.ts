@@ -10,7 +10,11 @@ import { generateShortLink } from '@/modules/short-link/short-link.service'
 import { handleConversionRequest } from '@/modules/subscription/conversion.handler'
 import { logger } from '@/server/logger'
 import { getClientIp, parseJsonBody } from '@/server/route.utils'
-import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
+import {
+  isAllowedSubscriptionInput,
+  isAutoManagedShortLinkName,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
 
 function extractAccessKey(request: Request, incomingUrl: URL): string | null {
   const fromQuery =
@@ -165,7 +169,7 @@ export async function handleShortLinkRedirect(
     }
 
     const forwardedHeaders = new Headers(request.headers)
-    if (resolved.link.name) {
+    if (resolved.link.name && !isAutoManagedShortLinkName(resolved.link)) {
       forwardedHeaders.set('x-short-link-name', encodeURIComponent(resolved.link.name))
     }
 
@@ -174,7 +178,7 @@ export async function handleShortLinkRedirect(
       headers: forwardedHeaders,
     })
 
-    return handleConversionRequest(forwardedRequest)
+    return handleConversionRequest(forwardedRequest, { shortLink: resolved.link })
   } catch (error) {
     logger.error('[ShortLink] 跳转处理失败:', error)
     return NextResponse.redirect(new URL('/', request.url))

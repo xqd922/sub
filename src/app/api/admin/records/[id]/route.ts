@@ -5,8 +5,9 @@ import {
   setRecordEnabled,
   updateRecord,
 } from '@/modules/record/record.repository'
+import { syncShortLinksForSubscription } from '@/modules/short-link/short-link.repository'
 import { AppError } from '@/server/app-error'
-import { jsonOk, parseJsonBody } from '@/server/route.utils'
+import { getExecutionContext, jsonOk, parseJsonBody } from '@/server/route.utils'
 
 export const runtime = 'edge'
 
@@ -43,6 +44,13 @@ export const PATCH = withAdminAuth<RouteContext>('更新记录', async (request,
 
   if (hasName) {
     record = (await updateRecord(id, { name: body.name as string })) || record
+    const ctx = await getExecutionContext()
+    const syncPromise = syncShortLinksForSubscription(record.originalUrl, record.name)
+    if (ctx?.waitUntil) {
+      ctx.waitUntil(syncPromise)
+    } else {
+      await syncPromise
+    }
   }
 
   return jsonOk({ record })

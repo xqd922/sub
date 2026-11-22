@@ -2,7 +2,7 @@ import { getKvStore, getManyJson, isKvAvailable, listKeysByPrefix } from '@/serv
 import { KV_KEYS, KV_TTL_SECONDS, type RecordIndex } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 import type { ConvertRecord, DailyStats, HourlyStats, StatsData } from '@/shared/admin.types'
-import { extractNameFromUrl } from '@/shared/url.utils'
+import { extractNameFromUrl, isWeakSubscriptionName } from '@/shared/url.utils'
 
 export async function generateRecordId(url: string): Promise<string> {
   const data = new TextEncoder().encode(url)
@@ -189,9 +189,15 @@ export async function logConversion(params: {
     const existing = await getRecordById(id)
 
     if (existing) {
+      const nextName =
+        subscriptionName &&
+        (!isWeakSubscriptionName(subscriptionName, originalUrl) ||
+          isWeakSubscriptionName(existing.name, originalUrl))
+          ? subscriptionName
+          : existing.name
       const updated: ConvertRecord = {
         ...existing,
-        name: subscriptionName || existing.name,
+        name: nextName,
         clientType,
         updatedAt: now,
         lastAccess: now,

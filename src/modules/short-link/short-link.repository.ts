@@ -1,15 +1,22 @@
+import { generateRecordId, getRecordById } from '@/modules/record/record.repository'
 import { AppError, ErrorCode, ErrorSeverity } from '@/server/app-error'
 import { getKvStore, getManyJson } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 import type {
+  ConvertRecord,
   CreateShortLinkInput,
   ShortLink,
   ShortLinkImportResult,
   TargetClientOverride,
   UpdateShortLinkInput,
 } from '@/shared/admin.types'
-import { extractNameFromUrl, isValidCustomSlug } from '@/shared/url.utils'
+import {
+  isAutoManagedShortLinkName,
+  isValidCustomSlug,
+  resolveShortLinkName,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
 
 const SHORT_ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
 
@@ -134,6 +141,151 @@ export async function getShortLink(id: string): Promise<ShortLink | null> {
   }
 }
 
+async function findRecordNameForTarget(targetUrl: string): Promise<string | undefined> {
+  const { subscriptionUrl } = unwrapConversionUrl(targetUrl)
+  if (!subscriptionUrl) return undefined
+  const recordId = await generateRecordId(subscriptionUrl)
+  const record = await getRecordById(recordId)
+  return record?.name?.trim() || undefined
+}
+
+export async function syncShortLinkAutoName(
+  id: string,
+  nextName: string,
+): Promise<ShortLink | null> {
+  const kv = await getKvStore()
+  if (!kv) return null
+
+  try {
+    const existing = await getShortLink(id)
+    if (!existing || !isAutoManagedShortLinkName(existing)) return existing
+
+    const cleaned = nextName.trim()
+    if (!cleaned) return existing
+    if (existing.name === cleaned && existing.customName === false) {
+      return existing
+    }
+
+    const updated: ShortLink = {
+      ...existing,
+      name: cleaned,
+      customName: false,
+    }
+    await kv.put(`${KV_KEYS.SHORT_PREFIX}${id}`, JSON.stringify(updated), {
+      expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
+    })
+    return updated
+  } catch (error) {
+    logger.error('[ShortLinkRepo] 同步短链名称失败:', error)
+    return null
+  }
+}
+
+export async function enrichShortLinksWithRecords(
+  links: ShortLink[],
+  recordsByUrl?: Map<string, ConvertRecord>,
+): Promise<{ links: ShortLink[]; repaired: Array<{ id: string; name: string }> }> {
+  if (links.length === 0) return { links: [], repaired: [] }
+
+  const lookupMap = recordsByUrl ?? new Map<string, ConvertRecord>()
+
+  if (!recordsByUrl) {
+    const autoUrls = new Set<string>()
+    for (const link of links) {
+      if (!isAutoManagedShortLinkName(link)) continue
+      const { subscriptionUrl } = unwrapConversionUrl(link.targetUrl)
+      if (subscriptionUrl) autoUrls.add(subscriptionUrl)
+    }
+
+    if (autoUrls.size > 0) {
+      const urlList = Array.from(autoUrls)
+      const recordIds = await Promise.all(urlList.map((url) => generateRecordId(url)))
+      const recordKeys = recordIds.map((id) => `${KV_KEYS.RECORD_PREFIX}${id}`)
+      const values = await getManyJson<ConvertRecord>(recordKeys)
+      urlList.forEach((url, index) => {
+        const record = values.get(recordKeys[index])
+        if (record) lookupMap.set(url, record)
+      })
+    }
+  }
+
+  const repaired: Array<{ id: string; name: string }> = []
+  const enriched = links.map((link) => {
+    const { subscriptionUrl } = unwrapConversionUrl(link.targetUrl)
+    const matchedRecord = lookupMap.get(subscriptionUrl)
+    const resolvedName = resolveShortLinkName(link, matchedRecord?.name)
+
+    if (resolvedName !== link.name) {
+      repaired.push({ id: link.id, name: resolvedName })
+      return {
+        ...link,
+        name: resolvedName,
+        customName: false,
+      }
+    }
+
+    return link
+  })
+
+  return { links: enriched, repaired }
+}
+
+export async function persistRepairedShortLinkNames(
+  repairs: Array<{ id: string; name: string }>,
+): Promise<void> {
+  if (repairs.length === 0) return
+  await Promise.allSettled(
+    repairs.map((item) => syncShortLinkAutoName(item.id, item.name)),
+  )
+}
+
+export async function syncShortLinksForSubscription(
+  subscriptionUrl: string,
+  nextName: string,
+): Promise<void> {
+  const kv = await getKvStore()
+  if (!kv) return
+
+  const trimmedName = nextName.trim()
+  if (!trimmedName) return
+
+  try {
+    const normalizedSubUrl = unwrapConversionUrl(subscriptionUrl).subscriptionUrl
+    const indexData = (await kv.get(KV_KEYS.SHORT_INDEX, 'json')) as { ids?: string[] } | null
+    const ids = indexData?.ids || []
+    if (ids.length === 0) return
+
+    const keys = ids.map((id) => `${KV_KEYS.SHORT_PREFIX}${id}`)
+    const values = await getManyJson<ShortLink>(keys)
+    const updates: Array<Promise<void>> = []
+
+    for (const link of values.values()) {
+      if (!link || !isAutoManagedShortLinkName(link)) continue
+      if (unwrapConversionUrl(link.targetUrl).subscriptionUrl !== normalizedSubUrl) continue
+
+      const resolvedName = resolveShortLinkName(link, trimmedName)
+      if (resolvedName === link.name && link.customName === false) continue
+
+      const updated: ShortLink = {
+        ...link,
+        name: resolvedName,
+        customName: false,
+      }
+      updates.push(
+        kv.put(`${KV_KEYS.SHORT_PREFIX}${link.id}`, JSON.stringify(updated), {
+          expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
+        }),
+      )
+    }
+
+    if (updates.length > 0) {
+      await Promise.allSettled(updates)
+    }
+  } catch (error) {
+    logger.error('[ShortLinkRepo] 按订阅同步短链名称失败:', error)
+  }
+}
+
 export async function createShortLink(
   inputOrUrl: string | CreateShortLinkInput,
   customName?: string,
@@ -174,6 +326,7 @@ export async function createShortLink(
 
   try {
     const urlHash = await getUrlHash(targetUrl)
+    const matchedRecordName = !name ? await findRecordNameForTarget(targetUrl) : undefined
 
     // 仅在未指定自定义短码且未配置独立限流/加密/输出格式策略时复用同一目标地址的短链
     const hasCustomPolicy = Boolean(
@@ -187,6 +340,18 @@ export async function createShortLink(
           if (name && name !== existing.name) {
             return (await updateShortLink(existing.id, { name })) || existing
           }
+          if (!name && isAutoManagedShortLinkName(existing)) {
+            const resolvedName = resolveShortLinkName(existing, matchedRecordName)
+            if (resolvedName !== existing.name) {
+              return (
+                (await syncShortLinkAutoName(existing.id, resolvedName)) || {
+                  ...existing,
+                  name: resolvedName,
+                  customName: false,
+                }
+              )
+            }
+          }
           return existing
         }
       }
@@ -194,10 +359,13 @@ export async function createShortLink(
 
     const id = customSlug || (await generateUniqueShortId(targetUrl))
     const now = Date.now()
+    const resolvedName =
+      name || resolveShortLinkName({ name: '', targetUrl, customName: false }, matchedRecordName)
     const shortLink: ShortLink = {
       id,
       targetUrl,
-      name: name || extractNameFromUrl(targetUrl),
+      name: resolvedName,
+      customName: Boolean(name),
       createdAt: now,
       hits: 0,
       lastAccess: now,
@@ -249,7 +417,10 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
     for (const link of values.values()) {
       if (link) links.push(link)
     }
-    return links.sort((a, b) => b.createdAt - a.createdAt)
+    links.sort((a, b) => b.createdAt - a.createdAt)
+
+    const { links: enriched } = await enrichShortLinksWithRecords(links)
+    return enriched
   } catch (error) {
     logger.error('[ShortLinkRepo] 获取全部失败:', error)
     return []
@@ -269,10 +440,27 @@ export async function updateShortLink(
 
     const nextTargetUrl = updates.targetUrl?.trim() || existing.targetUrl
     const targetChanged = nextTargetUrl !== existing.targetUrl
+    const trimmedUpdateName = updates.name?.trim()
+
+    let nextName = existing.name
+    let nextCustomName = existing.customName
+
+    if (updates.name !== undefined && trimmedUpdateName) {
+      nextName = trimmedUpdateName
+      nextCustomName = true
+    } else if (targetChanged && isAutoManagedShortLinkName(existing)) {
+      const matchedRecordName = await findRecordNameForTarget(nextTargetUrl)
+      nextName = resolveShortLinkName(
+        { name: '', targetUrl: nextTargetUrl, customName: false },
+        matchedRecordName,
+      )
+      nextCustomName = false
+    }
 
     const updated: ShortLink = {
       ...existing,
-      ...(updates.name !== undefined ? { name: updates.name.trim() || existing.name } : {}),
+      name: nextName,
+      ...(nextCustomName !== undefined ? { customName: nextCustomName } : {}),
       targetUrl: nextTargetUrl,
       ...(updates.disabled !== undefined ? { disabled: updates.disabled } : {}),
     }

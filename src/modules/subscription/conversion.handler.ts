@@ -3,6 +3,7 @@ import { parseCustomClientRules } from '@/modules/record/client-rule.repository'
 import { generateRecordId, logConversion } from '@/modules/record/record.repository'
 import { parseCustomRoutingRules } from '@/modules/record/routing-rule.repository'
 import { extractClientHeaders } from '@/modules/renderer/client-detector'
+import { syncShortLinkAutoName } from '@/modules/short-link/short-link.repository'
 import {
   formatProxiesIfNeeded,
   shouldFormatNodeNames,
@@ -19,8 +20,14 @@ import { getManyJson } from '@/server/kv/kv.client'
 import { KV_KEYS } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 import { getClientIp, getExecutionContext, jsonError } from '@/server/route.utils'
-import type { ConvertRecord } from '@/shared/admin.types'
-import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
+import type { ConvertRecord, ShortLink } from '@/shared/admin.types'
+import {
+  isAllowedSubscriptionInput,
+  isAutoManagedShortLinkName,
+  isWeakSubscriptionName,
+  resolveShortLinkName,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
 
 function classifyConversionError(error: unknown, durationMs: number, url: string): AppError {
   if (error instanceof AppError) {
@@ -71,18 +78,6 @@ function handleConversionError(
   })
 }
 
-const GENERIC_SUBSCRIPTION_NAMES = new Set(['Me', 'Sub', 'Merged', 'Gist', 'Node', '未知订阅'])
-
-function isGenericSubscriptionName(name: string, sourceUrl: string): boolean {
-  const trimmed = name.trim()
-  if (!trimmed || GENERIC_SUBSCRIPTION_NAMES.has(trimmed)) return true
-  try {
-    return trimmed === new URL(sourceUrl).hostname
-  } catch {
-    return false
-  }
-}
-
 function decodeShortLinkNameHeader(request: Request): string | undefined {
   const raw = request.headers.get('x-short-link-name')?.trim()
   if (!raw) return undefined
@@ -93,7 +88,14 @@ function decodeShortLinkNameHeader(request: Request): string | undefined {
   }
 }
 
-export async function handleConversionRequest(request: Request): Promise<NextResponse> {
+export interface ConversionRequestOptions {
+  shortLink?: ShortLink
+}
+
+export async function handleConversionRequest(
+  request: Request,
+  options?: ConversionRequestOptions,
+): Promise<NextResponse> {
   const startedAt = Date.now()
   const userAgent = request.headers.get('user-agent') || ''
   const clientIp = getClientIp(request)
@@ -146,8 +148,8 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       subscription.name = explicitName
     } else if (
       shortLinkFallbackName &&
-      isGenericSubscriptionName(subscription.name, url) &&
-      !isGenericSubscriptionName(shortLinkFallbackName, url)
+      isWeakSubscriptionName(subscription.name, url) &&
+      !isWeakSubscriptionName(shortLinkFallbackName, options?.shortLink?.targetUrl || url)
     ) {
       subscription.name = shortLinkFallbackName
     }
@@ -184,21 +186,36 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
     const response = new NextResponse(rendered.body, { headers: rendered.headers })
 
     const ctx = await getExecutionContext()
-    const recordPromise = logConversion({
-      originalUrl: url,
-      clientType: rendered.clientType,
-      nodeCount: proxies.length,
-      clientIp,
-      userAgent,
-      subscriptionName: subscription.name,
-    }).catch((err) => {
-      logger.warn('记录转换失败:', err)
-    })
+    const backgroundTasks: Array<Promise<unknown>> = [
+      logConversion({
+        originalUrl: url,
+        clientType: rendered.clientType,
+        nodeCount: proxies.length,
+        clientIp,
+        userAgent,
+        subscriptionName: subscription.name,
+      }).catch((err) => {
+        logger.warn('记录转换失败:', err)
+      }),
+    ]
+
+    if (options?.shortLink && isAutoManagedShortLinkName(options.shortLink)) {
+      const nextShortName = resolveShortLinkName(options.shortLink, subscription.name)
+      if (nextShortName !== options.shortLink.name || options.shortLink.customName !== false) {
+        backgroundTasks.push(
+          syncShortLinkAutoName(options.shortLink.id, nextShortName).catch((err) => {
+            logger.warn('同步短链名称失败:', err)
+          }),
+        )
+      }
+    }
+
+    const persistPromise = Promise.all(backgroundTasks)
 
     if (ctx?.waitUntil) {
-      ctx.waitUntil(recordPromise)
+      ctx.waitUntil(persistPromise)
     } else {
-      await recordPromise
+      await persistPromise
     }
 
     logConfigStats(

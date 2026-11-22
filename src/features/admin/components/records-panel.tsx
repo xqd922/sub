@@ -200,7 +200,7 @@ export function RecordsPanel({
     try {
       const data = await adminFetch<{ shortLink: ShortLink }>(
         '/api/admin/short-links',
-        jsonBody('POST', { targetUrl: record.originalUrl, name: record.name }),
+        jsonBody('POST', { targetUrl: record.originalUrl }),
       )
       updateCachedShortLinks((prev) => [
         data.shortLink,

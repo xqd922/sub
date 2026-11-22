@@ -27,13 +27,16 @@ import {
   createShortLink,
   deleteShortLink,
   getAllShortLinks,
+  getShortLink,
   importShortLinks,
   resolveShortLink,
   resolveShortLinkDetailed,
+  syncShortLinksForSubscription,
   updateShortLink,
 } from '@/modules/short-link/short-link.repository'
 import { MemoryKvStore, resetFallbackKvStore } from '@/server/kv/kv.adapter'
-import { getManyJson } from '@/server/kv/kv.client'
+import { getKvStore, getManyJson } from '@/server/kv/kv.client'
+import { KV_KEYS } from '@/server/kv/kv.types'
 import { encodeBase64Utf8 } from '@/shared/base64.utils'
 
 const TEST_URL = 'https://example.com/admin-flow-sub'
@@ -391,5 +394,88 @@ describe('record and short-link KV flows', () => {
     expect(hourly[0].hour).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}$/)
     expect(hourly[0].totalHits).toBe(3)
     expect(hourly[0].uniqueUrls).toBe(2)
+  })
+
+  it('inherits subscription names for auto short links, heals legacy wrapper/base64 names, and preserves custom names', async () => {
+    const subUrl = 'https://airport.example.com/api/v1/client/subscribe?token=abc'
+    const record = await createRecordManually(subUrl, '星云机场')
+    expect(record).not.toBeNull()
+
+    // 1. 不传自定义名称创建短链时，自动继承已有订阅记录的名称
+    const autoLink = await createShortLink(subUrl)
+    expect(autoLink?.name).toBe('星云机场')
+    expect(autoLink?.customName).toBe(false)
+
+    // 2. 手动指定名称创建的短链标记为 customName: true，后续订阅改名不会覆盖它
+    const customLink = await createShortLink({
+      targetUrl: subUrl,
+      slug: 'my-custom',
+      name: '朋友专用',
+    })
+    expect(customLink?.name).toBe('朋友专用')
+    expect(customLink?.customName).toBe(true)
+
+    // 3. 订阅重命名后，自动命名短链同步跟进，自定义短链保持不变
+    await syncShortLinksForSubscription(subUrl, '星云主力')
+    expect((await getShortLink(autoLink!.id))?.name).toBe('星云主力')
+    expect((await getShortLink('my-custom'))?.name).toBe('朋友专用')
+
+    // 4. 模拟历史 KV 脏数据：短链名称曾落库为转换器域名 sub.xqd.pp.ua 或未解码的 VMess Base64
+    const kv = await getKvStore()
+    expect(kv).not.toBeNull()
+
+    const vmessPayload = encodeBase64Utf8(
+      JSON.stringify({ v: '2', ps: '🇭🇰 HK-优途 | 01', add: '1.2.3.4', port: '443', id: '11111111-1111-1111-1111-111111111111' }),
+    )
+    const wrappedVmess = `https://sub.xqd.pp.ua/sub?url=${encodeURIComponent(`vmess://${vmessPayload}`)}`
+    const legacyWrapperTarget = `https://sub.xqd.pp.ua/sub?url=${encodeURIComponent(subUrl)}`
+
+    await kv!.put(
+      `${KV_KEYS.SHORT_PREFIX}leg1`,
+      JSON.stringify({
+        id: 'leg1',
+        targetUrl: legacyWrapperTarget,
+        name: 'sub.xqd.pp.ua',
+        createdAt: Date.now() - 10_000,
+        hits: 3,
+        lastAccess: Date.now(),
+      }),
+    )
+    await kv!.put(
+      `${KV_KEYS.SHORT_PREFIX}leg2`,
+      JSON.stringify({
+        id: 'leg2',
+        targetUrl: wrappedVmess,
+        name: vmessPayload,
+        createdAt: Date.now() - 5_000,
+        hits: 2,
+        lastAccess: Date.now(),
+      }),
+    )
+    const index = (await kv!.get(KV_KEYS.SHORT_INDEX, 'json')) as { ids?: string[] } | null
+    await kv!.put(
+      KV_KEYS.SHORT_INDEX,
+      JSON.stringify({ ids: [...(index?.ids || []), 'leg1', 'leg2'] }),
+    )
+
+    // 读取短链列表时自动修复展示名称
+    const all = await getAllShortLinks()
+    expect(all.find((item) => item.id === 'leg1')?.name).toBe('星云机场')
+    expect(all.find((item) => item.id === 'leg2')?.name).toBe('HK-优途 | 01')
+
+    // 通过 /s/leg2 访问时，不仅返回正确订阅标题，还会自动回填 KV 中短链名称
+    const res = await handleShortLinkRedirect(
+      new Request('https://sub.xqd.pp.ua/s/leg2', {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      'leg2',
+    )
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Disposition')).toContain(
+      `filename*=UTF-8''${encodeURIComponent('HK-优途 | 01')}`,
+    )
+    const healed = await getShortLink('leg2')
+    expect(healed?.name).toBe('HK-优途 | 01')
+    expect(healed?.customName).toBe(false)
   })
 })

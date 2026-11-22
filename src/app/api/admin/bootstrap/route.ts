@@ -2,10 +2,15 @@ import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import { parseCustomClientRules } from '@/modules/record/client-rule.repository'
 import { computeStatsFromData } from '@/modules/record/record.repository'
 import { parseCustomRoutingRules } from '@/modules/record/routing-rule.repository'
+import {
+  enrichShortLinksWithRecords,
+  persistRepairedShortLinkNames,
+} from '@/modules/short-link/short-link.repository'
 import { getKvStore, getManyJson, listKeysByPrefix } from '@/server/kv/kv.client'
 import { KV_KEYS } from '@/server/kv/kv.types'
-import { jsonOk } from '@/server/route.utils'
+import { getExecutionContext, jsonOk } from '@/server/route.utils'
 import type { ConvertRecord, DailyStats, HourlyStats, ShortLink } from '@/shared/admin.types'
+import { unwrapConversionUrl } from '@/shared/url.utils'
 
 export const runtime = 'edge'
 
@@ -99,12 +104,38 @@ export const GET = withAdminAuth('初始化控制台', async () => {
   }
   hourly.sort((a, b) => a.hour.localeCompare(b.hour))
 
-  const shortLinks: ShortLink[] = []
+  const rawShortLinks: ShortLink[] = []
   for (const key of shortKeys) {
     const value = bulkValues.get(key) as ShortLink | null | undefined
-    if (value) shortLinks.push(value)
+    if (value) rawShortLinks.push(value)
   }
-  shortLinks.sort((a, b) => b.createdAt - a.createdAt)
+  rawShortLinks.sort((a, b) => b.createdAt - a.createdAt)
+
+  const recordsByUrl = new Map<string, ConvertRecord>()
+  for (const record of records) {
+    const normalized = unwrapConversionUrl(record.originalUrl).subscriptionUrl
+    if (normalized && !recordsByUrl.has(normalized)) {
+      recordsByUrl.set(normalized, record)
+    }
+    if (!recordsByUrl.has(record.originalUrl)) {
+      recordsByUrl.set(record.originalUrl, record)
+    }
+  }
+
+  const { links: shortLinks, repaired } = await enrichShortLinksWithRecords(
+    rawShortLinks,
+    recordsByUrl,
+  )
+
+  if (repaired.length > 0) {
+    const ctx = await getExecutionContext()
+    const repairPromise = persistRepairedShortLinkNames(repaired)
+    if (ctx?.waitUntil) {
+      ctx.waitUntil(repairPromise)
+    } else {
+      await repairPromise
+    }
+  }
 
   const routingRules = parseCustomRoutingRules(bulkValues.get(KV_KEYS.ROUTING_RULES))
   const clientRules = parseCustomClientRules(bulkValues.get(KV_KEYS.CLIENT_RULES))

@@ -39,6 +39,8 @@ export interface ShortLink {
   id: string
   targetUrl: string
   name: string
+  /** true: 管理员显式自定义名称；false: 跟随订阅/URL 自动同步；undefined: 历史数据按启发式判定 */
+  customName?: boolean
   createdAt: number
   hits: number
   lastAccess: number

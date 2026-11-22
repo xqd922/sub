@@ -1,4 +1,5 @@
 import type { TargetClientOverride } from '@/shared/admin.types'
+import { decodeBase64Utf8 } from '@/shared/base64.utils'
 
 export const PROXY_URI_PREFIXES = [
   'ss://',
@@ -227,10 +228,118 @@ export function cleanSubscriptionTitle(name: string): string {
   return cleaned || name.trim()
 }
 
+const GENERIC_SUBSCRIPTION_NAMES = new Set(['Me', 'Sub', 'Merged', 'Gist', 'Node', '未知订阅'])
+
+function extractVmessName(uri: string): string | null {
+  const withoutScheme = uri.slice(8).trim()
+  if (!withoutScheme) return null
+
+  const hashIdx = withoutScheme.indexOf('#')
+  const payload = (hashIdx === -1 ? withoutScheme : withoutScheme.slice(0, hashIdx)).trim()
+  if (!payload) return null
+
+  try {
+    const decoded = decodeBase64Utf8(payload)
+    if (!decoded.trim().startsWith('{')) return null
+    const parsed = JSON.parse(decoded) as { ps?: unknown; add?: unknown }
+    if (typeof parsed.ps === 'string' && parsed.ps.trim()) {
+      return cleanSubscriptionTitle(parsed.ps)
+    }
+    if (typeof parsed.add === 'string' && parsed.add.trim()) {
+      return parsed.add.trim()
+    }
+  } catch {
+    // 非 Base64 JSON（如 Xray VMessAEAD URI），回退到通用 URL 解析
+  }
+  return null
+}
+
+function extractSsrName(uri: string): string | null {
+  const withoutScheme = uri.slice(6).trim()
+  if (!withoutScheme) return null
+
+  try {
+    const decoded = decodeBase64Utf8(withoutScheme)
+    const querySep = decoded.indexOf('/?')
+    const mainPart = querySep === -1 ? decoded : decoded.slice(0, querySep)
+    const queryPart = querySep === -1 ? '' : decoded.slice(querySep + 2)
+
+    if (queryPart) {
+      const rawRemarks = new URLSearchParams(queryPart).get('remarks')
+      if (rawRemarks) {
+        try {
+          const decodedRemarks = decodeBase64Utf8(rawRemarks).trim()
+          if (decodedRemarks) return cleanSubscriptionTitle(decodedRemarks)
+        } catch {
+          const trimmed = rawRemarks.trim()
+          if (trimmed) return cleanSubscriptionTitle(trimmed)
+        }
+      }
+    }
+
+    const parts = mainPart.split(':')
+    if (parts.length >= 6) {
+      const server = parts
+        .slice(0, parts.length - 5)
+        .join(':')
+        .replace(/^\[|\]$/g, '')
+        .trim()
+      if (server) return server
+    }
+  } catch {
+    // 回退到通用解析
+  }
+  return null
+}
+
+function extractLegacySsHost(uri: string): string | null {
+  const withoutScheme = uri.slice(5)
+  const hashIdx = withoutScheme.indexOf('#')
+  const main = (hashIdx === -1 ? withoutScheme : withoutScheme.slice(0, hashIdx))
+    .split('?')[0]
+    .trim()
+  if (!main || main.includes('@')) return null
+
+  try {
+    const decoded = decodeBase64Utf8(main)
+    const atIdx = decoded.lastIndexOf('@')
+    if (atIdx === -1) return null
+    const hostPort = decoded.slice(atIdx + 1).trim()
+    if (!hostPort) return null
+    return new URL(`http://${hostPort}`).hostname || null
+  } catch {
+    return null
+  }
+}
+
+function getUrlHostLower(raw: string): string | null {
+  try {
+    const parsed = raw.startsWith('/')
+      ? new URL(raw, 'https://placeholder.local')
+      : new URL(raw)
+    return parsed.hostname ? parsed.hostname.toLowerCase() : null
+  } catch {
+    return null
+  }
+}
+
 export function extractNameFromUrl(url: string, fallback = '未知订阅'): string {
   try {
     const { subscriptionUrl } = unwrapConversionUrl(url)
-    const urlObj = new URL(subscriptionUrl)
+    const primarySource = splitSubscriptionSources(subscriptionUrl)[0] || subscriptionUrl
+    const lowerSource = primarySource.toLowerCase()
+
+    if (lowerSource.startsWith('vmess://')) {
+      const vmessName = extractVmessName(primarySource)
+      if (vmessName) return vmessName
+    }
+
+    if (lowerSource.startsWith('ssr://')) {
+      const ssrName = extractSsrName(primarySource)
+      if (ssrName) return ssrName
+    }
+
+    const urlObj = new URL(primarySource)
 
     const name =
       urlObj.searchParams.get('name') ||
@@ -252,11 +361,127 @@ export function extractNameFromUrl(url: string, fallback = '未知订阅'): stri
       }
     }
 
-    const pathFileName = extractFileNameFromUrlPath(subscriptionUrl)
+    if (lowerSource.startsWith('ss://')) {
+      const ssHost = extractLegacySsHost(primarySource)
+      if (ssHost) return ssHost
+    }
+
+    const pathFileName = extractFileNameFromUrlPath(primarySource)
     if (pathFileName) return cleanSubscriptionTitle(pathFileName)
 
     return urlObj.hostname || fallback
   } catch {
     return fallback
   }
+}
+
+/**
+ * 判断名称是否为通用占位名、包装域名（如转换器自身域名）或原始目标主机名/IP/未解码 Base64 载荷。
+ */
+export function isWeakSubscriptionName(name: string, rawTargetUrl: string): boolean {
+  const trimmed = name.trim()
+  if (!trimmed || GENERIC_SUBSCRIPTION_NAMES.has(trimmed)) return true
+
+  const lower = trimmed.toLowerCase()
+  const rawTrimmed = rawTargetUrl.trim()
+  const { subscriptionUrl } = unwrapConversionUrl(rawTrimmed)
+
+  // 命中历史包装转换器域名（如 https://sub.xqd.pp.ua/sub?url=... 曾落库为 sub.xqd.pp.ua）
+  if (subscriptionUrl !== rawTrimmed) {
+    const wrapperHost = getUrlHostLower(rawTrimmed)
+    if (wrapperHost && lower === wrapperHost) return true
+  }
+
+  const primarySource = splitSubscriptionSources(subscriptionUrl)[0] || subscriptionUrl
+  const targetHost = getUrlHostLower(primarySource)
+  if (targetHost && lower === targetHost) return true
+
+  // 兼容历史版本对未解码 Base64 的 vmess:// / ssr:// / ss:// 落库名
+  const lowerSource = primarySource.toLowerCase()
+  if (
+    lowerSource.startsWith('vmess://') ||
+    lowerSource.startsWith('ssr://') ||
+    lowerSource.startsWith('ss://')
+  ) {
+    const payload = primarySource.slice(primarySource.indexOf('://') + 3).split(/[?#]/)[0]
+    if (payload && !payload.includes('@')) {
+      if (payload === trimmed || (trimmed.length >= 16 && payload.startsWith(trimmed))) {
+        return true
+      }
+      if (lowerSource.startsWith('vmess://')) {
+        const vmessName = extractVmessName(primarySource)
+        if (vmessName && lower === vmessName.toLowerCase()) {
+          // 仅当 vmess 无 ps 而回退为服务器地址（add）时视为弱名
+          try {
+            const parsed = JSON.parse(decodeBase64Utf8(payload)) as { ps?: unknown; add?: unknown }
+            if (
+              !(typeof parsed.ps === 'string' && parsed.ps.trim()) &&
+              typeof parsed.add === 'string' &&
+              parsed.add.trim().toLowerCase() === lower
+            ) {
+              return true
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+  }
+
+  return false
+}
+
+/**
+ * 判断短链当前名称是否属于自动托管命名（允许与对应订阅记录的真实/重命名标题保持同步），
+ * 而非管理员手工设置的自定义名称。
+ */
+export function isAutoManagedShortLinkName(link: {
+  name: string
+  targetUrl: string
+  customName?: boolean
+}): boolean {
+  if (link.customName === true) return false
+  if (link.customName === false) return true
+
+  if (isWeakSubscriptionName(link.name, link.targetUrl)) return true
+  const extracted = extractNameFromUrl(link.targetUrl)
+  return link.name.trim() === extracted
+}
+
+/**
+ * 解析短链应展示的名称：
+ * 1. 管理员手工命名的短链原样保留；
+ * 2. 自动命名短链优先对齐对应订阅记录（ConvertRecord）的真实或重命名标题；
+ * 3. 否则从解包并解码后的真实订阅/节点链接提取名称。
+ */
+export function resolveShortLinkName(
+  link: { name: string; targetUrl: string; customName?: boolean },
+  matchedSubscriptionName?: string | null,
+): string {
+  if (!isAutoManagedShortLinkName(link)) {
+    return link.name
+  }
+
+  const extracted = extractNameFromUrl(link.targetUrl)
+  const recordName = matchedSubscriptionName?.trim() || ''
+
+  if (recordName && !isWeakSubscriptionName(recordName, link.targetUrl)) {
+    return recordName
+  }
+
+  if (!isWeakSubscriptionName(extracted, link.targetUrl)) {
+    return extracted
+  }
+
+  if (recordName) {
+    const rawTrimmed = link.targetUrl.trim()
+    const { subscriptionUrl } = unwrapConversionUrl(rawTrimmed)
+    const wrapperHost = subscriptionUrl !== rawTrimmed ? getUrlHostLower(rawTrimmed) : null
+    if (!wrapperHost || recordName.toLowerCase() !== wrapperHost) {
+      return recordName
+    }
+  }
+
+  return extracted
 }
