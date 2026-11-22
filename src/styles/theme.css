@@ -32,24 +32,27 @@
    * primitives above. Content/data blues (charts, status chips, calendar
    * events, info notifications) deliberately keep referencing blue-*.
    * --------------------------------------------------------------------------*/
-  --color-accent-50:  var(--color-neutral-50);
-  --color-accent-100: var(--color-neutral-100);
-  --color-accent-200: var(--color-neutral-200);
-  --color-accent-300: var(--color-neutral-300);
-  --color-accent-400: var(--color-neutral-700);
-  --color-accent-500: var(--color-neutral-800);
-  --color-accent-600: var(--color-neutral-900);
-  --color-accent-700: var(--color-neutral-950);
-  --color-accent-800: var(--color-neutral-800);
-  --color-accent-900: var(--color-neutral-900);
-  --color-accent-950: var(--color-neutral-950);
+  --color-brand-cloudflare: #f6821f;
+
+  --color-accent-50:  var(--color-blue-50);
+  --color-accent-100: var(--color-blue-100);
+  --color-accent-200: var(--color-blue-200);
+  --color-accent-300: var(--color-blue-300);
+  --color-accent-400: var(--color-blue-400);
+  --color-accent-500: var(--color-blue-500);
+  --color-accent-600: var(--color-blue-600);
+  --color-accent-700: var(--color-blue-700);
+  --color-accent-800: var(--color-blue-800);
+  --color-accent-900: var(--color-blue-900);
+  --color-accent-950: var(--color-blue-950);
 
   /* ----- Typography ----------------------------------------------------------
    * Font sizes, weights, line-heights, and tracking all match Tailwind v4
-   * defaults. The only override is the family: Inter, loaded via next/font
-   * in app/layout.tsx, which exposes --font-inter to the document.
+   * defaults. Inter for Latin paired with crisp Chinese system UI fallbacks.
    * --------------------------------------------------------------------------*/
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif,
+  --font-sans: var(--font-inter), "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC",
+               ui-sans-serif, system-ui, sans-serif,
                "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
                "Noto Color Emoji";
 
@@ -186,8 +189,8 @@
   --color-input-disabled-text:  var(--color-neutral-300);
   --color-text-white:           var(--color-white);
 
-  /* Background */
-  --color-background-full:              var(--color-white);
+  /* Background — aligned to Cloudflare Kumo surface ladder */
+  --color-background-full:              oklch(98.75% 0 0);
   /* Ticket detail, Figma 4509:12272. The raw #fafafa surface matches neutral/50. */
   --color-ticket-detail-surface: var(--color-white);
   --color-ticket-detail-low-background: var(--color-indigo-200);
@@ -211,7 +214,7 @@
   --color-background-primary-active:    var(--color-neutral-200);
   --color-background-primary-disabled:  var(--color-neutral-100);
   --color-input-disabled-background:    var(--color-neutral-100);
-  --color-background-secondary-default: var(--color-neutral-100);
+  --color-background-secondary-default: oklch(96% 0 0);
   --color-background-secondary-hover:   var(--color-neutral-200);
   --color-background-tertiary-default:  var(--color-neutral-200);
   --color-background-tertiary-hover:    var(--color-neutral-300);
@@ -425,19 +428,20 @@
 }
 
 .dark {
-  /* Monochrome accent stops tuned for crisp contrast on dark surfaces */
-  --color-accent-400: var(--color-neutral-400);
-  --color-accent-500: var(--color-neutral-500);
-  --color-accent-600: var(--color-neutral-600);
-  --color-accent-700: var(--color-neutral-700);
+  /* Crisp developer-console blue accent stops on dark obsidian surfaces */
+  --color-accent-400: var(--color-blue-400);
+  --color-accent-500: var(--color-blue-500);
+  --color-accent-600: var(--color-blue-600);
+  --color-accent-700: var(--color-blue-700);
 
   /* Foreground */
   --color-foreground-full:            var(--color-neutral-700);
-  --color-foreground-icon-primary:    var(--color-neutral-50);
+  --color-foreground-icon-primary:    oklch(97% 0 0);
   --color-foreground-icon-hover:      var(--color-white);
   --color-foreground-icon-error:      var(--color-red-400);
-  --color-foreground-icon-tertiary:   var(--color-neutral-600);
-  --color-foreground-icon-quaternary: var(--color-neutral-700);
+  --color-foreground-icon-secondary:  oklch(72% 0 0);
+  --color-foreground-icon-tertiary:   oklch(58% 0 0);
+  --color-foreground-icon-quaternary: oklch(42% 0 0);
   --color-foreground-icon-disabled:   var(--color-neutral-800);
   --color-foreground-disabled:        var(--color-neutral-700);
   --color-foreground-disabled-danger: var(--color-red-400);
@@ -446,16 +450,17 @@
   --color-button-primary-disabled-foreground: var(--color-neutral-500);
 
   /* Text */
-  --color-text-primary:  var(--color-neutral-50);
-  --color-text-tertiary: var(--color-neutral-600);
-  --color-text-disabled: var(--color-neutral-800);
+  --color-text-primary:  oklch(97% 0 0);
+  --color-text-secondary: oklch(72% 0 0);
+  --color-text-tertiary: oklch(56% 0 0);
+  --color-text-disabled: var(--color-neutral-700);
   --color-text-error-primary: var(--color-red-400);
   --color-text-destructive: color-mix(in srgb, var(--color-red-500) 80%, var(--color-neutral-500));
   --color-input-disabled-text: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
 
-  /* Background */
-  --color-background-full:              var(--color-neutral-925);
-  --color-ticket-detail-surface: var(--color-neutral-925);
+  /* Background — aligned to Cloudflare Kumo obsidian ladder */
+  --color-background-full:              oklch(10% 0 0);
+  --color-ticket-detail-surface:        oklch(10% 0 0);
   --color-ticket-detail-low-background: color-mix(in srgb, var(--color-indigo-950) 60%, transparent);
   --color-ticket-detail-low-hover: color-mix(in srgb, var(--color-indigo-950) 80%, transparent);
   --color-ticket-detail-medium-hover: color-mix(in srgb, var(--color-yellow-950) 80%, transparent);
@@ -469,18 +474,18 @@
   --color-project-board-empty-middle: var(--color-neutral-700);
   --color-project-board-empty-back: color-mix(in srgb, var(--color-neutral-600) 35%, var(--color-neutral-700));
   --color-project-board-empty-detail: var(--color-neutral-500);
-  --color-background-primary-default:   var(--color-neutral-800);
-  --color-background-inner-default:     color-mix(in srgb, var(--color-neutral-800) 60%, transparent);
-  --color-background-primary-hover:     color-mix(in srgb, var(--color-neutral-700) 60%, transparent);
-  --color-background-primary-active:    var(--color-neutral-800);
-  --color-background-primary-disabled:  var(--color-neutral-800);
-  --color-input-disabled-background:    color-mix(in srgb, var(--color-neutral-800) 30%, transparent);
+  --color-background-primary-default:   oklch(16.5% 0 0);
+  --color-background-inner-default:     color-mix(in srgb, oklch(16.5% 0 0) 60%, transparent);
+  --color-background-primary-hover:     oklch(21% 0 0);
+  --color-background-primary-active:    oklch(18.5% 0 0);
+  --color-background-primary-disabled:  oklch(16.5% 0 0);
+  --color-input-disabled-background:    color-mix(in srgb, oklch(16.5% 0 0) 30%, transparent);
   --color-switch-off-chip-start:        var(--color-background-tertiary-default);
   --color-switch-off-chip-end:          var(--color-background-tertiary-default);
-  --color-background-secondary-default: var(--color-neutral-900);
-  --color-background-secondary-hover:   var(--color-neutral-800);
-  --color-background-tertiary-default:  var(--color-neutral-800);
-  --color-background-tertiary-hover:    var(--color-neutral-700);
+  --color-background-secondary-default: oklch(13% 0 0);
+  --color-background-secondary-hover:   oklch(19% 0 0);
+  --color-background-tertiary-default:  oklch(21% 0 0);
+  --color-background-tertiary-hover:    oklch(27% 0 0);
   --color-background-tertiary-error:    color-mix(in srgb, var(--color-red-950) 60%, transparent);
   --color-background-quaternary-default: var(--color-neutral-700);
   --color-background-quaternary-hover:   var(--color-neutral-600);
@@ -564,21 +569,21 @@
   --color-notification-center-background:      var(--color-neutral-900);
 
   /* Borders and separators */
-  --color-border-button-default:   var(--color-neutral-700);
-  --color-border-button-hover:     var(--color-neutral-500);
-  --color-border-button-active:    var(--color-neutral-600);
+  --color-border-button-default:   oklch(30% 0 0);
+  --color-border-button-hover:     oklch(40% 0 0);
+  --color-border-button-active:    oklch(46% 0 0);
   --color-border-button-white:     var(--color-zinc-800);
   --color-border-error-default:    var(--color-red-400);
-  --color-border-checkbox-default: var(--color-neutral-700);
-  --color-border-checkbox-hover:   var(--color-neutral-500);
-  --color-border-checkbox-active:  var(--color-neutral-500);
-  --color-border-component-detail-container: var(--color-neutral-800);
-  --color-border-ai-profile-card:             var(--color-neutral-800);
-  --color-border-table:            var(--color-neutral-800);
-  --color-border-button-group:     color-mix(in srgb, var(--color-neutral-600) 60%, transparent);
-  --color-border-sidebar-profile-hover: var(--color-neutral-600);
-  --color-separator-border:        var(--color-neutral-800);
-  --color-separator-border-strong: color-mix(in srgb, var(--color-neutral-700) 60%, transparent);
+  --color-border-checkbox-default: oklch(34% 0 0);
+  --color-border-checkbox-hover:   oklch(46% 0 0);
+  --color-border-checkbox-active:  oklch(50% 0 0);
+  --color-border-component-detail-container: oklch(25% 0 0);
+  --color-border-ai-profile-card:             oklch(25% 0 0);
+  --color-border-table:            oklch(25% 0 0);
+  --color-border-button-group:     oklch(30% 0 0);
+  --color-border-sidebar-profile-hover: oklch(36% 0 0);
+  --color-separator-border:        oklch(25% 0 0);
+  --color-separator-border-strong: oklch(33% 0 0);
 
   /* Figma's dark table status pairs. */
   --color-status-lime-background:   color-mix(in srgb, var(--color-lime-950) 60%, transparent);
@@ -622,21 +627,21 @@
   --color-calendar-event-emerald-title:      var(--color-emerald-300);
   --color-calendar-event-emerald-time:       var(--color-emerald-300);
 
-  /* Dark primary CTA: elevated graphite fill keeping white text legible */
+  /* Dark primary CTA: crisp Cloudflare blue keeping white text high-contrast */
   --gradient-button-primary-default: linear-gradient(
     180deg,
-    var(--color-neutral-600) 0%,
-    var(--color-neutral-700) 100%
+    var(--color-blue-500) 0%,
+    var(--color-blue-600) 100%
   );
   --gradient-button-primary-hover: linear-gradient(
     180deg,
-    var(--color-neutral-500) 0%,
-    var(--color-neutral-600) 100%
+    var(--color-blue-400) 0%,
+    var(--color-blue-500) 100%
   );
   --gradient-button-primary-active: linear-gradient(
     180deg,
-    var(--color-neutral-700) 0%,
-    var(--color-neutral-800) 100%
+    var(--color-blue-600) 0%,
+    var(--color-blue-700) 100%
   );
 
   /* Disabled primary CTA: dark, low-emphasis fill with readable muted text. */

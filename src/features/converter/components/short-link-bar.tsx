@@ -1,63 +1,33 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { RiCheckLine, RiFileCopyLine } from '@remixicon/react'
-import { cx } from '@/utils/cx'
+import { Badge } from '@cloudflare/kumo/components/badge'
+import { ClipboardText } from '@cloudflare/kumo/components/clipboard-text'
 
 interface ShortLinkBarProps {
   shortUrl: string
-  onCopy: () => Promise<boolean> | void
+  onCopy?: () => Promise<boolean> | void
 }
 
-export function ShortLinkBar({ shortUrl, onCopy }: ShortLinkBarProps) {
-  const [copied, setCopied] = useState(false)
-  const copyTimerRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current !== null) {
-        window.clearTimeout(copyTimerRef.current)
-      }
-    }
-  }, [])
-
+export function ShortLinkBar({ shortUrl }: ShortLinkBarProps) {
   if (!shortUrl) return null
 
-  const handleCopy = async () => {
-    const result = await onCopy()
-    if (result !== false) {
-      setCopied(true)
-      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = window.setTimeout(() => setCopied(false), 1600)
-    }
-  }
-
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 border-t border-separator-border pt-3">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="shrink-0 text-caption-2-medium text-text-tertiary">短链</span>
-        <span
-          dir="ltr"
-          className="min-w-0 flex-1 select-all truncate font-mono text-caption-1-regular text-text-primary"
-        >
-          {shortUrl}
-        </span>
+    <div className="flex flex-col gap-2 border-t border-separator-border pt-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-caption-1-medium text-text-secondary">短链地址</span>
+        <Badge variant="info" appearance="filled">
+          /s/
+        </Badge>
       </div>
-      <button
-        type="button"
-        onClick={() => void handleCopy()}
-        className={cx(
-          'inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-transparent px-2 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:border-separator-border hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring',
-          copied && 'text-status-lime-text',
-        )}
-      >
-        {copied ? (
-          <RiCheckLine className="size-3.5" aria-hidden />
-        ) : (
-          <RiFileCopyLine className="size-3.5" aria-hidden />
-        )}
-        <span>{copied ? '已复制' : '复制'}</span>
-      </button>
+      <div dir="ltr" className="w-full">
+        <ClipboardText
+          text={shortUrl}
+          size="sm"
+          className="w-full"
+          tooltip={{ text: '复制短链', copiedText: '已复制' }}
+          labels={{ copyAction: '复制短链' }}
+        />
+      </div>
     </div>
   )
 }

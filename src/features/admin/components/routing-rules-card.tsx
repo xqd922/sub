@@ -1,10 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { Badge } from '@cloudflare/kumo/components/badge'
+import { Empty } from '@cloudflare/kumo/components/empty'
+import { LayerCard } from '@cloudflare/kumo/components/layer-card'
+import { Table } from '@cloudflare/kumo/components/table'
+import { Tooltip } from '@cloudflare/kumo/components/tooltip'
 import { RiAddLine, RiDeleteBinLine, RiSplitCellsHorizontal } from '@remixicon/react'
-import { Chip } from '@/components/base/badges/chip'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { Select, SelectItem } from '@/components/base/select/select'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
@@ -19,12 +24,15 @@ interface RoutingRulesCardProps {
   onUnauthorized?: () => void
 }
 
-const ACTION_COLOR: Record<RoutingRuleAction, 'lime' | 'soft' | 'rose' | 'orange'> = {
-  DIRECT: 'lime',
-  Manual: 'soft',
-  Emby: 'soft',
-  AI: 'orange',
-  REJECT: 'rose',
+const ACTION_BADGE: Record<
+  RoutingRuleAction,
+  'success' | 'info' | 'purple' | 'warning' | 'error'
+> = {
+  DIRECT: 'success',
+  Manual: 'info',
+  Emby: 'purple',
+  AI: 'warning',
+  REJECT: 'error',
 }
 
 const VALUE_PLACEHOLDER: Record<RoutingRuleType, string> = {
@@ -37,6 +45,7 @@ const VALUE_PLACEHOLDER: Record<RoutingRuleType, string> = {
 export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
   const [rules, setRules] = useState<CustomRoutingRule[]>([])
   const [loading, setLoading] = useState(true)
+  const [addModalOpen, setAddModalOpen] = useState(false)
   const [ruleType, setRuleType] = useState<RoutingRuleType>('DOMAIN-SUFFIX')
   const [value, setValue] = useState('')
   const [action, setAction] = useState<RoutingRuleAction>('DIRECT')
@@ -75,8 +84,7 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
 
   useFocusRefresh(refresh)
 
-  const handleAdd = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const handleAddConfirm = async () => {
     if (!value.trim() || submitting) return
 
     setSubmitting(true)
@@ -93,6 +101,7 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
       setRules(data.rules || [])
       setValue('')
       setNote('')
+      setAddModalOpen(false)
       showToast('分流规则已保存，Clash 与 sing-box 同步生效', 'success')
     } catch (error) {
       handleAdminFetchError(error, onUnauthorized)
@@ -118,151 +127,184 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-separator-border bg-background-primary-default">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
-        <div>
-          <h2 className="text-headline-medium text-text-primary">自定义分流规则</h2>
-          <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
-            优先级高于内置分流规则，同时作用于 Clash / Mihomo 与 sing-box，添加域名无需改代码重新部署
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-2">
-          <Chip variant="caption" color="soft">
-            共 {rules.length} 条
-          </Chip>
-          <RiSplitCellsHorizontal className="size-4 text-foreground-icon-tertiary" aria-hidden />
-        </span>
-      </div>
-
-      <form
-        onSubmit={handleAdd}
-        className="grid grid-cols-1 items-end gap-3 border-t border-separator-border bg-background-secondary-default/55 px-5 py-3.5 md:grid-cols-12"
-      >
-        <div className="md:col-span-3">
-          <Select
-            label="匹配类型"
-            size="sm"
-            selectedKey={ruleType}
-            onSelectionChange={(key) => {
-              if (key) setRuleType(String(key) as RoutingRuleType)
-            }}
-          >
-            <SelectItem id="DOMAIN-SUFFIX">DOMAIN-SUFFIX（域名后缀）</SelectItem>
-            <SelectItem id="DOMAIN">DOMAIN（精确域名）</SelectItem>
-            <SelectItem id="DOMAIN-KEYWORD">DOMAIN-KEYWORD（关键词）</SelectItem>
-            <SelectItem id="IP-CIDR">IP-CIDR（IP 网段）</SelectItem>
-          </Select>
-        </div>
-        <Input
-          label="域名 / 网段"
-          size="small"
-          type="text"
-          inputDir="ltr"
-          value={value}
-          onChange={setValue}
-          placeholder={VALUE_PLACEHOLDER[ruleType]}
-          className="md:col-span-3"
-        />
-        <div className="md:col-span-2">
-          <Select
-            label="目标策略"
-            size="sm"
-            selectedKey={action}
-            onSelectionChange={(key) => {
-              if (key) setAction(String(key) as RoutingRuleAction)
-            }}
-          >
-            <SelectItem id="DIRECT">DIRECT（直连）</SelectItem>
-            <SelectItem id="Manual">Manual（代理）</SelectItem>
-            <SelectItem id="Emby">Emby（媒体组）</SelectItem>
-            <SelectItem id="AI">AI（AI 分组）</SelectItem>
-            <SelectItem id="REJECT">REJECT（拦截）</SelectItem>
-          </Select>
-        </div>
-        <Input
-          label="备注（可选）"
-          size="small"
-          type="text"
-          value={note}
-          onChange={setNote}
-          placeholder="用途说明"
-          className="md:col-span-2"
-        />
-        <div className="flex justify-end md:col-span-2">
+    <>
+      <LayerCard className="overflow-hidden p-0">
+        <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-body-semibold text-text-primary">自定义分流规则</h2>
+              <Badge variant="outline" className="font-mono">
+                {rules.length}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
+              优先级高于内置规则集，同时注入 Clash / Mihomo 与 sing-box，实时生效无需重新部署
+            </p>
+          </div>
           <Button
-            type="submit"
             variant="primary"
             size="small"
             leadingIcon={RiAddLine}
-            disabled={!value.trim() || submitting}
-            className="w-full"
+            onClick={() => setAddModalOpen(true)}
           >
-            {submitting ? '保存中…' : '添加规则'}
+            添加规则
           </Button>
-        </div>
-      </form>
+        </LayerCard.Secondary>
 
-      <div className="overflow-x-auto">
-        <table className="bui-table min-w-[560px]">
-          <thead>
-            <tr>
-              <th className="ps-5">类型</th>
-              <th>匹配值</th>
-              <th>策略</th>
-              <th>备注</th>
-              <th className="pe-5 text-end">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-body-2-regular text-text-tertiary">
-                  加载中…
-                </td>
-              </tr>
-            ) : rules.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-body-2-regular text-text-tertiary">
-                  暂无自定义分流规则，所有转换默认使用内置规则集
-                </td>
-              </tr>
-            ) : (
-              rules.map((rule) => (
-                <tr key={rule.id} className="hover:bg-background-secondary-default/60">
-                  <td className="ps-5">
-                    <Chip variant="caption" color="gray">
-                      {rule.type}
-                    </Chip>
-                  </td>
-                  <td dir="ltr" className="font-mono text-body-2-medium text-text-primary">
-                    {rule.value}
-                  </td>
-                  <td>
-                    <Chip variant="caption" color={ACTION_COLOR[rule.action]}>
-                      {rule.action}
-                    </Chip>
-                  </td>
-                  <td className="text-caption-1-regular text-text-secondary">
-                    {rule.note || '—'}
-                  </td>
-                  <td className="pe-5 text-end">
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      leadingIcon={RiDeleteBinLine}
-                      disabled={deletingId === rule.id}
-                      className="text-text-tertiary hover:text-text-error-primary"
-                      onClick={() => void handleDelete(rule.id)}
-                    >
-                      删除
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <div className="overflow-x-auto bg-background-primary-default">
+          {loading ? (
+            <div className="py-12 text-center font-mono text-caption-1-regular text-text-tertiary">
+              加载分流规则中…
+            </div>
+          ) : rules.length === 0 ? (
+            <div className="p-6">
+              <Empty
+                size="sm"
+                icon={<RiSplitCellsHorizontal className="size-7 text-text-tertiary" aria-hidden />}
+                title="暂无自定义分流规则"
+                description="所有转换当前使用内置规则集；可随时添加域名或 IP 网段覆盖默认分流策略。"
+              />
+            </div>
+          ) : (
+            <Table className="min-w-[560px]">
+              <Table.Header variant="compact">
+                <Table.Row>
+                  <Table.Head>匹配类型</Table.Head>
+                  <Table.Head>域名 / 网段</Table.Head>
+                  <Table.Head>目标策略</Table.Head>
+                  <Table.Head>备注</Table.Head>
+                  <Table.Head className="text-end">操作</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {rules.map((rule) => (
+                  <Table.Row key={rule.id}>
+                    <Table.Cell>
+                      <Badge variant="secondary" className="font-mono">
+                        {rule.type}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell dir="ltr" className="font-mono text-body-2-medium text-text-primary">
+                      {rule.value}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant={ACTION_BADGE[rule.action]} className="font-mono">
+                        {rule.action}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell className="text-caption-1-regular text-text-secondary">
+                      {rule.note || '—'}
+                    </Table.Cell>
+                    <Table.Cell className="text-end">
+                      <Tooltip
+                        content="删除规则"
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            iconOnly
+                            leadingIcon={RiDeleteBinLine}
+                            aria-label="删除规则"
+                            disabled={deletingId === rule.id}
+                            className="text-text-tertiary hover:text-text-error-primary"
+                            onClick={() => void handleDelete(rule.id)}
+                          />
+                        }
+                      />
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          )}
+        </div>
+      </LayerCard>
+
+      <Modal
+        isOpen={addModalOpen}
+        onOpenChange={(open) => {
+          setAddModalOpen(open)
+          if (!open) {
+            setValue('')
+            setNote('')
+          }
+        }}
+        size="md"
+      >
+        <ModalHeader
+          title="添加自定义分流规则"
+          description="保存后同时注入 Clash YAML 与 sing-box JSON 路由规则顶部"
+          closeLabel="关闭"
+        />
+        <ModalBody>
+          <div className="flex flex-col gap-3.5">
+            <Select
+              label="匹配类型"
+              size="sm"
+              selectedKey={ruleType}
+              onSelectionChange={(key) => {
+                if (key) setRuleType(String(key) as RoutingRuleType)
+              }}
+            >
+              <SelectItem id="DOMAIN-SUFFIX">DOMAIN-SUFFIX（域名后缀）</SelectItem>
+              <SelectItem id="DOMAIN">DOMAIN（精确域名）</SelectItem>
+              <SelectItem id="DOMAIN-KEYWORD">DOMAIN-KEYWORD（关键词）</SelectItem>
+              <SelectItem id="IP-CIDR">IP-CIDR（IP 网段）</SelectItem>
+            </Select>
+
+            <Input
+              label="域名 / 网段"
+              type="text"
+              inputDir="ltr"
+              value={value}
+              onChange={setValue}
+              placeholder={VALUE_PLACEHOLDER[ruleType]}
+              autoFocus
+            />
+
+            <Select
+              label="目标策略"
+              size="sm"
+              selectedKey={action}
+              onSelectionChange={(key) => {
+                if (key) setAction(String(key) as RoutingRuleAction)
+              }}
+            >
+              <SelectItem id="DIRECT">DIRECT（直连）</SelectItem>
+              <SelectItem id="Manual">Manual（手动代理组）</SelectItem>
+              <SelectItem id="Emby">Emby（媒体分流组）</SelectItem>
+              <SelectItem id="AI">AI（AI 服务分组）</SelectItem>
+              <SelectItem id="REJECT">REJECT（拦截）</SelectItem>
+            </Select>
+
+            <Input
+              label="备注（可选）"
+              type="text"
+              value={note}
+              onChange={setNote}
+              placeholder="用途说明"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  void handleAddConfirm()
+                }
+              }}
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setAddModalOpen(false)}>
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!value.trim() || submitting}
+            onClick={() => void handleAddConfirm()}
+          >
+            {submitting ? '保存中…' : '保存规则'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
   )
 }

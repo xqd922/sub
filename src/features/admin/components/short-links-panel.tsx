@@ -1,6 +1,14 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Badge } from '@cloudflare/kumo/components/badge'
+import { DropdownMenu } from '@cloudflare/kumo/components/dropdown'
+import { Empty } from '@cloudflare/kumo/components/empty'
+import { InlineCopyText } from '@cloudflare/kumo/components/inline-copy-text'
+import { LayerCard } from '@cloudflare/kumo/components/layer-card'
+import { Table } from '@cloudflare/kumo/components/table'
+import { Tabs } from '@cloudflare/kumo/components/tabs'
+import { Tooltip } from '@cloudflare/kumo/components/tooltip'
 import {
   RiAddLine,
   RiDeleteBinLine,
@@ -8,33 +16,30 @@ import {
   RiEditLine,
   RiExternalLinkLine,
   RiFileCopyLine,
+  RiInformationLine,
+  RiLinkM,
   RiLockLine,
+  RiMore2Fill,
+  RiPauseCircleLine,
+  RiPlayCircleLine,
   RiQrCodeLine,
   RiUploadLine,
 } from '@remixicon/react'
-import { Chip } from '@/components/base/badges/chip'
-import { StatusDot } from '@/components/base/badges/status-dot'
 import { Button } from '@/components/base/buttons/button'
-import { Checkbox } from '@/components/base/checkbox/checkbox'
 import { Input } from '@/components/base/input/input'
-import { AlertDialog } from '@/components/base/modal/modal'
+import { AlertDialog, Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { SearchField } from '@/components/base/search-field/search-field'
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from '@/components/base/segmented-control/segmented-control'
 import { Select, SelectItem } from '@/components/base/select/select'
-import { ShortLinkDetailRow } from '@/features/admin/components/short-link-detail-row'
+import { ShortLinkDetailDrawer } from '@/features/admin/components/short-link-detail-drawer'
 import { ShortLinkEditModal } from '@/features/admin/components/short-link-edit-modal'
 import { useAdminShortLinks } from '@/features/admin/hooks/use-admin-short-links'
 import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
-import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { CreateShortLinkInput, ShortLink, TargetClientOverride } from '@/shared/admin.types'
 import { formatDateTime, formatRelativeTime } from '@/shared/format.utils'
 import { buildShortLinkPublicUrl } from '@/shared/url.utils'
-import { cx } from '@/utils/cx'
 
 interface ShortLinksPanelProps {
   onUnauthorized?: () => void
@@ -44,6 +49,14 @@ interface ShortLinksPanelProps {
 type SortKey = 'createdAt' | 'hits' | 'lastAccess'
 type StatusFilter = 'all' | 'active' | 'disabled' | 'inactive'
 type CreateExpiryPreset = 'never' | '1d' | '7d' | '30d' | '90d'
+type LinkHealthState = 'active' | 'disabled' | 'expired' | 'limit_reached'
+
+const STATUS_TABS: Array<{ value: StatusFilter; label: string }> = [
+  { value: 'all', label: '全部' },
+  { value: 'active', label: '正常' },
+  { value: 'disabled', label: '已禁用' },
+  { value: 'inactive', label: '已失效' },
+]
 
 const CREATE_EXPIRY_MS: Record<Exclude<CreateExpiryPreset, 'never'>, number> = {
   '1d': 86_400_000,
@@ -51,8 +64,6 @@ const CREATE_EXPIRY_MS: Record<Exclude<CreateExpiryPreset, 'never'>, number> = {
   '30d': 30 * 86_400_000,
   '90d': 90 * 86_400_000,
 }
-
-type LinkHealthState = 'active' | 'disabled' | 'expired' | 'limit_reached'
 
 function getLinkState(link: ShortLink, now: number): LinkHealthState {
   if (link.disabled) return 'disabled'
@@ -95,6 +106,16 @@ function exportShortLinksJson(links: ShortLink[]): void {
   URL.revokeObjectURL(url)
 }
 
+const STATE_BADGE: Record<
+  LinkHealthState,
+  { label: string; variant: 'success' | 'warning' | 'error' }
+> = {
+  active: { label: '正常', variant: 'success' },
+  disabled: { label: '已禁用', variant: 'warning' },
+  expired: { label: '已过期', variant: 'error' },
+  limit_reached: { label: '达上限', variant: 'error' },
+}
+
 export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPanelProps) {
   const {
     shortLinks,
@@ -109,15 +130,13 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
   } = useAdminShortLinks(onUnauthorized)
   const { copyToClipboard } = useClipboard()
 
-  const deleteTimerRef = useRef<number | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [drawerLinkId, setDrawerLinkId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
-  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [newTargetUrl, setNewTargetUrl] = useState('')
   const [newName, setNewName] = useState('')
   const [newSlug, setNewSlug] = useState('')
@@ -130,6 +149,7 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
   const [importing, setImporting] = useState(false)
   const [qrLink, setQrLink] = useState<ShortLink | null>(null)
   const [editingLink, setEditingLink] = useState<ShortLink | null>(null)
+  const [deletingLink, setDeletingLink] = useState<ShortLink | null>(null)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
@@ -139,14 +159,6 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
   }, [])
 
   useFocusRefresh(refresh)
-
-  useEffect(() => {
-    return () => {
-      if (deleteTimerRef.current !== null) {
-        window.clearTimeout(deleteTimerRef.current)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     onCountChange?.(shortLinks.length)
@@ -172,6 +184,11 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
 
     return filtered.sort((a, b) => b[sortKey] - a[sortKey])
   }, [shortLinks, search, statusFilter, sortKey, now])
+
+  const drawerLink = useMemo(
+    () => (drawerLinkId ? shortLinks.find((item) => item.id === drawerLinkId) ?? null : null),
+    [shortLinks, drawerLinkId],
+  )
 
   const allVisibleSelected =
     filteredLinks.length > 0 && filteredLinks.every((link) => selectedIds.has(link.id))
@@ -213,32 +230,32 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
     window.open(url.toString(), '_blank', 'noopener,noreferrer')
   }
 
-  const handleDeleteClick = (id: string) => {
-    if (deleteTimerRef.current !== null) {
-      window.clearTimeout(deleteTimerRef.current)
-      deleteTimerRef.current = null
-    }
-
-    if (confirmingDeleteId === id) {
-      setConfirmingDeleteId(null)
-      void deleteLinks([id])
-      return
-    }
-
-    setConfirmingDeleteId(id)
-    deleteTimerRef.current = window.setTimeout(() => {
-      setConfirmingDeleteId((prev) => (prev === id ? null : prev))
-      deleteTimerRef.current = null
-    }, 3000)
+  const handleSingleDeleteConfirm = async () => {
+    if (!deletingLink) return
+    const id = deletingLink.id
+    await deleteLinks([id])
+    if (drawerLinkId === id) setDrawerLinkId(null)
+    setDeletingLink(null)
   }
 
   const handleBatchDeleteConfirm = async () => {
     await deleteLinks(Array.from(selectedIds))
+    if (drawerLinkId && selectedIds.has(drawerLinkId)) setDrawerLinkId(null)
     setSelectedIds(new Set())
   }
 
-  const handleCreate = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const resetCreateForm = () => {
+    setNewTargetUrl('')
+    setNewName('')
+    setNewSlug('')
+    setNewComment('')
+    setNewExpiry('never')
+    setNewMaxHits('')
+    setNewPassword('')
+    setNewDefaultTarget('auto')
+  }
+
+  const handleCreateConfirm = async () => {
     if (!newTargetUrl.trim() || creating) return
 
     const parsedMaxHits = newMaxHits.trim() ? Number.parseInt(newMaxHits.trim(), 10) : undefined
@@ -258,15 +275,8 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
     setCreating(false)
 
     if (created) {
-      setNewTargetUrl('')
-      setNewName('')
-      setNewSlug('')
-      setNewComment('')
-      setNewExpiry('never')
-      setNewMaxHits('')
-      setNewPassword('')
-      setNewDefaultTarget('auto')
-      setShowCreateForm(false)
+      resetCreateForm()
+      setCreateModalOpen(false)
     }
   }
 
@@ -300,8 +310,8 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="overflow-hidden rounded-xl border border-separator-border bg-background-primary-default">
-        <div className="flex flex-wrap items-center gap-2.5 p-3.5 sm:p-4">
+      <LayerCard className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:px-4">
           <div className="min-w-[200px] flex-1">
             <SearchField
               size="small"
@@ -313,19 +323,13 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
             />
           </div>
 
-          <SegmentedControl
-            aria-label="按状态筛选"
-            selectedKeys={[statusFilter]}
-            onSelectionChange={(keys) => {
-              const next = Array.from(keys)[0] as StatusFilter | undefined
-              if (next) setStatusFilter(next)
-            }}
-          >
-            <SegmentedControlItem id="all">全部</SegmentedControlItem>
-            <SegmentedControlItem id="active">正常</SegmentedControlItem>
-            <SegmentedControlItem id="disabled">已禁用</SegmentedControlItem>
-            <SegmentedControlItem id="inactive">已失效</SegmentedControlItem>
-          </SegmentedControl>
+          <Tabs
+            variant="segmented"
+            size="sm"
+            tabs={STATUS_TABS}
+            value={statusFilter}
+            onValueChange={(next) => setStatusFilter(next as StatusFilter)}
+          />
 
           <Select
             aria-label="排序方式"
@@ -334,11 +338,11 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
             onSelectionChange={(key) => {
               if (key) setSortKey(String(key) as SortKey)
             }}
-            className="w-36"
+            className="w-32"
           >
-            <SelectItem id="createdAt">按创建时间</SelectItem>
-            <SelectItem id="hits">按命中次数</SelectItem>
-            <SelectItem id="lastAccess">按最近访问</SelectItem>
+            <SelectItem id="createdAt">创建时间</SelectItem>
+            <SelectItem id="hits">命中次数</SelectItem>
+            <SelectItem id="lastAccess">最近访问</SelectItem>
           </Select>
 
           <input
@@ -349,155 +353,52 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
             className="hidden"
           />
 
-          <Button
-            variant="secondary"
-            size="small"
-            leadingIcon={RiUploadLine}
-            disabled={importing}
-            onClick={() => importInputRef.current?.click()}
-          >
-            {importing ? '导入中…' : '导入'}
-          </Button>
+          <Tooltip
+            content={importing ? '导入中…' : '导入 JSON 备份（兼容 Sink）'}
+            render={
+              <Button
+                variant="secondary"
+                size="small"
+                iconOnly
+                leadingIcon={RiUploadLine}
+                aria-label="导入 JSON"
+                disabled={importing}
+                onClick={() => importInputRef.current?.click()}
+              />
+            }
+          />
 
-          <Button
-            variant="secondary"
-            size="small"
-            leadingIcon={RiDownloadLine}
-            disabled={filteredLinks.length === 0}
-            onClick={() => exportShortLinksJson(filteredLinks)}
-          >
-            导出 JSON
-          </Button>
+          <Tooltip
+            content="导出 JSON 备份"
+            render={
+              <Button
+                variant="secondary"
+                size="small"
+                iconOnly
+                leadingIcon={RiDownloadLine}
+                aria-label="导出 JSON"
+                disabled={filteredLinks.length === 0}
+                onClick={() => exportShortLinksJson(filteredLinks)}
+              />
+            }
+          />
 
           <Button
             variant="primary"
             size="small"
             leadingIcon={RiAddLine}
-            onClick={() => setShowCreateForm((prev) => !prev)}
+            onClick={() => setCreateModalOpen(true)}
           >
-            {showCreateForm ? '收起表单' : '创建短链'}
+            创建短链
           </Button>
         </div>
 
-        {showCreateForm ? (
-          <form
-            onSubmit={handleCreate}
-            className="flex flex-col gap-3 border-t border-separator-border bg-background-secondary-default/60 px-4 py-4"
-          >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
-              <Input
-                label="目标订阅地址 / 节点 URI"
-                size="small"
-                type="text"
-                inputDir="ltr"
-                value={newTargetUrl}
-                onChange={setNewTargetUrl}
-                placeholder="https://example.com/subscription 或 ss:// / vless://..."
-                className="md:col-span-6"
-              />
-              <Input
-                label="自定义短码（可选）"
-                size="small"
-                type="text"
-                inputDir="ltr"
-                value={newSlug}
-                onChange={setNewSlug}
-                placeholder="如 hk-main（留空自动生成）"
-                className="md:col-span-3"
-              />
-              <Input
-                label="名称（可选）"
-                size="small"
-                type="text"
-                value={newName}
-                onChange={setNewName}
-                placeholder="例如：主用机场"
-                className="md:col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-12">
-              <div className="md:col-span-2">
-                <Select
-                  label="默认输出格式"
-                  size="sm"
-                  selectedKey={newDefaultTarget}
-                  onSelectionChange={(key) => {
-                    if (key) setNewDefaultTarget(String(key) as TargetClientOverride)
-                  }}
-                >
-                  <SelectItem id="auto">自动识别</SelectItem>
-                  <SelectItem id="clash">Clash</SelectItem>
-                  <SelectItem id="singbox">sing-box</SelectItem>
-                  <SelectItem id="v2rayng">Base64</SelectItem>
-                </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Select
-                  label="有效期"
-                  size="sm"
-                  selectedKey={newExpiry}
-                  onSelectionChange={(key) => {
-                    if (key) setNewExpiry(String(key) as CreateExpiryPreset)
-                  }}
-                >
-                  <SelectItem id="never">永不过期</SelectItem>
-                  <SelectItem id="1d">1 天</SelectItem>
-                  <SelectItem id="7d">7 天</SelectItem>
-                  <SelectItem id="30d">30 天</SelectItem>
-                  <SelectItem id="90d">90 天</SelectItem>
-                </Select>
-              </div>
-              <Input
-                label="访问上限"
-                size="small"
-                type="text"
-                inputDir="ltr"
-                value={newMaxHits}
-                onChange={(val) => setNewMaxHits(val.replace(/[^\d]/g, ''))}
-                placeholder="不限"
-                className="md:col-span-2"
-              />
-              <Input
-                label="访问密钥（可选）"
-                size="small"
-                type="text"
-                inputDir="ltr"
-                value={newPassword}
-                onChange={setNewPassword}
-                placeholder="留空公开"
-                className="md:col-span-2"
-              />
-              <Input
-                label="备注说明（可选）"
-                size="small"
-                type="text"
-                value={newComment}
-                onChange={setNewComment}
-                placeholder="用途或提醒"
-                className="md:col-span-3"
-              />
-              <div className="flex justify-end md:col-span-1">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="small"
-                  disabled={!newTargetUrl.trim() || creating}
-                  className="w-full"
-                >
-                  {creating ? '…' : '创建'}
-                </Button>
-              </div>
-            </div>
-          </form>
-        ) : null}
-
         {selectedIds.size > 0 ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-separator-border bg-background-secondary-default/80 px-4 py-2.5">
-            <span className="text-body-2-medium text-text-primary">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-4 py-2.5">
+            <span className="font-mono text-caption-1-medium text-text-primary">
               已选中 {selectedIds.size} 条短链接
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="secondary"
                 size="xs"
@@ -521,221 +422,378 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
                 批量删除
               </Button>
               <Button variant="ghost" size="xs" onClick={() => setSelectedIds(new Set())}>
-                取消选择
+                取消
               </Button>
             </div>
           </div>
         ) : null}
 
-        <div className="overflow-x-auto">
-          <table className="bui-table min-w-[920px]">
-            <thead>
-              <tr>
-                <th className="w-10 ps-4">
-                  <Checkbox
-                    size="sm"
-                    isSelected={allVisibleSelected}
-                    isIndeterminate={someVisibleSelected}
-                    onChange={toggleSelectAll}
+        <div className="overflow-x-auto bg-background-primary-default">
+          {loading ? (
+            <div className="py-16 text-center font-mono text-caption-1-regular text-text-tertiary">
+              加载短链列表中…
+            </div>
+          ) : filteredLinks.length === 0 ? (
+            <div className="p-6">
+              <Empty
+                size="sm"
+                icon={<RiLinkM className="size-8 text-text-tertiary" aria-hidden />}
+                title={shortLinks.length === 0 ? '暂无短链接' : '没有匹配的短链接'}
+                description={
+                  shortLinks.length === 0
+                    ? '支持自定义短码、过期时间、访问上限、密钥保护与 JSON 备份导入。'
+                    : '尝试调整搜索条件或切换状态筛选。'
+                }
+                contents={
+                  shortLinks.length === 0 ? (
+                    <Button
+                      variant="primary"
+                      size="small"
+                      leadingIcon={RiAddLine}
+                      onClick={() => setCreateModalOpen(true)}
+                    >
+                      创建第一条短链
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </div>
+          ) : (
+            <Table className="min-w-[720px]">
+              <Table.Header variant="compact">
+                <Table.Row>
+                  <Table.CheckHead
+                    checked={allVisibleSelected}
+                    indeterminate={someVisibleSelected}
+                    onCheckedChange={toggleSelectAll}
                     aria-label="全选"
                   />
-                </th>
-                <th>短链地址</th>
-                <th>状态</th>
-                <th>目标链接</th>
-                <th className="text-end">命中</th>
-                <th>有效期</th>
-                <th>最近访问</th>
-                <th className="pe-4 text-end">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-body-2-regular text-text-tertiary">
-                    加载中…
-                  </td>
-                </tr>
-              ) : filteredLinks.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-body-2-regular text-text-tertiary">
-                    {shortLinks.length === 0 ? '暂无短链接，转换后生成或手动创建' : '没有匹配的短链接'}
-                  </td>
-                </tr>
-              ) : (
-                filteredLinks.map((link) => {
+                  <Table.Head>短链 / 短码</Table.Head>
+                  <Table.Head>状态</Table.Head>
+                  <Table.Head>目标链接</Table.Head>
+                  <Table.Head className="text-end">命中</Table.Head>
+                  <Table.Head>有效期</Table.Head>
+                  <Table.Head>最近访问</Table.Head>
+                  <Table.Head className="text-end">操作</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {filteredLinks.map((link) => {
                   const state = getLinkState(link, now)
-                  const isRowConfirmingDelete = confirmingDeleteId === link.id
+                  const isSelected = selectedIds.has(link.id)
                   return (
-                    <Fragment key={link.id}>
-                      <tr className="hover:bg-background-secondary-default/65">
-                        <td className="ps-4">
-                          <Checkbox
-                            size="sm"
-                            isSelected={selectedIds.has(link.id)}
-                            onChange={() => toggleSelect(link.id)}
-                            aria-label={`选择 ${link.name}`}
-                          />
-                        </td>
-                        <td className="max-w-52">
-                          <div className="flex items-center gap-1.5">
-                            <p className="truncate text-body-2-medium text-text-primary" title={link.name}>
-                              {link.name}
-                            </p>
-                            {link.password ? (
-                              <RiLockLine
-                                className="size-3.5 shrink-0 text-foreground-icon-tertiary"
-                                aria-label="已开启密钥保护"
-                              />
-                            ) : null}
-                            {link.defaultTarget && link.defaultTarget !== 'auto' ? (
-                              <Chip variant="caption" color="soft">
-                                {link.defaultTarget}
-                              </Chip>
-                            ) : null}
-                          </div>
+                    <Table.Row
+                      key={link.id}
+                      variant={isSelected ? 'selected' : 'default'}
+                      onClick={() => setDrawerLinkId(link.id)}
+                      className="cursor-pointer transition-colors hover:bg-background-secondary-default/65"
+                    >
+                      <Table.CheckCell
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelect(link.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label={`选择 ${link.name}`}
+                      />
+
+                      <Table.Cell className="max-w-56">
+                        <div className="flex items-center gap-1.5">
                           <p
-                            dir="ltr"
-                            className="truncate font-mono text-caption-1-regular text-text-secondary"
+                            className="truncate text-body-2-medium text-text-primary"
+                            title={link.name}
                           >
-                            /s/{link.id}
+                            {link.name}
                           </p>
-                        </td>
-                        <td>
-                          <span className="inline-flex items-center gap-1.5">
-                            <StatusDot color={state === 'active' ? 'green' : 'yellow'} />
-                            <Chip
-                              variant="caption"
-                              color={
-                                state === 'active'
-                                  ? 'lime'
-                                  : state === 'disabled'
-                                    ? 'orange'
-                                    : 'rose'
-                              }
-                            >
-                              {state === 'active'
-                                ? '正常'
-                                : state === 'disabled'
-                                  ? '已禁用'
-                                  : state === 'expired'
-                                    ? '已过期'
-                                    : '达上限'}
-                            </Chip>
-                          </span>
-                        </td>
-                        <td className="max-w-56">
-                          <p
-                            dir="ltr"
-                            className="truncate font-mono text-caption-1-regular text-text-secondary"
-                            title={link.targetUrl}
-                          >
-                            {link.targetUrl}
-                          </p>
-                          {link.comment ? (
-                            <p
-                              className="truncate text-caption-2-regular text-text-tertiary"
-                              title={link.comment}
-                            >
-                              {link.comment}
-                            </p>
+                          {link.password ? (
+                            <RiLockLine
+                              className="size-3.5 shrink-0 text-foreground-icon-tertiary"
+                              aria-label="已开启密钥保护"
+                            />
                           ) : null}
-                        </td>
-                        <td className="text-end font-mono text-body-2-regular tabular-nums text-text-primary">
-                          {link.maxHits ? `${link.hits}/${link.maxHits}` : link.hits}
-                        </td>
-                        <td
-                          className="text-caption-1-regular whitespace-nowrap text-text-secondary"
-                          title={link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
+                          {link.defaultTarget && link.defaultTarget !== 'auto' ? (
+                            <Badge variant="outline" className="font-mono">
+                              {link.defaultTarget}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="mt-0.5" onClick={(event) => event.stopPropagation()}>
+                          <InlineCopyText
+                            variant="mono-secondary"
+                            value={getShortLinkUrl(link)}
+                            labels={{ copyAction: '复制短链地址', copied: '已复制' }}
+                          >
+                            {`/s/${link.id}`}
+                          </InlineCopyText>
+                        </div>
+                      </Table.Cell>
+
+                      <Table.Cell>
+                        <Badge variant={STATE_BADGE[state].variant} appearance="dot">
+                          {STATE_BADGE[state].label}
+                        </Badge>
+                      </Table.Cell>
+
+                      <Table.Cell className="max-w-56">
+                        <p
+                          dir="ltr"
+                          className="truncate font-mono text-caption-2-regular text-text-secondary"
+                          title={link.targetUrl}
                         >
-                          {link.expiresAt
-                            ? new Date(link.expiresAt).toISOString().slice(0, 10)
-                            : '永久'}
-                        </td>
-                        <td
-                          className="text-caption-1-regular whitespace-nowrap text-text-secondary"
-                          title={formatDateTime(link.lastAccess)}
-                        >
-                          {formatRelativeTime(link.lastAccess)}
-                        </td>
-                        <td className="pe-4">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              leadingIcon={RiFileCopyLine}
-                              onClick={() => void handleCopyShortLink(link)}
-                            >
-                              复制
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              leadingIcon={RiExternalLinkLine}
-                              onClick={() => handleOpenTarget(link)}
-                            >
-                              打开
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              leadingIcon={RiQrCodeLine}
-                              onClick={() => setQrLink(link)}
-                            >
-                              二维码
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() => void setEnabled(link.id, Boolean(link.disabled))}
-                            >
-                              {link.disabled ? '启用' : '禁用'}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              leadingIcon={RiEditLine}
-                              onClick={() => setEditingLink(link)}
-                            >
-                              编辑
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() =>
-                                setExpandedId((prev) => (prev === link.id ? null : link.id))
+                          {link.targetUrl}
+                        </p>
+                        {link.comment ? (
+                          <p
+                            className="mt-0.5 truncate text-caption-2-regular text-text-tertiary"
+                            title={link.comment}
+                          >
+                            {link.comment}
+                          </p>
+                        ) : null}
+                      </Table.Cell>
+
+                      <Table.Cell className="text-end font-mono text-caption-1-regular tabular-nums text-text-primary">
+                        {link.maxHits ? `${link.hits}/${link.maxHits}` : link.hits}
+                      </Table.Cell>
+
+                      <Table.Cell
+                        className="font-mono text-caption-1-regular whitespace-nowrap text-text-secondary"
+                        title={link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
+                      >
+                        {link.expiresAt
+                          ? new Date(link.expiresAt).toISOString().slice(0, 10)
+                          : '永久'}
+                      </Table.Cell>
+
+                      <Table.Cell
+                        className="text-caption-1-regular whitespace-nowrap text-text-secondary"
+                        title={formatDateTime(link.lastAccess)}
+                      >
+                        {formatRelativeTime(link.lastAccess)}
+                      </Table.Cell>
+
+                      <Table.Cell onClick={(event) => event.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Tooltip
+                            content="复制短链地址"
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                iconOnly
+                                leadingIcon={RiFileCopyLine}
+                                aria-label="复制短链"
+                                onClick={() => void handleCopyShortLink(link)}
+                              />
+                            }
+                          />
+
+                          <Tooltip
+                            content="查看详情抽屉"
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                iconOnly
+                                leadingIcon={RiInformationLine}
+                                aria-label="查看详情"
+                                onClick={() => setDrawerLinkId(link.id)}
+                              />
+                            }
+                          />
+
+                          <DropdownMenu>
+                            <DropdownMenu.Trigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  iconOnly
+                                  leadingIcon={RiMore2Fill}
+                                  aria-label="更多操作"
+                                />
                               }
-                            >
-                              {expandedId === link.id ? '收起' : '详情'}
-                            </Button>
-                            <Button
-                              variant={isRowConfirmingDelete ? 'danger' : 'ghost'}
-                              size="xs"
-                              className={cx(
-                                !isRowConfirmingDelete &&
-                                  'text-text-tertiary hover:text-text-error-primary',
-                              )}
-                              onClick={() => handleDeleteClick(link.id)}
-                            >
-                              {isRowConfirmingDelete ? '确认删除？' : '删除'}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {expandedId === link.id ? <ShortLinkDetailRow link={link} /> : null}
-                    </Fragment>
+                            />
+                            <DropdownMenu.Content align="end">
+                              <DropdownMenu.Item
+                                icon={<RiExternalLinkLine className="size-4" aria-hidden />}
+                                onClick={() => handleOpenTarget(link)}
+                              >
+                                打开预览
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                icon={<RiQrCodeLine className="size-4" aria-hidden />}
+                                onClick={() => setQrLink(link)}
+                              >
+                                查看二维码
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Separator />
+                              <DropdownMenu.Item
+                                icon={<RiEditLine className="size-4" aria-hidden />}
+                                onClick={() => setEditingLink(link)}
+                              >
+                                编辑配置
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                icon={
+                                  link.disabled ? (
+                                    <RiPlayCircleLine className="size-4" aria-hidden />
+                                  ) : (
+                                    <RiPauseCircleLine className="size-4" aria-hidden />
+                                  )
+                                }
+                                onClick={() => void setEnabled(link.id, Boolean(link.disabled))}
+                              >
+                                {link.disabled ? '启用短链' : '禁用短链'}
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Separator />
+                              <DropdownMenu.Item
+                                variant="danger"
+                                icon={<RiDeleteBinLine className="size-4" aria-hidden />}
+                                onClick={() => setDeletingLink(link)}
+                              >
+                                删除短链
+                              </DropdownMenu.Item>
+                            </DropdownMenu.Content>
+                          </DropdownMenu>
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
                   )
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </Table.Body>
+            </Table>
+          )}
         </div>
-      </div>
+      </LayerCard>
 
-      <p className="text-center text-caption-1-regular text-text-tertiary">
-        共 {shortLinks.length} 条短链接 · 支持自定义短码、过期时间、访问上限、密钥保护与 JSON 备份导入（兼容 Sink 导出格式）
+      <p className="text-center font-mono text-caption-2-regular text-text-tertiary">
+        共 {shortLinks.length} 条短链 · 点击行查看配额与格式直链 · 导入导出兼容 Sink JSON
       </p>
+
+      <ShortLinkDetailDrawer
+        link={drawerLink}
+        state={drawerLink ? getLinkState(drawerLink, now) : 'active'}
+        onClose={() => setDrawerLinkId(null)}
+        onOpenTarget={handleOpenTarget}
+        onOpenQr={(link) => setQrLink(link)}
+        onEdit={(link) => setEditingLink(link)}
+        onToggleEnabled={(link) => void setEnabled(link.id, Boolean(link.disabled))}
+      />
+
+      <Modal
+        isOpen={createModalOpen}
+        onOpenChange={(open) => {
+          setCreateModalOpen(open)
+          if (!open) resetCreateForm()
+        }}
+        size="lg"
+      >
+        <ModalHeader
+          title="创建短链"
+          description="为订阅链接生成易记短码，可选配默认输出格式、有效期、访问上限与密钥保护"
+          closeLabel="关闭"
+        />
+        <ModalBody>
+          <div className="flex flex-col gap-3.5">
+            <Input
+              label="目标订阅地址 / 节点 URI"
+              type="text"
+              inputDir="ltr"
+              value={newTargetUrl}
+              onChange={setNewTargetUrl}
+              placeholder="https://example.com/subscription 或 ss:// / vless://..."
+              autoFocus
+            />
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                label="名称（可选）"
+                type="text"
+                value={newName}
+                onChange={setNewName}
+                placeholder="例如：主用机场"
+              />
+              <Input
+                label="自定义短码（可选）"
+                type="text"
+                inputDir="ltr"
+                value={newSlug}
+                onChange={setNewSlug}
+                placeholder="如 hk-main（留空自动生成）"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Select
+                label="默认输出格式"
+                size="sm"
+                selectedKey={newDefaultTarget}
+                onSelectionChange={(key) => {
+                  if (key) setNewDefaultTarget(String(key) as TargetClientOverride)
+                }}
+              >
+                <SelectItem id="auto">自动识别（按客户端 UA）</SelectItem>
+                <SelectItem id="clash">强制 Clash YAML</SelectItem>
+                <SelectItem id="singbox">强制 sing-box JSON</SelectItem>
+                <SelectItem id="v2rayng">强制 Base64 节点列表</SelectItem>
+              </Select>
+
+              <Select
+                label="有效期"
+                size="sm"
+                selectedKey={newExpiry}
+                onSelectionChange={(key) => {
+                  if (key) setNewExpiry(String(key) as CreateExpiryPreset)
+                }}
+              >
+                <SelectItem id="never">永不过期</SelectItem>
+                <SelectItem id="1d">1 天</SelectItem>
+                <SelectItem id="7d">7 天</SelectItem>
+                <SelectItem id="30d">30 天</SelectItem>
+                <SelectItem id="90d">90 天</SelectItem>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                label="最大访问次数（留空不限）"
+                type="text"
+                inputDir="ltr"
+                value={newMaxHits}
+                onChange={(val) => setNewMaxHits(val.replace(/[^\d]/g, ''))}
+                placeholder="不限"
+              />
+              <Input
+                label="访问密钥（留空公开）"
+                type="text"
+                inputDir="ltr"
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder="设置后访问需携带 ?key="
+              />
+            </div>
+
+            <Input
+              label="备注说明（可选）"
+              type="text"
+              value={newComment}
+              onChange={setNewComment}
+              placeholder="用途或设备提醒"
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setCreateModalOpen(false)}>
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!newTargetUrl.trim() || creating}
+            onClick={() => void handleCreateConfirm()}
+          >
+            {creating ? '创建中…' : '创建短链'}
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {qrLink ? (
         <QrCodeModal
@@ -753,6 +811,19 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
           onSave={updateLink}
         />
       ) : null}
+
+      <AlertDialog
+        isOpen={deletingLink !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingLink(null)
+        }}
+        title={`删除短链 /s/${deletingLink?.id || ''}？`}
+        description="删除后对应短链将立即失效且无法恢复。"
+        confirmLabel="确认删除"
+        pendingLabel="删除中…"
+        cancelLabel="取消"
+        onConfirm={handleSingleDeleteConfirm}
+      />
 
       <AlertDialog
         isOpen={batchDeleteOpen}

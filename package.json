@@ -12,6 +12,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@cloudflare/kumo": "^2.19.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@remixicon/react": "^4.9.0",
     "country-emoji": "^1.5.6",
     "js-yaml": "^4.1.1",

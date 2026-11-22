@@ -1,7 +1,7 @@
 ﻿import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
-import { DirectionProvider } from '@/components/foundations/direction/direction'
 import { AppErrorBoundary } from '@/features/shared/components/app-error-boundary'
+import { AppProviders } from '@/features/shared/components/app-providers'
 import { AppToaster } from '@/features/shared/components/app-toaster'
 import '@/styles/globals.css'
 
@@ -18,11 +18,11 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 })
 
-const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('boardui:theme');var dark=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);}catch(e){}})();`
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('boardui:theme');var dark=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);document.documentElement.setAttribute('data-mode',dark?'dark':'light');}catch(e){}})();`
 
 export const metadata: Metadata = {
-  title: '通用订阅转换',
-  description: '自动识别客户端并转换为 Clash、sing-box 与 v2rayNG 配置',
+  title: 'SubConvert · 通用订阅转换',
+  description: '边缘实时解析 18 种代理协议，自动识别客户端输出 Clash、sing-box 与 v2rayNG 配置',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="zh-CN"
       dir="ltr"
+      data-mode="light"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -37,13 +38,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body
-        className="min-h-full bg-background-full font-sans text-text-primary"
+        className="isolate min-h-full bg-background-full font-sans text-text-primary"
         suppressHydrationWarning
       >
-        <DirectionProvider locale="zh-CN">
+        <AppProviders>
           <AppErrorBoundary>{children}</AppErrorBoundary>
           <AppToaster />
-        </DirectionProvider>
+        </AppProviders>
       </body>
     </html>
   )

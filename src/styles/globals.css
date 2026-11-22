@@ -1,4 +1,6 @@
+@source "../../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
 @import "tailwindcss";
+@import "@cloudflare/kumo/styles/tailwind";
 @import "./theme.css";
 @import "./typography.css";
 
@@ -102,6 +104,16 @@ html.dark {
 body {
   background-color: var(--color-background-full);
   color: var(--color-text-primary);
+}
+
+/* Subtle Cloudflare / Raycast technical dot-grid backdrop for utility & auth surfaces */
+.console-dot-grid {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--color-separator-border) 85%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
 }
 
 /* Theme-aware monochrome BoardUI mark. Both images keep their intrinsic

@@ -1,18 +1,19 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { LayerCard } from '@cloudflare/kumo/components/layer-card'
 import { RiFireLine } from '@remixicon/react'
 import type { ConvertRecord, DailyStats } from '@/shared/admin.types'
 import { formatCount, formatShortDate } from '@/shared/format.utils'
 import { cx } from '@/utils/cx'
 
 const HEATMAP_TIER_CLASSES = [
-  'bg-background-tertiary-default',
-  'bg-text-primary/15',
-  'bg-text-primary/30',
-  'bg-text-primary/50',
-  'bg-text-primary/75',
-  'bg-text-primary',
+  'bg-background-tertiary-default/80',
+  'bg-accent-500/20',
+  'bg-accent-500/40',
+  'bg-accent-500/65',
+  'bg-accent-500/85',
+  'bg-accent-500',
 ] as const
 
 interface ActivityHeatmapCardProps {
@@ -31,6 +32,8 @@ function getHeatmapTier(hits: number, maxHits: number): number {
 }
 
 export function ActivityHeatmapCard({ daily, records }: ActivityHeatmapCardProps) {
+  const [hovered, setHovered] = useState<DailyStats | null>(null)
+
   const topRecords = useMemo(
     () => [...records].sort((a, b) => b.hits - a.hits).slice(0, 5),
     [records],
@@ -50,76 +53,97 @@ export function ActivityHeatmapCard({ daily, records }: ActivityHeatmapCardProps
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-headline-medium text-text-primary">近 30 天活跃度</h2>
-          <span className="text-caption-1-regular tabular-nums text-text-tertiary">
-            峰值 {formatCount(peakDayHits)} · 活跃 {activeDaysCount} 天
+      <LayerCard className="overflow-hidden">
+        <LayerCard.Secondary className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
+          <h2 className="text-body-semibold text-text-primary">近 30 天活跃度</h2>
+          <span className="font-mono text-caption-2-regular tabular-nums text-text-secondary">
+            {hovered
+              ? `${formatShortDate(hovered.date)} · ${formatCount(hovered.totalHits)} 次`
+              : `峰值 ${formatCount(peakDayHits)} · 活跃 ${activeDaysCount} 天`}
           </span>
-        </div>
+        </LayerCard.Secondary>
 
-        <div className="grid grid-cols-10 gap-1.5 sm:grid-cols-15">
-          {daily.length === 0
-            ? Array.from({ length: 30 }).map((_, idx) => (
-                <span
-                  key={idx}
-                  className="aspect-square rounded-full bg-background-tertiary-default"
-                />
-              ))
-            : daily.map((item) => {
-                const tier = getHeatmapTier(item.totalHits, maxAllDaily)
-                return (
+        <LayerCard.Primary className="flex flex-col gap-3 p-4 sm:p-5">
+          <div
+            className="grid grid-cols-10 gap-1.5 sm:grid-cols-15"
+            onMouseLeave={() => setHovered(null)}
+          >
+            {daily.length === 0
+              ? Array.from({ length: 30 }).map((_, idx) => (
                   <span
-                    key={item.date}
-                    title={`${formatShortDate(item.date)}：${item.totalHits} 次转换`}
-                    className={cx(
-                      'aspect-square rounded-full transition-transform duration-150 hover:scale-125',
-                      HEATMAP_TIER_CLASSES[tier],
-                    )}
+                    key={idx}
+                    className="aspect-square rounded-[4px] bg-background-tertiary-default/80"
                   />
-                )
-              })}
-        </div>
-      </div>
+                ))
+              : daily.map((item) => {
+                  const tier = getHeatmapTier(item.totalHits, maxAllDaily)
+                  return (
+                    <span
+                      key={item.date}
+                      onMouseEnter={() => setHovered(item)}
+                      title={`${formatShortDate(item.date)}：${item.totalHits} 次转换`}
+                      className={cx(
+                        'aspect-square rounded-[4px] transition-transform duration-150 hover:scale-115 hover:ring-1 hover:ring-accent-500',
+                        HEATMAP_TIER_CLASSES[tier],
+                      )}
+                    />
+                  )
+                })}
+          </div>
 
-      <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
-        <div className="mb-3.5 flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-headline-medium text-text-primary">
-            <RiFireLine className="size-4 text-foreground-icon-secondary" aria-hidden />
+          <div className="flex items-center justify-end gap-1.5 text-caption-2-regular text-text-tertiary">
+            <span>低</span>
+            {HEATMAP_TIER_CLASSES.map((cls, idx) => (
+              <span key={idx} className={cx('size-2.5 rounded-[2px]', cls)} aria-hidden />
+            ))}
+            <span>高</span>
+          </div>
+        </LayerCard.Primary>
+      </LayerCard>
+
+      <LayerCard className="overflow-hidden">
+        <LayerCard.Secondary className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
+          <span className="inline-flex items-center gap-1.5 text-body-semibold text-text-primary">
+            <RiFireLine className="size-4 text-brand-cloudflare" aria-hidden />
             热门订阅 Top 5
           </span>
-          <span className="text-caption-1-regular text-text-tertiary">累计命中</span>
-        </div>
+          <span className="font-mono text-caption-2-regular text-text-tertiary">HITS</span>
+        </LayerCard.Secondary>
 
-        {topRecords.length === 0 ? (
-          <p className="py-4 text-center text-body-2-regular text-text-tertiary">暂无订阅数据</p>
-        ) : (
-          <ol className="flex flex-col gap-2.5">
-            {topRecords.map((record, index) => (
-              <li key={record.id} className="flex items-center gap-2.5">
-                <span className="w-4 shrink-0 font-mono text-caption-1-semibold tabular-nums text-text-tertiary">
-                  {index + 1}
-                </span>
-                <span
-                  className="min-w-0 flex-1 truncate text-body-2-medium text-text-primary"
-                  title={record.name}
-                >
-                  {record.name}
-                </span>
-                <div className="hidden h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-background-secondary-default sm:block">
-                  <div
-                    className="h-full rounded-full bg-text-primary/75"
-                    style={{ width: `${Math.max((record.hits / maxRecordHits) * 100, 4)}%` }}
-                  />
-                </div>
-                <span className="w-12 shrink-0 text-end font-mono text-caption-1-regular tabular-nums text-text-secondary">
-                  {formatCount(record.hits)}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
+        <LayerCard.Primary className="p-4 sm:p-5">
+          {topRecords.length === 0 ? (
+            <p className="py-4 text-center text-body-2-regular text-text-tertiary">暂无订阅数据</p>
+          ) : (
+            <ol className="flex flex-col gap-3">
+              {topRecords.map((record, index) => (
+                <li key={record.id} className="flex items-center gap-3">
+                  <span className="w-5 shrink-0 font-mono text-caption-2-semibold tabular-nums text-text-tertiary">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span
+                    className="min-w-0 flex-1 truncate text-body-2-medium text-text-primary"
+                    title={record.name}
+                  >
+                    {record.name}
+                  </span>
+                  <div className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-background-secondary-default sm:block">
+                    <div
+                      className={cx(
+                        'h-full rounded-full transition-all duration-300',
+                        index === 0 ? 'bg-accent-500' : 'bg-accent-500/45',
+                      )}
+                      style={{ width: `${Math.max((record.hits / maxRecordHits) * 100, 4)}%` }}
+                    />
+                  </div>
+                  <span className="w-14 shrink-0 text-end font-mono text-caption-1-medium tabular-nums text-text-secondary">
+                    {formatCount(record.hits)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </LayerCard.Primary>
+      </LayerCard>
     </div>
   )
 }
