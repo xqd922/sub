@@ -2,14 +2,33 @@ import type { TargetClientOverride } from '@/shared/admin.types'
 
 export const PROXY_URI_PREFIXES = [
   'ss://',
+  'ssr://',
   'vmess://',
   'trojan://',
   'vless://',
+  'hysteria://',
   'hysteria2://',
   'hy2://',
+  'hysteria2+realm://',
+  'hy2+realm://',
+  'tuic://',
   'socks://',
+  'socks5://',
+  'socks5h://',
+  'socks4://',
   'anytls://',
   'snell://',
+  'wireguard://',
+  'wg://',
+  'ssh://',
+  'mieru://',
+  'mierus://',
+  'naive+https://',
+  'naive+quic://',
+  'shadowtls://',
+  'sudoku://',
+  'http-proxy://',
+  'https-proxy://',
 ] as const
 
 export function parsePort(value: string | number | undefined | null, defaultPort = 443): number {

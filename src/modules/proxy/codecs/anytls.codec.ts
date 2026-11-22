@@ -1,16 +1,24 @@
 import {
+  appendEchParams,
+  buildShadowTlsSingboxOutbound,
+  buildSingboxTls,
   extractFragmentName,
+  extractRawAuth,
   formatHostForUri,
+  formatSingboxDuration,
   normalizeAlpnList,
+  parseBoolFlag,
+  parseEchParams,
   safeDecodeUriComponent,
+  sanitizeBaseClashProxy,
   stripIpv6Brackets,
 } from '@/modules/proxy/codecs/codec.utils'
 import type {
   AnyTLSProxy,
   ProtocolCodec,
   Proxy,
+  SingboxConversionBundle,
   SingboxOutbound,
-  SingboxTlsConfig,
 } from '@/modules/proxy/proxy.types'
 import { parsePort } from '@/shared/url.utils'
 
@@ -20,44 +28,52 @@ export function parseAnyTlsUri(uri: string): AnyTLSProxy {
   const server = stripIpv6Brackets(url.hostname)
 
   const allowInsecure =
-    params.get('skip-cert-verify') === 'true' ||
-    params.get('allowInsecure') === '1' ||
-    params.get('insecure') === '1'
+    parseBoolFlag(params.get('skip-cert-verify')) ||
+    parseBoolFlag(params.get('allowInsecure')) ||
+    parseBoolFlag(params.get('insecure'))
+
+  const password = url.password ? safeDecodeUriComponent(url.password) : extractRawAuth(url)
+  const echOpts = parseEchParams(params)
 
   const proxy: AnyTLSProxy = {
     type: 'anytls',
     name: extractFragmentName(url, server),
     server,
-    port: parsePort(url.port),
-    password: safeDecodeUriComponent(url.username),
+    port: parsePort(url.port, 443),
+    password,
     sni: params.get('sni') || server,
-    udp: params.get('udp') === 'false' ? false : true,
+    udp: params.get('udp') !== 'false',
     'skip-cert-verify': allowInsecure,
-    insecure: allowInsecure,
+    ...(echOpts ? { 'ech-opts': echOpts } : {}),
   }
 
   const idleCheckInterval = params.get('idle-session-check-interval')
-  if (idleCheckInterval) {
+  if (idleCheckInterval && /^\d+$/.test(idleCheckInterval)) {
     proxy['idle-session-check-interval'] = parseInt(idleCheckInterval, 10)
   }
 
   const idleTimeout = params.get('idle-session-timeout')
-  if (idleTimeout) {
+  if (idleTimeout && /^\d+$/.test(idleTimeout)) {
     proxy['idle-session-timeout'] = parseInt(idleTimeout, 10)
   }
 
   const minIdleSession = params.get('min-idle-session')
-  if (minIdleSession) {
+  if (minIdleSession && /^\d+$/.test(minIdleSession)) {
     proxy['min-idle-session'] = parseInt(minIdleSession, 10)
   }
 
+  const clientMetadata = params.get('client-metadata') || params.get('client_metadata')
+  if (clientMetadata) proxy['client-metadata'] = clientMetadata
+
+  if (parseBoolFlag(params.get('disable-reuse'))) proxy['disable-reuse'] = true
+
   const alpn = params.get('alpn')
-  if (alpn) proxy.alpn = alpn.split(',')
+  if (alpn) proxy.alpn = normalizeAlpnList(alpn)
 
   const clientFingerprint = params.get('client-fingerprint') || params.get('fp')
   if (clientFingerprint) proxy['client-fingerprint'] = clientFingerprint
 
-  const fingerprint = params.get('fingerprint')
+  const fingerprint = params.get('hpkp') || params.get('fingerprint')
   if (fingerprint) proxy.fingerprint = fingerprint
 
   const certificate = params.get('certificate')
@@ -66,17 +82,7 @@ export function parseAnyTlsUri(uri: string): AnyTLSProxy {
   const privateKey = params.get('private-key')
   if (privateKey) proxy['private-key'] = safeDecodeUriComponent(privateKey)
 
-  const tfo = params.get('tfo')
-  if (tfo === '1' || tfo === 'true') proxy.tfo = true
-
-  const echEnable = params.get('ech')
-  if (echEnable === '1' || echEnable === 'true') {
-    proxy['ech-opts'] = {
-      enable: true,
-      config: params.get('ech-config') || undefined,
-      'query-server-name': params.get('ech-query-server-name') || undefined,
-    }
-  }
+  if (parseBoolFlag(params.get('tfo'))) proxy.tfo = true
 
   return proxy
 }
@@ -87,8 +93,9 @@ export function validateAnyTlsProxy(proxy: Proxy): boolean {
 
 export function anyTlsToUri(proxy: AnyTLSProxy): string {
   const params = new URLSearchParams()
-  if (proxy.sni) params.set('sni', proxy.sni)
-  if (proxy['skip-cert-verify']) params.set('insecure', '1')
+  const sni = proxy.sni || proxy.servername
+  if (sni) params.set('sni', sni)
+  if (proxy['skip-cert-verify'] || proxy.insecure) params.set('insecure', '1')
   if (proxy['idle-session-check-interval']) {
     params.set('idle-session-check-interval', String(proxy['idle-session-check-interval']))
   }
@@ -98,72 +105,64 @@ export function anyTlsToUri(proxy: AnyTLSProxy): string {
   if (proxy['min-idle-session']) {
     params.set('min-idle-session', String(proxy['min-idle-session']))
   }
+  if (proxy['client-metadata']) params.set('client-metadata', proxy['client-metadata'])
+  if (proxy['disable-reuse']) params.set('disable-reuse', '1')
   if (proxy.alpn) params.set('alpn', Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn)
-  if (proxy['client-fingerprint']) params.set('client-fingerprint', proxy['client-fingerprint'])
-  if (proxy.fingerprint) params.set('fingerprint', proxy.fingerprint)
+  if (proxy['client-fingerprint']) params.set('fp', proxy['client-fingerprint'])
+  if (proxy.fingerprint) params.set('hpkp', proxy.fingerprint)
   if (proxy.certificate) params.set('certificate', proxy.certificate)
   if (proxy['private-key']) params.set('private-key', proxy['private-key'])
   if (proxy.tfo) params.set('tfo', '1')
-  if (proxy['ech-opts']?.enable) {
-    params.set('ech', '1')
-    if (proxy['ech-opts'].config) params.set('ech-config', proxy['ech-opts'].config)
-    if (proxy['ech-opts']['query-server-name']) {
-      params.set('ech-query-server-name', proxy['ech-opts']['query-server-name'])
-    }
-  }
+  appendEchParams(params, proxy['ech-opts'])
 
   const query = params.toString() ? `?${params.toString()}` : ''
   return `anytls://${encodeURIComponent(proxy.password || '')}@${formatHostForUri(proxy.server)}:${proxy.port}${query}#${encodeURIComponent(proxy.name)}`
 }
 
-export function anyTlsToSingboxOutbound(proxy: AnyTLSProxy): SingboxOutbound {
-  const alpn = normalizeAlpnList(proxy.alpn)
-  const tls: SingboxTlsConfig = {
-    enabled: true,
-    server_name: proxy.sni || proxy.server,
-    insecure: proxy['skip-cert-verify'] ?? false,
-    ...(alpn ? { alpn } : {}),
-    ...(proxy['client-fingerprint']
-      ? { utls: { enabled: true, fingerprint: proxy['client-fingerprint'] } }
-      : {}),
-    ...(proxy.fingerprint ? { fingerprint: proxy.fingerprint } : {}),
-    ...(proxy.certificate ? { certificate: proxy.certificate } : {}),
-    ...(proxy['ech-opts']
-      ? {
-          ech: {
-            enabled: proxy['ech-opts'].enable ?? true,
-            ...(proxy['ech-opts'].config ? { config: proxy['ech-opts'].config } : {}),
-            ...(proxy['ech-opts']['query-server-name']
-              ? { config_path: proxy['ech-opts']['query-server-name'] }
-              : {}),
-          },
-        }
-      : {}),
+export function anyTlsToClashProxy(proxy: AnyTLSProxy): Record<string, unknown> {
+  const cleaned = sanitizeBaseClashProxy(proxy)
+  if (!cleaned.sni && typeof cleaned.servername === 'string' && cleaned.servername) {
+    cleaned.sni = cleaned.servername
   }
+  delete cleaned.servername
+  return cleaned
+}
+
+export function anyTlsToSingboxBundle(proxy: AnyTLSProxy): SingboxConversionBundle {
+  const tls = buildSingboxTls(proxy, { forceEnabled: true })
+  const checkInterval = formatSingboxDuration(proxy['idle-session-check-interval'])
+  const idleTimeout = formatSingboxDuration(proxy['idle-session-timeout'])
 
   const outbound: SingboxOutbound = {
     type: 'anytls',
     tag: proxy.name,
     server: proxy.server,
-    server_port: parsePort(proxy.port),
+    server_port: parsePort(proxy.port, 443),
     password: proxy.password || '',
     tls,
+    ...(checkInterval ? { idle_session_check_interval: checkInterval } : {}),
+    ...(idleTimeout ? { idle_session_timeout: idleTimeout } : {}),
+    ...(proxy['min-idle-session'] ? { min_idle_session: proxy['min-idle-session'] } : {}),
+    ...(proxy['client-metadata'] ? { client_metadata: proxy['client-metadata'] } : {}),
+    ...(proxy.tfo ? { tcp_fast_open: true } : {}),
+    ...(proxy.detour ? { detour: proxy.detour } : {}),
   }
 
-  if (proxy['idle-session-check-interval']) {
-    outbound.idle_session_check_interval = `${proxy['idle-session-check-interval']}s`
-  }
-  if (proxy['idle-session-timeout']) {
-    outbound.idle_session_timeout = `${proxy['idle-session-timeout']}s`
-  }
-  if (proxy['min-idle-session']) {
-    outbound.min_idle_session = proxy['min-idle-session']
-  }
-  if (proxy.detour) {
-    outbound.detour = proxy.detour
+  const stls = proxy['shadow-tls-opts']
+  if (stls?.password) {
+    const stlsTag = `${proxy.name}-shadowtls`
+    const stlsOutbound = buildShadowTlsSingboxOutbound(proxy, stls, stlsTag)
+    outbound.detour = stlsTag
+    delete outbound.server
+    delete outbound.server_port
+    return { outbound, extraOutbounds: [stlsOutbound] }
   }
 
-  return outbound
+  return { outbound }
+}
+
+export function anyTlsToSingboxOutbound(proxy: AnyTLSProxy): SingboxOutbound {
+  return anyTlsToSingboxBundle(proxy).outbound!
 }
 
 export const anyTlsCodec: ProtocolCodec<AnyTLSProxy> = {
@@ -172,5 +171,7 @@ export const anyTlsCodec: ProtocolCodec<AnyTLSProxy> = {
   parse: parseAnyTlsUri,
   validate: validateAnyTlsProxy,
   toUri: anyTlsToUri,
+  toClashProxy: anyTlsToClashProxy,
   toSingboxOutbound: anyTlsToSingboxOutbound,
+  toSingboxBundle: anyTlsToSingboxBundle,
 }

@@ -62,111 +62,32 @@ function isInvalidNode(proxy: Proxy): boolean {
   return INVALID_SERVER_PATTERNS.some((pattern) => pattern.test(server))
 }
 
-function normalizeAlpnForKey(alpn: string[] | string | undefined): string {
-  if (!alpn) return ''
-  if (Array.isArray(alpn)) return [...alpn].sort().join(',')
-  return alpn
-}
-
-function serializeProxyWithoutName(proxy: Proxy): string {
-  const { name: _omitted, ...rest } = proxy
-  void _omitted
-  return JSON.stringify(rest, Object.keys(rest).sort())
+function canonicalizeValue(value: unknown): unknown {
+  if (value === null || value === undefined) return undefined
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeValue)
+  }
+  if (typeof value === 'object') {
+    const sorted: Record<string, unknown> = {}
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      const normalized = canonicalizeValue((value as Record<string, unknown>)[key])
+      if (normalized !== undefined) {
+        sorted[key] = normalized
+      }
+    }
+    return sorted
+  }
+  return value
 }
 
 function buildProxyDedupeKey(proxy: Proxy): string {
-  const base = [proxy.type, proxy.server, String(proxy.port)]
-  const common = [
-    String(proxy.tls ?? ''),
-    String(proxy['skip-cert-verify'] ?? ''),
-    String(proxy.udp ?? ''),
-    String(proxy.tfo ?? ''),
-    proxy['client-fingerprint'] || '',
-    normalizeAlpnForKey(proxy.alpn),
-  ]
-
-  switch (proxy.type) {
-    case 'hysteria2':
-      return [
-        ...base,
-        proxy.password || '',
-        proxy.sni || proxy.servername || '',
-        proxy.obfs || '',
-        proxy['obfs-password'] || '',
-        proxy.ports || '',
-        proxy.mport || '',
-        String(proxy.up ?? ''),
-        String(proxy.down ?? ''),
-        String(proxy.up_mbps ?? ''),
-        String(proxy.down_mbps ?? ''),
-        String(proxy.insecure ?? ''),
-        ...common,
-      ].join(':')
-
-    case 'vless':
-      return [
-        ...base,
-        proxy.uuid || '',
-        proxy.flow || '',
-        proxy.network || '',
-        proxy.servername || proxy.sni || '',
-        proxy.encryption || '',
-        proxy.fp || '',
-        String(proxy.reality ?? ''),
-        proxy['reality-opts']?.['public-key'] || '',
-        proxy['reality-opts']?.['short-id'] || '',
-        proxy['ws-opts']?.path || proxy.path || '',
-        proxy['ws-opts']?.headers?.Host || proxy.host || '',
-        proxy['grpc-opts']?.['grpc-service-name'] || '',
-        proxy['grpc-opts']?.['grpc-mode'] || '',
-        ...common,
-      ].join(':')
-
-    case 'vmess':
-      return [
-        ...base,
-        proxy.uuid || '',
-        String(proxy.alterId ?? 0),
-        proxy.cipher || 'auto',
-        proxy.network || '',
-        proxy.servername || proxy.sni || '',
-        proxy.wsPath || proxy['ws-opts']?.path || proxy.path || '',
-        proxy.wsHeaders?.Host || proxy['ws-opts']?.headers?.Host || proxy.host || '',
-        proxy['grpc-opts']?.['grpc-service-name'] || '',
-        proxy['grpc-opts']?.['grpc-mode'] || '',
-        ...common,
-      ].join(':')
-
-    case 'ss':
-      return [
-        ...base,
-        proxy.cipher || proxy['encrypt-method'] || '',
-        proxy.password || '',
-        proxy.plugin || '',
-        proxy['plugin-opts']?.mode || '',
-        proxy['plugin-opts']?.host || '',
-        proxy.obfs || '',
-        proxy['obfs-host'] || '',
-        ...common,
-      ].join(':')
-
-    case 'trojan':
-      return [
-        ...base,
-        proxy.password || '',
-        proxy.sni || proxy.servername || '',
-        proxy.network || '',
-        proxy.fp || '',
-        proxy['ws-opts']?.path || proxy.path || '',
-        proxy['ws-opts']?.headers?.Host || proxy.host || '',
-        proxy['grpc-opts']?.['grpc-service-name'] || '',
-        proxy['grpc-opts']?.['grpc-mode'] || '',
-        ...common,
-      ].join(':')
-
-    default:
-      return serializeProxyWithoutName(proxy)
+  const { name: _omitted, ...rest } = proxy
+  void _omitted
+  const normalized: Record<string, unknown> = { ...rest }
+  if (Array.isArray(normalized.alpn)) {
+    normalized.alpn = [...normalized.alpn].sort()
   }
+  return JSON.stringify(canonicalizeValue(normalized))
 }
 
 export interface DeduplicateOptions {

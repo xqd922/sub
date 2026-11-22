@@ -1,7 +1,22 @@
-import { cleanStringHeaders, stripIpv6Brackets } from '@/modules/proxy/codecs/codec.utils'
+import {
+  appendEchParams,
+  buildShadowTlsSingboxOutbound,
+  buildSingboxMultiplex,
+  buildSingboxTls,
+  buildSingboxV2RayTransport,
+  extractFragmentName,
+  normalizeAlpnList,
+  parseBoolFlag,
+  parseEchParams,
+  parseWsEarlyData,
+  safeDecodeUriComponent,
+  sanitizeBaseClashProxy,
+  stripIpv6Brackets,
+} from '@/modules/proxy/codecs/codec.utils'
 import type {
   ProtocolCodec,
   Proxy,
+  SingboxConversionBundle,
   SingboxOutbound,
   VmessProxy,
 } from '@/modules/proxy/proxy.types'
@@ -27,12 +42,119 @@ interface RawVmessConfig {
   insecure?: boolean | number | string
 }
 
+function parseXrayAeadVmessUri(uri: string): VmessProxy {
+  const url = new URL(uri)
+  const params = url.searchParams
+  const server = stripIpv6Brackets(url.hostname)
+  if (!server) throw new Error('VMess 链接缺少服务器地址')
+
+  const security = (params.get('security') || 'none').toLowerCase()
+  const tlsEnabled = security === 'tls' || security === 'reality' || security.endsWith('tls')
+  const rawNet = (params.get('type') || 'tcp').toLowerCase()
+  const headerType = (params.get('headerType') || '').toLowerCase()
+  let network = rawNet
+  if (rawNet === 'tcp' && headerType === 'http') network = 'http'
+  else if (rawNet === 'http') network = 'h2'
+
+  const host = params.get('host') || ''
+  const fp = params.get('fp') || params.get('client-fingerprint')
+  const alpn = params.get('alpn')
+  const pbk = params.get('pbk')
+  const sid = params.get('sid')
+  const echOpts = parseEchParams(params)
+  const skipCertVerify =
+    parseBoolFlag(params.get('allowInsecure')) ||
+    parseBoolFlag(params.get('insecure')) ||
+    parseBoolFlag(params.get('skip-cert-verify'))
+
+  const proxy: VmessProxy = {
+    type: 'vmess',
+    name: extractFragmentName(url, server),
+    server,
+    port: parsePort(url.port),
+    uuid: safeDecodeUriComponent(url.username),
+    alterId: 0,
+    cipher: params.get('encryption') || 'auto',
+    network,
+    udp: params.get('udp') !== 'false',
+    tls: tlsEnabled,
+    'skip-cert-verify': skipCertVerify,
+    servername: params.get('sni') || '',
+    tfo: parseBoolFlag(params.get('tfo')),
+    ...(fp ? { 'client-fingerprint': fp } : {}),
+    ...(alpn ? { alpn: normalizeAlpnList(alpn) } : {}),
+    ...(echOpts ? { 'ech-opts': echOpts } : {}),
+    ...(pbk ? { 'reality-opts': { 'public-key': pbk, 'short-id': sid || '' } } : {}),
+  }
+
+  if (network === 'ws' || network === 'httpupgrade') {
+    const ed = parseWsEarlyData(params.get('path'), params.get('ed'), params.get('eh'))
+    proxy['ws-opts'] = {
+      path: ed.path,
+      headers: { Host: host || server },
+      ...(network === 'httpupgrade' ? { 'v2ray-http-upgrade': true } : {}),
+      ...(ed.maxEarlyData !== undefined && network === 'ws'
+        ? {
+            'max-early-data': ed.maxEarlyData,
+            'early-data-header-name': ed.earlyDataHeaderName || 'Sec-WebSocket-Protocol',
+          }
+        : {}),
+      ...(ed.maxEarlyData !== undefined && network === 'httpupgrade'
+        ? { 'v2ray-http-upgrade-fast-open': true }
+        : {}),
+    }
+  } else if (network === 'grpc') {
+    proxy['grpc-opts'] = {
+      'grpc-service-name': params.get('serviceName') || params.get('path') || '',
+      ...(params.get('mode') ? { 'grpc-mode': params.get('mode')! } : {}),
+    }
+  } else if (network === 'http') {
+    proxy['http-opts'] = {
+      path: [params.get('path') || '/'],
+      ...(host ? { headers: { Host: host.split(',').map((h) => h.trim()).filter(Boolean) } } : {}),
+    }
+  } else if (network === 'h2') {
+    proxy['h2-opts'] = {
+      path: params.get('path') || '/',
+      ...(host ? { host: host.split(',').map((h) => h.trim()).filter(Boolean) } : {}),
+    }
+  }
+
+  return proxy
+}
+
 export function parseVmessUri(uri: string): VmessProxy {
-  const content = uri.slice(8)
-  const config = JSON.parse(decodeBase64Utf8(content)) as RawVmessConfig
+  const content = uri.slice(8).trim()
+  if (!content) throw new Error('VMess 链接为空')
+
+  let config: RawVmessConfig | null = null
+  if (!content.includes('@')) {
+    config = JSON.parse(decodeBase64Utf8(content)) as RawVmessConfig
+  } else {
+    try {
+      const decoded = decodeBase64Utf8(content)
+      if (decoded.trim().startsWith('{')) {
+        config = JSON.parse(decoded) as RawVmessConfig
+      }
+    } catch {
+      // 按 Xray VMessAEAD URL 格式解析
+    }
+  }
+
+  if (!config) {
+    return parseXrayAeadVmessUri(uri)
+  }
 
   const server = stripIpv6Brackets(config.add || '')
-  const network = config.net || 'tcp'
+  const rawNet = (config.net || 'tcp').toLowerCase()
+  const rawType = (config.type || '').toLowerCase()
+  let network = rawNet
+  if (rawNet === 'tcp' && rawType === 'http') {
+    network = 'http'
+  } else if (rawNet === 'http') {
+    network = 'h2'
+  }
+
   const skipCertVerify =
     config.allowInsecure === true ||
     config.allowInsecure === 1 ||
@@ -41,7 +163,7 @@ export function parseVmessUri(uri: string): VmessProxy {
     config.insecure === 1 ||
     config.insecure === '1'
 
-  return {
+  const proxy: VmessProxy = {
     type: 'vmess',
     name: config.ps || server,
     server,
@@ -50,31 +172,55 @@ export function parseVmessUri(uri: string): VmessProxy {
     alterId: parseInt(String(config.aid), 10) || 0,
     cipher: config.scy || 'auto',
     network,
-    tls: config.tls === 'tls',
+    udp: true,
+    tls: config.tls === 'tls' || config.tls === 'xtls',
     'skip-cert-verify': skipCertVerify,
     servername: config.sni || '',
     tfo: false,
     ...(config.fp ? { 'client-fingerprint': config.fp } : {}),
-    ...(config.alpn ? { alpn: config.alpn.split(',') } : {}),
-    ...(network === 'ws'
-      ? {
-          'ws-opts': {
-            path: config.path || '',
-            headers: {
-              Host: config.host || server,
-            },
-          },
-        }
-      : {}),
-    ...(network === 'grpc'
-      ? {
-          'grpc-opts': {
-            'grpc-service-name': config.path || '',
-            ...(config.type && config.type !== 'none' ? { 'grpc-mode': config.type } : {}),
-          },
-        }
-      : {}),
+    ...(config.alpn ? { alpn: normalizeAlpnList(config.alpn) } : {}),
   }
+
+  if (network === 'ws' || network === 'httpupgrade') {
+    const ed = parseWsEarlyData(config.path)
+    proxy['ws-opts'] = {
+      path: ed.path,
+      headers: {
+        Host: config.host || server,
+      },
+      ...(network === 'httpupgrade' ? { 'v2ray-http-upgrade': true } : {}),
+      ...(ed.maxEarlyData !== undefined && network === 'ws'
+        ? {
+            'max-early-data': ed.maxEarlyData,
+            'early-data-header-name': ed.earlyDataHeaderName || 'Sec-WebSocket-Protocol',
+          }
+        : {}),
+      ...(ed.maxEarlyData !== undefined && network === 'httpupgrade'
+        ? { 'v2ray-http-upgrade-fast-open': true }
+        : {}),
+    }
+  } else if (network === 'grpc') {
+    proxy['grpc-opts'] = {
+      'grpc-service-name': config.path || '',
+      ...(config.type && config.type !== 'none' ? { 'grpc-mode': config.type } : {}),
+    }
+  } else if (network === 'http') {
+    proxy['http-opts'] = {
+      path: [config.path || '/'],
+      ...(config.host
+        ? { headers: { Host: config.host.split(',').map((h) => h.trim()).filter(Boolean) } }
+        : {}),
+    }
+  } else if (network === 'h2') {
+    proxy['h2-opts'] = {
+      path: config.path || '/',
+      ...(config.host
+        ? { host: config.host.split(',').map((h) => h.trim()).filter(Boolean) }
+        : {}),
+    }
+  }
+
+  return proxy
 }
 
 export function validateVmessProxy(proxy: unknown): proxy is VmessProxy {
@@ -91,6 +237,41 @@ export function validateVmessProxy(proxy: unknown): proxy is VmessProxy {
 
 export function vmessToUri(proxy: VmessProxy): string {
   const isGrpc = proxy.network === 'grpc'
+  const isHttpUpgrade =
+    proxy.network === 'httpupgrade' ||
+    (proxy.network === 'ws' && Boolean(proxy['ws-opts']?.['v2ray-http-upgrade']))
+  const isHttpFake = proxy.network === 'http'
+  const isH2 = proxy.network === 'h2'
+
+  let net = proxy.network || 'tcp'
+  let headerType = 'none'
+  let host = proxy['ws-opts']?.headers?.Host || proxy.wsHeaders?.Host || ''
+  let path = proxy['ws-opts']?.path || proxy.wsPath || ''
+
+  if (isGrpc) {
+    headerType = proxy['grpc-opts']?.['grpc-mode'] || 'gun'
+    path = proxy['grpc-opts']?.['grpc-service-name'] || ''
+  } else if (isHttpUpgrade) {
+    net = 'httpupgrade'
+  } else if (isHttpFake) {
+    net = 'tcp'
+    headerType = 'http'
+    host = proxy['http-opts']?.headers?.Host?.join(',') || ''
+    path = proxy['http-opts']?.path?.[0] || '/'
+  } else if (isH2) {
+    net = 'h2'
+    host = proxy['h2-opts']?.host?.join(',') || ''
+    path = proxy['h2-opts']?.path || '/'
+  }
+
+  if ((net === 'ws' || net === 'httpupgrade') && proxy['ws-opts']?.['max-early-data']) {
+    const sep = path.includes('?') ? '&' : '?'
+    path = `${path}${sep}ed=${proxy['ws-opts']['max-early-data']}`
+  }
+
+  const echParams = new URLSearchParams()
+  appendEchParams(echParams, proxy['ech-opts'])
+
   const config = {
     v: '2',
     ps: proxy.name,
@@ -99,22 +280,44 @@ export function vmessToUri(proxy: VmessProxy): string {
     id: proxy.uuid,
     aid: String(proxy.alterId || 0),
     scy: proxy.cipher || 'auto',
-    net: proxy.network || 'tcp',
-    type: isGrpc ? proxy['grpc-opts']?.['grpc-mode'] || 'gun' : 'none',
+    net,
+    type: headerType,
     tls: proxy.tls ? 'tls' : '',
-    sni: proxy.servername || '',
-    host: proxy['ws-opts']?.headers?.Host || proxy.wsHeaders?.Host || '',
-    path: isGrpc
-      ? proxy['grpc-opts']?.['grpc-service-name'] || ''
-      : proxy['ws-opts']?.path || proxy.wsPath || '',
+    sni: proxy.servername || proxy.sni || '',
+    host,
+    path,
     ...(proxy['client-fingerprint'] ? { fp: proxy['client-fingerprint'] } : {}),
     ...(proxy.alpn ? { alpn: Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn } : {}),
+    ...(proxy['skip-cert-verify'] ? { allowInsecure: 1 } : {}),
   }
 
   return `vmess://${encodeBase64Utf8(JSON.stringify(config))}`
 }
 
-export function vmessToSingboxOutbound(proxy: VmessProxy): SingboxOutbound {
+export function vmessToClashProxy(proxy: VmessProxy): Record<string, unknown> {
+  const cleaned = sanitizeBaseClashProxy(proxy)
+  if (!cleaned.servername && typeof cleaned.sni === 'string' && cleaned.sni) {
+    cleaned.servername = cleaned.sni
+  }
+  delete cleaned.sni
+  if (!cleaned.servername) delete cleaned.servername
+  if (cleaned.alterId === undefined) cleaned.alterId = 0
+  if (!cleaned.cipher) cleaned.cipher = 'auto'
+  return cleaned
+}
+
+export function vmessToSingboxBundle(proxy: VmessProxy): SingboxConversionBundle | null {
+  const transportResult = buildSingboxV2RayTransport(proxy)
+  if (!transportResult.supported) {
+    return null
+  }
+
+  const tls = buildSingboxTls(proxy)
+  const multiplex = buildSingboxMultiplex(proxy.smux)
+  const packetEncoding =
+    proxy['packet-encoding'] ||
+    (proxy['packet-addr'] ? 'packetaddr' : proxy.xudp ? 'xudp' : undefined)
+
   const outbound: SingboxOutbound = {
     type: 'vmess',
     tag: proxy.name,
@@ -123,41 +326,32 @@ export function vmessToSingboxOutbound(proxy: VmessProxy): SingboxOutbound {
     uuid: proxy.uuid || '',
     security: proxy.cipher || 'auto',
     alter_id: proxy.alterId || 0,
+    ...(proxy['global-padding'] ? { global_padding: true } : {}),
+    ...(proxy['authenticated-length'] ? { authenticated_length: true } : {}),
+    ...(packetEncoding && packetEncoding !== 'none' ? { packet_encoding: packetEncoding } : {}),
+    ...(proxy.udp === false ? { network: 'tcp' } : {}),
+    ...(proxy.tfo ? { tcp_fast_open: true } : {}),
+    ...(tls ? { tls } : {}),
+    ...(transportResult.transport ? { transport: transportResult.transport } : {}),
+    ...(multiplex ? { multiplex } : {}),
+    ...(proxy.detour ? { detour: proxy.detour } : {}),
   }
 
-  if (proxy.tls) {
-    outbound.tls = {
-      enabled: true,
-      server_name: proxy.servername || proxy.sni || proxy.server,
-      insecure: proxy['skip-cert-verify'] ?? false,
-      ...(proxy.alpn ? { alpn: Array.isArray(proxy.alpn) ? [...proxy.alpn] : [proxy.alpn] } : {}),
-      ...(proxy['client-fingerprint']
-        ? { utls: { enabled: true, fingerprint: proxy['client-fingerprint'] } }
-        : {}),
-    }
+  const stls = proxy['shadow-tls-opts']
+  if (stls?.password) {
+    const stlsTag = `${proxy.name}-shadowtls`
+    const stlsOutbound = buildShadowTlsSingboxOutbound(proxy, stls, stlsTag)
+    outbound.detour = stlsTag
+    delete outbound.server
+    delete outbound.server_port
+    return { outbound, extraOutbounds: [stlsOutbound] }
   }
 
-  if (proxy.network === 'grpc') {
-    outbound.transport = {
-      type: 'grpc',
-      service_name: proxy['grpc-opts']?.['grpc-service-name'] || proxy.path || '',
-      idle_timeout: '15s',
-      ping_timeout: '15s',
-    }
-  } else if (proxy.network && proxy.network !== 'tcp') {
-    const headers = proxy['ws-opts']?.headers || proxy.wsHeaders
-    outbound.transport = {
-      type: proxy.network,
-      path: proxy['ws-opts']?.path || proxy.wsPath || '',
-      ...(headers ? { headers: cleanStringHeaders(headers) } : {}),
-    }
-  }
+  return { outbound }
+}
 
-  if (proxy.detour) {
-    outbound.detour = proxy.detour
-  }
-
-  return outbound
+export function vmessToSingboxOutbound(proxy: VmessProxy): SingboxOutbound | null {
+  return vmessToSingboxBundle(proxy)?.outbound ?? null
 }
 
 export const vmessCodec: ProtocolCodec<VmessProxy> = {
@@ -166,5 +360,7 @@ export const vmessCodec: ProtocolCodec<VmessProxy> = {
   parse: parseVmessUri,
   validate: (proxy: Proxy) => validateVmessProxy(proxy),
   toUri: vmessToUri,
+  toClashProxy: vmessToClashProxy,
   toSingboxOutbound: vmessToSingboxOutbound,
+  toSingboxBundle: vmessToSingboxBundle,
 }

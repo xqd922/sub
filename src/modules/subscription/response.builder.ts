@@ -132,10 +132,23 @@ export function renderConversionResponse(
     }
   }
 
-  const yamlConfig = renderClashConfig(formattedProxies)
-
   if (isBrowser) {
-    const jsonConfig = renderSingboxConfig(formattedProxies)
+    let yamlConfig: string
+    try {
+      yamlConfig = renderClashConfig(formattedProxies)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '当前节点暂不兼容 Clash / Mihomo 内核'
+      yamlConfig = `# ${msg}\n`
+    }
+
+    let jsonConfig: string
+    try {
+      jsonConfig = renderSingboxConfig(formattedProxies)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '当前节点暂不兼容 sing-box 内核'
+      jsonConfig = JSON.stringify({ _note: msg }, null, 2)
+    }
+
     const rawUris = proxiesToUris(formattedProxies).join('\n')
     const body = renderPreviewHtml(yamlConfig, jsonConfig, {
       subscriptionName: subscription.name,
@@ -151,6 +164,8 @@ export function renderConversionResponse(
       configSize: yamlConfig.length + jsonConfig.length,
     }
   }
+
+  const yamlConfig = renderClashConfig(formattedProxies)
 
   return {
     body: yamlConfig,

@@ -1,16 +1,45 @@
 import {
+  buildShadowTlsSingboxOutbound,
+  buildSingboxMultiplex,
   formatHostForUri,
+  normalizeAlpnList,
+  parseBoolFlag,
   safeDecodeUriComponent,
+  sanitizeBaseClashProxy,
 } from '@/modules/proxy/codecs/codec.utils'
 import type {
   ProtocolCodec,
   Proxy,
   SSProxy,
+  ShadowTlsOptions,
+  SingboxConversionBundle,
   SingboxOutbound,
 } from '@/modules/proxy/proxy.types'
 import { logger } from '@/server/logger'
 import { decodeBase64Utf8, encodeBase64UrlUtf8 } from '@/shared/base64.utils'
 import { parsePort } from '@/shared/url.utils'
+
+const KNOWN_SS_CIPHERS = new Set([
+  'aes-128-gcm',
+  'aes-192-gcm',
+  'aes-256-gcm',
+  'chacha20-ietf-poly1305',
+  'xchacha20-ietf-poly1305',
+  '2022-blake3-aes-128-gcm',
+  '2022-blake3-aes-256-gcm',
+  '2022-blake3-chacha20-poly1305',
+  'aes-128-ctr',
+  'aes-192-ctr',
+  'aes-256-ctr',
+  'aes-128-cfb',
+  'aes-192-cfb',
+  'aes-256-cfb',
+  'rc4-md5',
+  'chacha20-ietf',
+  'xchacha20',
+  'none',
+  'plain',
+])
 
 function decodeRemarkFully(rawRemark: string): string {
   const once = safeDecodeUriComponent(rawRemark)
@@ -18,6 +47,81 @@ function decodeRemarkFully(rawRemark: string): string {
     return safeDecodeUriComponent(once)
   }
   return once
+}
+
+function parseSip002Plugin(pluginRaw: string): {
+  plugin?: string
+  pluginOpts?: NonNullable<SSProxy['plugin-opts']>
+} {
+  const segments = pluginRaw.split(';').map((s) => s.trim()).filter(Boolean)
+  if (segments.length === 0) return {}
+
+  const rawName = segments[0].toLowerCase()
+  const kv: Record<string, string> = {}
+  const flags = new Set<string>()
+
+  for (const part of segments.slice(1)) {
+    const eqIdx = part.indexOf('=')
+    if (eqIdx === -1) {
+      flags.add(part.toLowerCase())
+    } else {
+      const k = part.slice(0, eqIdx).trim()
+      const v = part.slice(eqIdx + 1).trim()
+      if (k) kv[k] = v
+    }
+  }
+
+  if (rawName.includes('obfs')) {
+    return {
+      plugin: 'obfs',
+      pluginOpts: {
+        mode: kv.obfs || kv.mode || 'http',
+        ...(kv['obfs-host'] || kv.host ? { host: kv['obfs-host'] || kv.host } : {}),
+      },
+    }
+  }
+
+  if (rawName.includes('v2ray-plugin')) {
+    return {
+      plugin: 'v2ray-plugin',
+      pluginOpts: {
+        mode: kv.mode || kv.obfs || 'websocket',
+        ...(kv.host || kv['obfs-host'] ? { host: kv.host || kv['obfs-host'] } : {}),
+        ...(kv.path ? { path: kv.path } : {}),
+        ...(flags.has('tls') || parseBoolFlag(kv.tls) ? { tls: true } : {}),
+        ...(flags.has('mux') || parseBoolFlag(kv.mux) ? { mux: true } : {}),
+        ...(parseBoolFlag(kv['skip-cert-verify']) ? { 'skip-cert-verify': true } : {}),
+      },
+    }
+  }
+
+  if (rawName.includes('shadow-tls')) {
+    return {
+      plugin: 'shadow-tls',
+      pluginOpts: {
+        ...(kv.host || kv.sni ? { host: kv.host || kv.sni } : {}),
+        ...(kv.password ? { password: kv.password } : {}),
+        ...(kv.version ? { version: parseInt(kv.version, 10) || 3 } : {}),
+        ...(kv.fingerprint ? { fingerprint: kv.fingerprint } : {}),
+        ...(parseBoolFlag(kv['skip-cert-verify']) ? { 'skip-cert-verify': true } : {}),
+        ...(kv.alpn ? { alpn: normalizeAlpnList(kv.alpn) } : {}),
+      },
+    }
+  }
+
+  if (rawName.includes('gost-plugin')) {
+    return {
+      plugin: 'gost-plugin',
+      pluginOpts: {
+        mode: kv.mode || 'websocket',
+        ...(kv.host ? { host: kv.host } : {}),
+        ...(kv.path ? { path: kv.path } : {}),
+        ...(flags.has('tls') || parseBoolFlag(kv.tls) ? { tls: true } : {}),
+      },
+    }
+  }
+
+  return {}
 }
 
 export function parseShadowsocksUri(uri: string): SSProxy {
@@ -31,7 +135,9 @@ export function parseShadowsocksUri(uri: string): SSProxy {
   }
 
   let decoded: string
-  const pluginOpts: Record<string, string> = {}
+  let parsedPlugin: { plugin?: string; pluginOpts?: NonNullable<SSProxy['plugin-opts']> } = {}
+  let udpOverTcp = false
+  let udpOverTcpVersion: number | undefined
 
   try {
     const queryIdx = rawMainPart.indexOf('?')
@@ -46,15 +152,14 @@ export function parseShadowsocksUri(uri: string): SSProxy {
       const params = new URLSearchParams(queryString)
       const plugin = params.get('plugin')
       if (plugin) {
-        for (const param of plugin.split(';')) {
-          const eqIdx = param.indexOf('=')
-          if (eqIdx === -1) continue
-          const key = param.slice(0, eqIdx).trim()
-          const value = param.slice(eqIdx + 1).trim()
-          if (key && value && (key === 'obfs' || key === 'obfs-host')) {
-            pluginOpts[key] = value
-          }
-        }
+        parsedPlugin = parseSip002Plugin(plugin)
+      }
+      if (parseBoolFlag(params.get('uot')) || parseBoolFlag(params.get('udp-over-tcp'))) {
+        udpOverTcp = true
+      }
+      const uotVer = params.get('udp-over-tcp-version')
+      if (uotVer && /^\d+$/.test(uotVer)) {
+        udpOverTcpVersion = parseInt(uotVer, 10)
       }
     }
 
@@ -66,7 +171,14 @@ export function parseShadowsocksUri(uri: string): SSProxy {
       if (!userInfo) {
         throw new Error('SS链接格式错误：缺少用户信息')
       }
-      decoded = `${decodeBase64Utf8(userInfo)}@${serverPart}`
+      // 支持 SS-2022 明文 method:password@host:port 以及标准 SIP002 Base64 userinfo
+      const colonPos = userInfo.indexOf(':')
+      const possibleCipher = colonPos > 0 ? userInfo.slice(0, colonPos).toLowerCase() : ''
+      if (colonPos > 0 && KNOWN_SS_CIPHERS.has(possibleCipher)) {
+        decoded = `${userInfo}@${serverPart}`
+      } else {
+        decoded = `${decodeBase64Utf8(userInfo)}@${serverPart}`
+      }
     } else {
       decoded = decodeBase64Utf8(decodedBase)
     }
@@ -138,14 +250,13 @@ export function parseShadowsocksUri(uri: string): SSProxy {
     'client-fingerprint': 'chrome',
     cipher: method,
     password: cleanPassword,
+    ...(udpOverTcp ? { 'udp-over-tcp': true } : {}),
+    ...(udpOverTcpVersion ? { 'udp-over-tcp-version': udpOverTcpVersion } : {}),
   }
 
-  if (pluginOpts.obfs) {
-    proxy.plugin = 'obfs'
-    proxy['plugin-opts'] = {
-      mode: pluginOpts.obfs || 'http',
-      ...(pluginOpts['obfs-host'] ? { host: pluginOpts['obfs-host'] } : {}),
-    }
+  if (parsedPlugin.plugin && parsedPlugin.pluginOpts) {
+    proxy.plugin = parsedPlugin.plugin
+    proxy['plugin-opts'] = parsedPlugin.pluginOpts
   }
 
   return proxy
@@ -155,17 +266,47 @@ export function validateShadowsocksProxy(proxy: Proxy): boolean {
   return proxy.type === 'ss' && Boolean(proxy.cipher && proxy.password)
 }
 
+function formatV2rayPluginOpts(opts: NonNullable<SSProxy['plugin-opts']>): string {
+  const parts: string[] = []
+  if (opts.mode) parts.push(`mode=${opts.mode}`)
+  if (opts.tls) parts.push('tls')
+  if (opts.host) parts.push(`host=${opts.host}`)
+  if (opts.path) parts.push(`path=${opts.path}`)
+  if (opts.mux) parts.push('mux=1')
+  return parts.join(';')
+}
+
 export function shadowsocksToUri(proxy: SSProxy): string {
   const userInfo = `${proxy['encrypt-method'] || proxy.cipher}:${proxy.password}`
   const encodedUserInfo = encodeBase64UrlUtf8(userInfo)
   let uri = `ss://${encodedUserInfo}@${formatHostForUri(proxy.server)}:${proxy.port}`
 
-  const obfsMode = proxy['plugin-opts']?.mode || proxy.obfs
-  const obfsHost = proxy['plugin-opts']?.host || proxy['obfs-host']
-  if (obfsMode) {
-    const pluginParts = ['obfs-local', `obfs=${obfsMode}`]
-    if (obfsHost) pluginParts.push(`obfs-host=${obfsHost}`)
-    uri += `/?plugin=${encodeURIComponent(pluginParts.join(';'))}`
+  const queryParts: string[] = []
+  if (proxy.plugin === 'v2ray-plugin' && proxy['plugin-opts']) {
+    const optsStr = formatV2rayPluginOpts(proxy['plugin-opts'])
+    queryParts.push(`plugin=${encodeURIComponent(`v2ray-plugin${optsStr ? `;${optsStr}` : ''}`)}`)
+  } else if (proxy.plugin === 'shadow-tls' && proxy['plugin-opts']) {
+    const p = ['shadow-tls']
+    if (proxy['plugin-opts'].host) p.push(`host=${proxy['plugin-opts'].host}`)
+    if (proxy['plugin-opts'].password) p.push(`password=${proxy['plugin-opts'].password}`)
+    if (proxy['plugin-opts'].version) p.push(`version=${proxy['plugin-opts'].version}`)
+    queryParts.push(`plugin=${encodeURIComponent(p.join(';'))}`)
+  } else {
+    const obfsMode = proxy['plugin-opts']?.mode || proxy.obfs
+    const obfsHost = proxy['plugin-opts']?.host || proxy['obfs-host']
+    if (obfsMode) {
+      const pluginParts = ['obfs-local', `obfs=${obfsMode}`]
+      if (obfsHost) pluginParts.push(`obfs-host=${obfsHost}`)
+      queryParts.push(`plugin=${encodeURIComponent(pluginParts.join(';'))}`)
+    }
+  }
+
+  if (proxy['udp-over-tcp']) {
+    queryParts.push('uot=1')
+  }
+
+  if (queryParts.length > 0) {
+    uri += `/?${queryParts.join('&')}`
   }
 
   if (proxy.name && proxy.name !== proxy.server) {
@@ -175,28 +316,70 @@ export function shadowsocksToUri(proxy: SSProxy): string {
   return uri
 }
 
-export function shadowsocksToSingboxOutbound(proxy: SSProxy): SingboxOutbound {
-  return {
+export function shadowsocksToClashProxy(proxy: SSProxy): Record<string, unknown> {
+  const cleaned = sanitizeBaseClashProxy(proxy)
+  if (!cleaned.cipher && typeof cleaned['encrypt-method'] === 'string') {
+    cleaned.cipher = cleaned['encrypt-method']
+  }
+  delete cleaned['encrypt-method']
+  return cleaned
+}
+
+export function shadowsocksToSingboxBundle(proxy: SSProxy): SingboxConversionBundle {
+  const multiplex = buildSingboxMultiplex(proxy.smux)
+  const outbound: SingboxOutbound = {
     type: 'shadowsocks',
     tag: proxy.name,
     server: proxy.server,
     server_port: parsePort(proxy.port),
     method: proxy['encrypt-method'] || proxy.cipher || 'aes-256-gcm',
     password: proxy.password || '',
-    ...(proxy.plugin === 'obfs' && proxy['plugin-opts']
+    ...(proxy.udp === false ? { network: 'tcp' } : {}),
+    ...(proxy.tfo ? { tcp_fast_open: true } : {}),
+    ...(proxy['udp-over-tcp']
       ? {
-          plugin: 'obfs-local',
-          plugin_opts: `obfs=${proxy['plugin-opts'].mode};obfs-host=${proxy['plugin-opts'].host || 'www.bing.com'}`,
+          udp_over_tcp: proxy['udp-over-tcp-version']
+            ? { enabled: true, version: proxy['udp-over-tcp-version'] }
+            : { enabled: true },
         }
       : {}),
-    ...(proxy.obfs
-      ? {
-          plugin: 'obfs-local',
-          plugin_opts: `obfs=${proxy.obfs};obfs-host=${proxy['obfs-host'] || 'www.bing.com'}`,
-        }
-      : {}),
+    ...(multiplex ? { multiplex } : {}),
     ...(proxy.detour ? { detour: proxy.detour } : {}),
   }
+
+  if (proxy.plugin === 'shadow-tls' && proxy['plugin-opts']) {
+    const stlsTag = `${proxy.name}-shadowtls`
+    const stlsOpts: ShadowTlsOptions = {
+      host: proxy['plugin-opts'].host,
+      password: proxy['plugin-opts'].password,
+      version: proxy['plugin-opts'].version || 3,
+      fingerprint: proxy['plugin-opts'].fingerprint,
+      'skip-cert-verify': proxy['plugin-opts']['skip-cert-verify'],
+      alpn: proxy['plugin-opts'].alpn,
+    }
+    const stlsOutbound = buildShadowTlsSingboxOutbound(proxy, stlsOpts, stlsTag)
+    outbound.detour = stlsTag
+    delete outbound.server
+    delete outbound.server_port
+    return { outbound, extraOutbounds: [stlsOutbound] }
+  }
+
+  if (proxy.plugin === 'v2ray-plugin' && proxy['plugin-opts']) {
+    outbound.plugin = 'v2ray-plugin'
+    outbound.plugin_opts = formatV2rayPluginOpts(proxy['plugin-opts'])
+  } else if (proxy.plugin === 'obfs' && proxy['plugin-opts']) {
+    outbound.plugin = 'obfs-local'
+    outbound.plugin_opts = `obfs=${proxy['plugin-opts'].mode || 'http'};obfs-host=${proxy['plugin-opts'].host || 'www.bing.com'}`
+  } else if (proxy.obfs) {
+    outbound.plugin = 'obfs-local'
+    outbound.plugin_opts = `obfs=${proxy.obfs};obfs-host=${proxy['obfs-host'] || 'www.bing.com'}`
+  }
+
+  return { outbound }
+}
+
+export function shadowsocksToSingboxOutbound(proxy: SSProxy): SingboxOutbound {
+  return shadowsocksToSingboxBundle(proxy).outbound!
 }
 
 export const shadowsocksCodec: ProtocolCodec<SSProxy> = {
@@ -205,5 +388,7 @@ export const shadowsocksCodec: ProtocolCodec<SSProxy> = {
   parse: parseShadowsocksUri,
   validate: validateShadowsocksProxy,
   toUri: shadowsocksToUri,
+  toClashProxy: shadowsocksToClashProxy,
   toSingboxOutbound: shadowsocksToSingboxOutbound,
+  toSingboxBundle: shadowsocksToSingboxBundle,
 }

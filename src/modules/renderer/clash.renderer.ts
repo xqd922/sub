@@ -1,4 +1,5 @@
 import yaml from 'js-yaml'
+import { proxyToClashProxy } from '@/modules/proxy/proxy.registry'
 import type { Proxy } from '@/modules/proxy/proxy.types'
 import { CLASH_BASE_CONFIG } from '@/modules/renderer/clash.rules'
 import type { ProxyGroup } from '@/modules/renderer/renderer.types'
@@ -10,7 +11,7 @@ const URL_TEST_DEFAULTS = {
   lazy: true,
 } as const
 
-export function buildClashProxyGroups(proxies: Proxy[]): ProxyGroup[] {
+export function buildClashProxyGroups(proxies: Array<{ name: string }>): ProxyGroup[] {
   const proxyNames = proxies.map((proxy) => proxy.name)
   const hkProxies = proxyNames.filter((name) => /香港|HK|Hong Kong|HKG/i.test(name))
   const minProxies = proxyNames.filter((name) => /0\.[0-3](?:[0-9]*)?/.test(name))
@@ -70,19 +71,31 @@ export function buildClashProxyGroups(proxies: Proxy[]): ProxyGroup[] {
 }
 
 export function renderClashConfig(proxies: Proxy[]): string {
-  const clashProxies: Proxy[] = proxies.map((proxy) => {
-    const { detour: _omitted, ...rest } = proxy
-    void _omitted
-    if (rest.type === 'socks') {
-      return { ...rest, type: 'socks5' } as Proxy
+  const converted = proxies
+    .map((proxy) => proxyToClashProxy(proxy))
+    .filter((item): item is Record<string, unknown> => item !== null)
+
+  if (converted.length === 0) {
+    throw new Error('无法生成 Clash / Mihomo 配置：没有兼容的代理节点')
+  }
+
+  const validNames = new Set(converted.map((item) => String(item.name || '')))
+  const clashProxies = converted.map((item) => {
+    const dialer = item['dialer-proxy']
+    if (typeof dialer === 'string' && !validNames.has(dialer)) {
+      const copy = { ...item }
+      delete copy['dialer-proxy']
+      return copy
     }
-    return rest as Proxy
+    return item
   })
 
   const clashConfig = {
     ...CLASH_BASE_CONFIG,
     proxies: clashProxies,
-    'proxy-groups': buildClashProxyGroups(clashProxies),
+    'proxy-groups': buildClashProxyGroups(
+      clashProxies.map((item) => ({ name: String(item.name || '') })),
+    ),
   }
 
   const dumped = yaml.dump(clashConfig, {

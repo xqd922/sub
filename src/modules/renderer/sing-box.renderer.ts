@@ -1,52 +1,105 @@
-import { proxyToSingboxOutbound } from '@/modules/proxy/proxy.registry'
-import type { Proxy, SingboxOutbound } from '@/modules/proxy/proxy.types'
+import { proxyToSingboxBundle } from '@/modules/proxy/proxy.registry'
+import type { Proxy, SingboxEndpoint, SingboxOutbound } from '@/modules/proxy/proxy.types'
 import { SINGBOX_STATIC_SECTIONS } from '@/modules/renderer/sing-box.rules'
 
 const RESERVED_OUTBOUND_TAGS = new Set(['Auto', 'Manual', 'direct'])
 
-function makeOutboundTagsUnique(outbounds: SingboxOutbound[]): SingboxOutbound[] {
-  const usedTags = new Set(RESERVED_OUTBOUND_TAGS)
-  const firstTagByOriginalTag = new Map<string, string>()
+function allocateUniqueTag(usedTags: Set<string>, baseTag: string): string {
+  let candidate = baseTag
+  let suffix = 2
+  while (usedTags.has(candidate)) {
+    candidate = `${baseTag} (${suffix++})`
+  }
+  usedTags.add(candidate)
+  return candidate
+}
 
-  const uniqueOutbounds = outbounds.map((outbound, index) => {
-    const originalTag = outbound.tag || `Proxy ${index + 1}`
-    let uniqueTag = originalTag
-    let suffix = 2
-
-    while (usedTags.has(uniqueTag)) {
-      uniqueTag = `${originalTag} (${suffix++})`
-    }
-
-    usedTags.add(uniqueTag)
-    if (!firstTagByOriginalTag.has(originalTag)) {
-      firstTagByOriginalTag.set(originalTag, uniqueTag)
-    }
-
-    return uniqueTag === outbound.tag ? outbound : { ...outbound, tag: uniqueTag }
-  })
-
-  return uniqueOutbounds.map((outbound) => {
-    const detour = outbound.detour
-    if (typeof detour !== 'string' || RESERVED_OUTBOUND_TAGS.has(detour)) {
-      return outbound
-    }
-
-    const mappedDetour = firstTagByOriginalTag.get(detour)
-    return mappedDetour && mappedDetour !== detour ? { ...outbound, detour: mappedDetour } : outbound
-  })
+function remapDetourTag(
+  detour: unknown,
+  tagMap: Map<string, string>,
+): string | undefined {
+  if (typeof detour !== 'string' || !detour) return undefined
+  if (RESERVED_OUTBOUND_TAGS.has(detour)) return detour
+  return tagMap.get(detour) ?? detour
 }
 
 export function buildSingboxConfig(proxies: Proxy[]) {
-  const convertedOutbounds = proxies
-    .map((proxy) => proxyToSingboxOutbound(proxy))
-    .filter((outbound): outbound is SingboxOutbound => outbound !== null)
+  const usedTags = new Set(RESERVED_OUTBOUND_TAGS)
+  const firstTagByOriginalTag = new Map<string, string>()
 
-  if (convertedOutbounds.length === 0) {
+  const userOutbounds: SingboxOutbound[] = []
+  const extraOutbounds: SingboxOutbound[] = []
+  const endpoints: SingboxEndpoint[] = []
+  const selectableTags: string[] = []
+
+  proxies.forEach((proxy, index) => {
+    const bundle = proxyToSingboxBundle(proxy)
+    if (!bundle) return
+
+    // 先为附属前置出站（例如 shadowtls detour）分配不冲突 tag，并建立局部映射
+    const localExtraTagMap = new Map<string, string>()
+    if (bundle.extraOutbounds?.length) {
+      for (const extra of bundle.extraOutbounds) {
+        const originalExtraTag = extra.tag || `Helper ${index + 1}`
+        const uniqueExtraTag = allocateUniqueTag(usedTags, originalExtraTag)
+        localExtraTagMap.set(originalExtraTag, uniqueExtraTag)
+        extraOutbounds.push(
+          uniqueExtraTag === extra.tag ? extra : { ...extra, tag: uniqueExtraTag },
+        )
+      }
+    }
+
+    if (bundle.outbound) {
+      const originalTag = bundle.outbound.tag || `Proxy ${index + 1}`
+      const uniqueTag = allocateUniqueTag(usedTags, originalTag)
+      if (!firstTagByOriginalTag.has(originalTag)) {
+        firstTagByOriginalTag.set(originalTag, uniqueTag)
+      }
+      const nextDetour =
+        typeof bundle.outbound.detour === 'string'
+          ? localExtraTagMap.get(bundle.outbound.detour) ?? bundle.outbound.detour
+          : bundle.outbound.detour
+      userOutbounds.push({
+        ...bundle.outbound,
+        tag: uniqueTag,
+        ...(nextDetour ? { detour: nextDetour } : {}),
+      })
+      selectableTags.push(uniqueTag)
+    }
+
+    if (bundle.endpoint) {
+      const originalTag = bundle.endpoint.tag || `Endpoint ${index + 1}`
+      const uniqueTag = allocateUniqueTag(usedTags, originalTag)
+      if (!firstTagByOriginalTag.has(originalTag)) {
+        firstTagByOriginalTag.set(originalTag, uniqueTag)
+      }
+      endpoints.push({
+        ...bundle.endpoint,
+        tag: uniqueTag,
+      })
+      selectableTags.push(uniqueTag)
+    }
+  })
+
+  if (selectableTags.length === 0) {
     throw new Error('无法生成 sing-box 配置：没有可用的代理节点')
   }
 
-  const validOutbounds = makeOutboundTagsUnique(convertedOutbounds)
-  const outboundTags = validOutbounds.map((outbound) => outbound.tag)
+  // 解析用户出站与附属出站之间引用其他用户节点时的 detour tag 重命名
+  const finalizeOutbound = (ob: SingboxOutbound): SingboxOutbound => {
+    const mapped = remapDetourTag(ob.detour, firstTagByOriginalTag)
+    return mapped && mapped !== ob.detour ? { ...ob, detour: mapped } : ob
+  }
+
+  const finalOutbounds = [
+    ...userOutbounds.map(finalizeOutbound),
+    ...extraOutbounds.map(finalizeOutbound),
+  ]
+
+  const finalEndpoints = endpoints.map((ep) => {
+    const mapped = remapDetourTag(ep.detour, firstTagByOriginalTag)
+    return mapped && mapped !== ep.detour ? { ...ep, detour: mapped } : ep
+  })
 
   return {
     $schema: SINGBOX_STATIC_SECTIONS.$schema,
@@ -54,19 +107,20 @@ export function buildSingboxConfig(proxies: Proxy[]) {
     http_clients: SINGBOX_STATIC_SECTIONS.http_clients,
     dns: SINGBOX_STATIC_SECTIONS.dns,
     inbounds: SINGBOX_STATIC_SECTIONS.inbounds,
+    ...(finalEndpoints.length > 0 ? { endpoints: finalEndpoints } : {}),
     outbounds: [
-      ...validOutbounds,
+      ...finalOutbounds,
       {
         type: 'selector',
         tag: 'Manual',
-        outbounds: ['Auto', ...outboundTags],
+        outbounds: ['Auto', ...selectableTags],
         default: 'Auto',
         interrupt_exist_connections: true,
       },
       {
         type: 'urltest',
         tag: 'Auto',
-        outbounds: outboundTags,
+        outbounds: selectableTags,
         url: 'https://www.gstatic.com/generate_204',
         interval: '300s',
         tolerance: 50,
