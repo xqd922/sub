@@ -1,5 +1,5 @@
-﻿import HomeContent from '@/components/home'
+﻿import { ConverterPage } from '@/features/converter/components/converter-page'
 
-export default function Home() {
-  return <HomeContent />
+export default function HomePage() {
+  return <ConverterPage />
 }

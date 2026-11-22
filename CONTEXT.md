@@ -1,54 +1,22 @@
-﻿# Subscription Conversion
+﻿# Subscription Conversion Domain Context
 
-This context names the subscription conversion domain: it accepts proxy subscription inputs and emits client-ready configuration outputs.
+This codebase implements a proxy subscription conversion platform and short-link console running on Next.js 16 (Cloudflare Pages Edge Runtime + Cloudflare KV).
 
-## Language
+## Ubiquitous Language
 
-**Subscription**:
-A source of proxy nodes. It can be a remote subscription URL, a single proxy URI, or a mixed remote list.
-_Avoid_: feed, source link
+- **Subscription**: A proxy node source — remote subscription URL, single proxy URI, or mixed Gist node list.
+- **Proxy Node (`Proxy`)**: Normalized protocol-specific proxy model (`ss`, `vmess`, `trojan`, `vless`, `hysteria2`, `socks5`, `anytls`, `snell`).
+- **Codec (`ProtocolCodec`)**: Self-contained protocol implementation encapsulating URI prefixes, parser, validator, URI serializer, and Sing-box outbound builder.
+- **Renderer**: Pure client configuration generator targeting Clash YAML, sing-box JSON, v2rayNG Base64, or browser HTML preview.
+- **Convert Record**: Persisted KV record tracking subscription usage, status (enabled/disabled), node count, and daily hit statistics.
+- **Short Link**: Compact `/s/[id]` URL resolving through KV or fallback external shorteners back to a conversion URL.
 
-**Proxy Node**:
-One usable proxy endpoint with protocol-specific connection data.
-_Avoid_: server, item
+## Architecture Boundaries
 
-**Conversion**:
-The act of turning a Subscription into a client-ready configuration response.
-_Avoid_: processing, transform job
-
-**Client Configuration**:
-The rendered output consumed by Clash, sing-box, v2rayNG-compatible clients, or the browser preview.
-_Avoid_: config blob, generated file
-
-**Short Link**:
-A stable compact URL that resolves back to a Subscription or Conversion URL.
-_Avoid_: alias, redirect record
-
-## Directory map (post-refactor)
-
-The codebase is grouped by responsibility under `src/`:
-
-- `protocols/`        — One file per proxy protocol parser + shared `types.ts` + the `index.ts` barrel (`parseProxyUri` / `proxyToUri` / `proxyToSingboxOutbound` / etc).
-- `templates/`        — Client configuration generators: `clash.ts`, `sing-box.ts`, `preview.ts`, plus `types.ts`.
-- `conversion/`       — The pipeline that turns a Subscription into proxies, formats them, and renders the client response:
-  - `subscription.ts`      — main entry, picks Gist/single-node/regular-subscription flows
-  - `parse-subscription.ts`— low-level parsing helpers
-  - `remote-nodes.ts`      — Gist remote-node handling
-  - `proxy-format.ts`, `proxy-dedup.ts`, `region.ts` — proxy presentation/identity helpers
-  - `response.ts`, `handler.ts` — outgoing response assembly + /sub HTTP handler
-- `links/`            — `service.ts` multi-provider short-link generation.
-- `auth/`             — `password.ts`, `session.ts`, `guard.ts`, `login-log.ts`; admin session cookie helpers.
-- `infra/`            — Everything below the business domain:
-  - `logger.ts`, `error.ts`, `error-reporter.ts`
-  - `network.ts` (fetchWithRetry, UA rotation)
-  - `utils.ts`, `client.ts` (client-type detection), `url-rules.ts`
-  - `kv/` — `adapter.ts` (LocalKV/RemoteKV), `store.ts` (env-aware factory), `operations.ts`, `records.ts`, `short_link.ts`, `maintenance.ts`, `types.ts`, `index.ts` (barrel).
-- `components/`       — All React UI components and their hooks (these are client code; nothing in here should reach into `infra/*` or below).
-
-Cross-cutting rules:
-- `infra` is the bottom layer; nothing above imports *lower* than `infra` except `app`.
-- `protocols` never touches `infra` except `logger`.
-- `templates` depends only on `protocols` and `lib`-style helpers.
-- `conversion` orchestrates `protocols` + `templates` + `infra` — it owns the /sub pipeline.
-- `links` is the short-link domain (KV-backed).
-- `components/*` are React/Tailwind UI pieces. Hooks live alongside components, not in a separate `hooks/`.
+- `src/shared/` — Pure client/server-safe DTO types and stateless utilities (Web-API Base64, URL helpers, formatting).
+- `src/server/` — Runtime platform primitives (centralized env config, structured errors, sanitizing logger, retry HTTP client, route utilities, KV adapter).
+- `src/modules/` — High-cohesion server domains (`proxy`, `renderer`, `subscription`, `record`, `short-link`, `admin-auth`) with strict one-way dependencies.
+- `src/features/` — Client UI sliced by product surface (`shared`, `converter`, `admin`). Never imports from `src/server/` or `src/modules/`.
+- `src/components/` — Source-owned BoardUI design system primitives only (`base`, `application`, `foundations`).
+- `src/app/` — Thin Next.js App Router pages and Edge route handlers.
+- `tests/` — Vitest unit tests mirroring `src/` one-to-one.

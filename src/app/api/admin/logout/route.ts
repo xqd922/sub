@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { serializeClearedSessionCookie } from '@/auth/session'
+import { serializeClearedSessionCookie } from '@/modules/admin-auth/session.service'
 
 export const runtime = 'edge'
 

@@ -1,76 +1,48 @@
-﻿import { NextResponse } from 'next/server'
-import { AppError, ErrorCode, ErrorSeverity } from '@/infra/error'
-import { requireAdmin } from '@/auth/guard'
-import { listAllRecordsForAdmin, createRecordManually, setRecordEnabled, deleteRecordPermanently } from '@/infra/kv/records'
-import { logger } from '@/infra/logger'
+﻿import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
+import {
+  createRecordManually,
+  deleteRecordPermanently,
+  listAllRecordsForAdmin,
+  setRecordEnabled,
+} from '@/modules/record/record.repository'
+import { AppError } from '@/server/errors/app-error'
+import { jsonOk, parseJsonBody } from '@/server/http/route.utils'
+import { isValidUrl } from '@/shared/utils/url.utils'
 
 export const runtime = 'edge'
 
-async function parseJsonBody<T>(request: Request): Promise<T | null> {
-  try {
-    return await request.json()
-  } catch {
-    return null
-  }
-}
+export const GET = withAdminAuth('获取转换记录', async () => {
+  const records = await listAllRecordsForAdmin()
+  return jsonOk({ records })
+})
 
-export async function GET(request: Request) {
-  const denied = await requireAdmin(request)
-  if (denied) {
-    return NextResponse.json(denied.toResponse(), { status: denied.statusCode })
-  }
-
-  try {
-    const records = await listAllRecordsForAdmin()
-    return NextResponse.json({ success: true, records })
-  } catch (error) {
-    logger.error('[Admin] 获取转换记录失败:', error)
-    return NextResponse.json(AppError.fromError(error as Error).toResponse(), { status: 500 })
-  }
-}
-
-export async function POST(request: Request) {
-  const denied = await requireAdmin(request)
-  if (denied) {
-    return NextResponse.json(denied.toResponse(), { status: denied.statusCode })
-  }
-
+export const POST = withAdminAuth('登记订阅', async (request) => {
   const body = await parseJsonBody<{ url?: string; name?: string }>(request)
   if (!body?.url || typeof body.url !== 'string') {
-    return NextResponse.json(AppError.validation('请提供订阅链接', 'url').toResponse(), { status: 400 })
+    throw AppError.validation('请提供订阅链接', 'url')
+  }
+  if (!isValidUrl(body.url)) {
+    throw AppError.validation('订阅链接格式不正确', 'url', body.url)
   }
 
-  try {
-    new URL(body.url)
-  } catch {
-    return NextResponse.json(AppError.validation('订阅链接格式不正确', 'url', body.url).toResponse(), { status: 400 })
+  const record = await createRecordManually(body.url, body.name)
+  if (!record) {
+    throw AppError.serviceUnavailable('存储不可用，无法登记订阅')
   }
+  return jsonOk({ record })
+})
 
-  try {
-    const record = await createRecordManually(body.url, body.name)
-    if (!record) {
-      const error = new AppError(ErrorCode.UNKNOWN_ERROR, '存储不可用，无法登记订阅', 503, ErrorSeverity.MEDIUM)
-      return NextResponse.json(error.toResponse(), { status: 503 })
-    }
-    return NextResponse.json({ success: true, record })
-  } catch (error) {
-    logger.error('[Admin] 登记订阅失败:', error)
-    return NextResponse.json(AppError.fromError(error as Error).toResponse(), { status: 500 })
-  }
-}
-
-export async function PATCH(request: Request) {
-  const denied = await requireAdmin(request)
-  if (denied) {
-    return NextResponse.json(denied.toResponse(), { status: denied.statusCode })
-  }
-
-  const body = await parseJsonBody<{ ids?: string[]; action?: string }>(request)
-  if (!Array.isArray(body?.ids) || body.ids.length === 0 || typeof body.ids[0] !== 'string') {
-    return NextResponse.json(AppError.validation('请提供要操作的记录 ID 列表', 'ids').toResponse(), { status: 400 })
+export const PATCH = withAdminAuth('批量更新记录', async (request) => {
+  const body = await parseJsonBody<{ ids?: unknown[]; action?: string }>(request)
+  if (
+    !Array.isArray(body?.ids) ||
+    body.ids.length === 0 ||
+    !body.ids.every((id): id is string => typeof id === 'string')
+  ) {
+    throw AppError.validation('请提供要操作的记录 ID 列表', 'ids')
   }
   if (body.action !== 'enable' && body.action !== 'disable') {
-    return NextResponse.json(AppError.validation('action 仅支持 enable 或 disable', 'action').toResponse(), { status: 400 })
+    throw AppError.validation('action 仅支持 enable 或 disable', 'action')
   }
 
   const enabled = body.action === 'enable'
@@ -79,25 +51,21 @@ export async function PATCH(request: Request) {
 
   for (const id of body.ids) {
     const record = await setRecordEnabled(id, enabled)
-    if (record) {
-      succeeded.push(id)
-    } else {
-      failed.push(id)
-    }
+    if (record) succeeded.push(id)
+    else failed.push(id)
   }
 
-  return NextResponse.json({ success: true, succeeded, failed })
-}
+  return jsonOk({ succeeded, failed })
+})
 
-export async function DELETE(request: Request) {
-  const denied = await requireAdmin(request)
-  if (denied) {
-    return NextResponse.json(denied.toResponse(), { status: denied.statusCode })
-  }
-
-  const body = await parseJsonBody<{ ids?: string[] }>(request)
-  if (!Array.isArray(body?.ids) || body.ids.length === 0 || typeof body.ids[0] !== 'string') {
-    return NextResponse.json(AppError.validation('请提供要删除的记录 ID 列表', 'ids').toResponse(), { status: 400 })
+export const DELETE = withAdminAuth('批量删除记录', async (request) => {
+  const body = await parseJsonBody<{ ids?: unknown[] }>(request)
+  if (
+    !Array.isArray(body?.ids) ||
+    body.ids.length === 0 ||
+    !body.ids.every((id): id is string => typeof id === 'string')
+  ) {
+    throw AppError.validation('请提供要删除的记录 ID 列表', 'ids')
   }
 
   const succeeded: string[] = []
@@ -105,12 +73,9 @@ export async function DELETE(request: Request) {
 
   for (const id of body.ids) {
     const deleted = await deleteRecordPermanently(id)
-    if (deleted) {
-      succeeded.push(id)
-    } else {
-      failed.push(id)
-    }
+    if (deleted) succeeded.push(id)
+    else failed.push(id)
   }
 
-  return NextResponse.json({ success: true, succeeded, failed })
-}
+  return jsonOk({ succeeded, failed })
+})

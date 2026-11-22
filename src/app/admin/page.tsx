@@ -1,5 +1,5 @@
-﻿import AdminDashboard from '@/components/admin-dashboard'
+﻿import { AdminConsole } from '@/features/admin/components/admin-console'
 
 export default function AdminPage() {
-  return <AdminDashboard />
+  return <AdminConsole />
 }

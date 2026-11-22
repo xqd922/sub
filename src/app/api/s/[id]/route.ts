@@ -1,7 +1,4 @@
-﻿import { resolveShortLink } from '@/infra/kv/short_link'
-import { handleRequest } from '@/conversion/handler'
-import { logger } from '@/infra/logger'
-import { NextResponse } from 'next/server'
+﻿import { handleShortLinkRedirect } from '@/modules/short-link/short-link.handler'
 
 export const runtime = 'edge'
 
@@ -11,25 +8,5 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params
-
-  if (!id || id.length < 4) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  try {
-    const targetUrl = await resolveShortLink(id)
-
-    if (!targetUrl) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    const url = new URL(request.url)
-    url.pathname = '/sub'
-    url.searchParams.set('url', targetUrl)
-
-    return handleRequest(new Request(url.toString(), request))
-  } catch (error) {
-    logger.error('[ShortLink] 处理失败:', error)
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+  return handleShortLinkRedirect(request, id)
 }

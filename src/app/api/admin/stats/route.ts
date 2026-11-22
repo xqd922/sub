@@ -1,22 +1,10 @@
-﻿import { NextResponse } from 'next/server'
-import { AppError } from '@/infra/error'
-import { requireAdmin } from '@/auth/guard'
-import { getStats, getRecentDailyStats } from '@/infra/kv/records'
-import { logger } from '@/infra/logger'
+﻿import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
+import { getRecentDailyStats, getStats } from '@/modules/record/record.repository'
+import { jsonOk } from '@/server/http/route.utils'
 
 export const runtime = 'edge'
 
-export async function GET(request: Request) {
-  const denied = await requireAdmin(request)
-  if (denied) {
-    return NextResponse.json(denied.toResponse(), { status: denied.statusCode })
-  }
-
-  try {
-    const [stats, daily] = await Promise.all([getStats(), getRecentDailyStats(30)])
-    return NextResponse.json({ success: true, stats, daily })
-  } catch (error) {
-    logger.error('[Admin] 获取统计失败:', error)
-    return NextResponse.json(AppError.fromError(error as Error).toResponse(), { status: 500 })
-  }
-}
+export const GET = withAdminAuth('获取统计', async () => {
+  const [stats, daily] = await Promise.all([getStats(), getRecentDailyStats(30)])
+  return jsonOk({ stats, daily })
+})

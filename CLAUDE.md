@@ -1,142 +1,109 @@
-# 项目说明
+# 项目架构与开发指南
 
-代理订阅转换工具，基于 Next.js 构建，部署到 Cloudflare Pages。用户输入代理订阅链接，解析为统一节点格式，输出 Clash / Sing-box 等客户端配置。
+代理订阅转换与短链管理服务，基于 Next.js 16 (App Router) + TypeScript 5 + React 19 + Tailwind CSS 4 + BoardUI，通过 Cloudflare Pages Edge Runtime 与 Cloudflare KV 运行。
 
-## 技术栈
+## 目录结构
 
-- Next.js 16 (App Router) + TypeScript 5.9 + React 19
-- Tailwind CSS 4
-- Bun 1.3 作为包管理器和运行时
-- Cloudflare Pages (open-next) 部署，Cloudflare KV 存储
-
-## 目录结构（重构后）
-
-```
-src/                          全部源码
-├── app/                      Next.js App Router（公开 URL 不变）
-│   ├── api/                  API 路由（全部 Edge Runtime）
-│   │   ├── sub/route.ts            订阅转换
-│   │   ├── shorten/route.ts        短链接生成
-│   │   ├── s/[id]/route.ts         短链跳转
-│   │   └── admin/                  后台管理 API（login/logout/session/stats/records/short-links/system）
-│   ├── sub/route.ts          订阅转换入口（/sub）
-│   ├── s/[id]/route.ts       短链跳转入口（/s/[id]）
-│   ├── page.tsx              首页（/）
-│   ├── admin/page.tsx        后台管理面板（/admin）
-│   ├── layout.tsx            根布局
-│   ├── globals.css
-│   └── favicon.ico
-├── protocols/                协议解析器（SS/Vmess/Trojan/VLESS/Hysteria2/SOCKS/AnyTLS/Snell）
-│   ├── shadowsocks.ts
-│   ├── vmess.ts / trojan.ts / vless.ts / hysteria2.ts / socks.ts / anytls.ts / snell.ts
-│   ├── model.ts              节点模型：BaseProxy + 8 个协议专属 interface + Proxy 联合类型 + isClashProxy
-│   └── index.ts              分发器：parseProxyUri / proxyToUri / proxyToSingboxOutbound / generateBase64Subscription
-├── templates/                客户端配置生成
-│   ├── clash.ts              Clash YAML + generateClashConfig + generateProxyGroups
-│   ├── sing-box.ts           Sing-box JSON
-│   ├── preview.ts            预览 HTML 样式
-│   └── schema.ts             输出 schema：ClashConfig / Singbox*Config / ProxyGroup / RuleProvider / YamlSubscription
-├── conversion/               订阅 → 配置转换流水线
-│   ├── subscription.ts       processSubscription（Gist / 单节点 / 常规订阅）
-│   ├── parse-subscription.ts 低层解析（含大小限制）
-│   ├── remote-nodes.ts       Gist 远程节点合并 + 命名冲突处理
-│   ├── proxy-format.ts       节点名称格式化（地区/国旗）
-│   ├── proxy-dedup.ts        节点去重
-│   ├── region.ts             地区检测 & 国旗 & 多城市国家映射
-│   ├── response.ts           响应组装 + Content-Type / headers / 日志统计
-│   └── handler.ts            /sub HTTP 编排：鉴权、日志、KV 记录、错误响应
-├── links/
-│   └── service.ts            多 provider 短链接生成
-├── auth/
-│   ├── password.ts           管理员 cookie session（HMAC，Web Crypto）
-│   ├── session.ts            会话 token + cookie 序列化
-│   ├── guard.ts              requireAdmin 守卫 + 登录限速
-│   └── login-log.ts          登录审计（写 KV）
-├── infra/                    基础设施（和业务解耦）
-│   ├── logger.ts             日志（生产环境脱敏）
-│   ├── error.ts              AppError + ErrorFactory
-│   ├── error-reporter.ts     handleError / createErrorResponse
-│   ├── network.ts            fetchWithRetry + UA 轮换 + 各类 fetch 封装
-│   ├── utils.ts              parsePort / extractNameFromUrl / formatBytes
-│   ├── client.ts             detectClientType（User-Agent → clash/singbox/v2rayng/browser）
-│   ├── url-rules.ts          isProtocolUrl / isGistUrl / shouldFormatNodeNames
-│   └── kv/
-│       ├── adapter.ts        KVStoreAdapter 接口 + RemoteKVStore + LocalKVStore
-│       ├── store.ts          getKV() 环境选择（开发用 LocalKV，CF Pages 用 LINKS_KV）
-│       ├── operations.ts     底层读写 + 前缀扫描列举
-│       ├── records.ts        转换记录 + 统计
-│       ├── short_link.ts     短链接存储
-│       ├── maintenance.ts    pingKV + rebuildIndexes
-│       └── types.ts          ConvertRecord / ShortLink / StatsData / DailyStats / KV_PREFIX
-└── components/               前端 UI（client components + hooks）
-    ├── home.tsx / copy-button.tsx / url-input.tsx / short-link.tsx / toast.tsx / error-boundary.tsx / qr-code.tsx
-    ├── admin-dashboard.tsx / admin-login.tsx / admin-stats.tsx / admin-records.tsx / admin-short-links.tsx / admin-system.tsx / admin-tools.tsx
-    └── hooks（use-convert / use-short-link / use-toast / use-clipboard / use-admin-session / use-admin-data）
-
-tests/
-├── protocols/                协议解析测试（ss / vmess）
-├── conversion/               dedup / region / response / subscription
-├── infra/                    utils / kv-admin-flow
-└── auth-session.test.ts      session cookie 序列化
+```text
+src/
+├── app/                          Next.js App Router（公开 URL 保持稳定，零业务逻辑）
+│   ├── page.tsx                  首页（/）
+│   ├── admin/page.tsx            后台控制台（/admin）
+│   ├── sub/route.ts              订阅转换入口（/sub）
+│   ├── s/[id]/route.ts           短链跳转入口（/s/[id]）
+│   └── api/
+│       ├── shorten/route.ts      短链生成（POST / GET）
+│       ├── s/[id]/route.ts       短链跳转 API 兼容入口
+│       └── admin/                后台管理 API（login / logout / session / stats / records / short-links / system）
+├── components/                   BoardUI 设计系统组件（base / application / foundations）
+├── features/                     客户端功能模块（严禁导入 server/ 或 modules/）
+│   ├── shared/                   app-toaster / app-error-boundary / qr-code-modal / hooks
+│   ├── converter/                首页转换 UI 与 hooks
+│   └── admin/                    后台控制台（api client / hooks / stats / records / short-links / tools / system）
+├── modules/                      服务端领域模块（高内聚、严格单向依赖）
+│   ├── proxy/
+│   │   ├── proxy.types.ts        8 协议 Proxy 联合类型 + ProtocolCodec 接口 + SingboxOutbound
+│   │   ├── proxy.registry.ts     协议统一注册表（解析 / 校验 / URI 序列化 / Sing-box 出站转换）
+│   │   └── codecs/               shadowsocks / vmess / trojan / vless / hysteria2 / socks / anytls / snell + codec.utils.ts
+│   ├── renderer/
+│   │   ├── renderer.types.ts     ClientType / ClashConfig / ProxyGroup / RuleProvider / YamlSubscription
+│   │   ├── client-detector.ts    User-Agent → clash / singbox / v2rayng / browser
+│   │   ├── clash/                clash.rules.ts（静态规则） + clash.renderer.ts（策略组与 YAML 输出）
+│   │   ├── sing-box/             sing-box.rules.ts（1.14 规则模板） + sing-box.renderer.ts
+│   │   ├── v2ray/                v2ray.renderer.ts（Base64 订阅输出）
+│   │   └── preview/              preview.styles.ts + preview.renderer.ts（浏览器 HTML 预览）
+│   ├── subscription/
+│   │   ├── subscription.types.ts SubscriptionInfo 与渲染响应类型
+│   │   ├── region.catalog.ts     国家/地区识别与国旗映射
+│   │   ├── proxy-dedup.ts        信息节点过滤、无效地址过滤、节点去重
+│   │   ├── proxy-namer.ts        节点重命名格式化（国旗 / 地区 / IPv6 / 倍率）
+│   │   ├── subscription.parser.ts YAML / 明文 URI / Base64 订阅解析（10MB 限制）
+│   │   ├── remote-nodes.fetcher.ts Gist 混合订阅与链式代理（dialer-proxy / detour / chain）
+│   │   ├── subscription.service.ts 订阅拉取与元数据提取
+│   │   ├── response.builder.ts   响应组装与客户端 Header 构建
+│   │   └── conversion.handler.ts /sub HTTP 请求编排
+│   ├── record/
+│   │   ├── record.repository.ts  转换记录与每日统计 KV 仓储
+│   │   └── index-maintenance.service.ts KV 记录与短链索引重建
+│   ├── short-link/
+│   │   ├── short-link.repository.ts KV 短链仓储
+│   │   ├── short-link.service.ts 多 Provider 短链降级链（KV → TinyURL → Sink → Bitly → Cuttly）
+│   │   └── short-link.handler.ts /s/[id] 与 /api/shorten HTTP 处理
+│   └── admin-auth/
+│       ├── session.service.ts    HMAC-SHA256 会话令牌 + Cookie + 恒定时间凭据校验
+│       ├── rate-limit.service.ts IP 登录失败滑动窗口限速
+│       ├── login-audit.repository.ts 登录审计 KV 仓储
+│       └── admin.guard.ts        requireAdmin + withAdminAuth 路由包装器
+├── server/                       服务端基础设施（无业务逻辑）
+│   ├── config/env.config.ts      全项目环境变量与默认配置唯一入口
+│   ├── errors/                   app-error.ts + error-handler.ts
+│   ├── logger/logger.ts          生产环境自动脱敏日志
+│   ├── http/                     fetch.client.ts（超时与重试） + route.utils.ts（JSON / IP / Context）
+│   └── kv/                       kv.types.ts（KV_KEYS 唯一常量） + kv.adapter.ts + kv.client.ts
+├── shared/                       前后端共享纯模块（无服务端依赖）
+│   ├── types/admin.types.ts      后台与 API 共享 DTO 类型
+│   └── utils/                    base64.utils.ts（纯 Web API）/ url.utils.ts / format.utils.ts
+├── styles/                       BoardUI CSS（globals.css / theme.css / typography.css）
+└── utils/                        BoardUI 工具（cx.ts 等）
 ```
 
-## 依赖方向（严格单向，无循环）
+## 依赖方向约束（严禁倒挂或循环）
 
+```text
+shared/  ─────────────────────────────────────────────┐
+   ▲                                                  │
+server/  (config / errors / logger / http / kv)       │
+   ▲                                                  │
+modules/                                              │
+   ├── proxy/         (只依赖 shared + server/logger) │
+   ├── renderer/      (只依赖 modules/proxy + shared) │
+   ├── record/        (依赖 server/kv + shared)       │
+   ├── short-link/    (依赖 server + shared)          │
+   ├── admin-auth/    (依赖 server + shared)          │
+   └── subscription/  (编排 proxy + renderer + record)│
+   ▲                                                  │
+app/  (只装配 modules/ 与 features/)                   │
+                                                      │
+components/ (BoardUI) ◄── features/ ◄─────────────────┘
+(客户端目录禁止导入任何 server/ 或 modules/ 代码)
 ```
-infra/  ──logger/error/network/utils/client/url-rules──┐
-                                                        │
-protocols/  ──depends on infra.logger only─────────────┤
-                                                        │
-templates/  ──depends on protocols + infra─────────────┤
-                                                        ▼
-conversion/ ──组合 protocols + templates + infra───►  /sub handler
-                                                        │
-links/      ──infra.kv + infra.network─────────────────┤
-                                                        │
-auth/       ──infra.kv + infra.error + infra.logger────┤
-                                                        │
-components/ ──React UI，无后端依赖──────────────────────┘
-                                                        │
-app/        ──只调用 conversion / links / auth + Next.js route plumbing
-```
 
-## 命名规范（重构后统一）
+## 命名与编码约定
 
-- **文件名与目录**：全部 `kebab-case`（例如 `short-link.ts`、`admin-dashboard.tsx`、`use-admin-session.ts`），不再混进 `snake_case`/`PascalCase`。
-- **目录**：全小写、单词完整或通用缩写；`kv/` 仍是公认缩写。
-- **React 组件文件**：用 kebab-case，内部导出的函数名仍可用 PascalCase 以匹配 `<AdminDashboard />`。
-- **函数**：camelCase 动词开头；**类型**：PascalCase。
-- **路径别名**：`@/*` → `./src/*`。
-
-## 开发约定
-
-- **纯函数优先**：函数 + 模块导出，不用 class + static method。
-- **Edge Runtime**：`src/app/api/**` 全部用 Edge Runtime。
-- **协议解析器接口**（`src/protocols/*.ts`）：每个协议导出统一的三个函数
-  - `parse(uri)` — 解析 URI 为 `Proxy`
-  - `toUri(node)` — `Proxy` 转回 URI
-  - `toSingboxOutbound(node)` — `Proxy` → Sing-box outbound 对象
-- **类型跟着领域走**：每个模块导出自己的类型；两个类型入口分别承载不同职责，**不要合并**：
-  - `protocols/model.ts`：domain 模型（SSProxy / VmessProxy / … / Proxy 联合类型 / isClashProxy）—— **节点是什么**。
-  - `templates/schema.ts`：rendering 输出（ClashConfig / Singbox*Config / ProxyGroup / RuleProvider / YamlSubscription）—— **配置长什么样**。
-  两者生命周期不同：新增协议只动 model，新增输出格式只动 schema。
-- **错误路径**：所有领域错误用 `src/infra/error.ts` 的 `AppError`，HTTP 出口交给 `src/infra/error-reporter.ts`。
-- **CSS**：Tailwind CSS 4，通过 `@import "tailwindcss"` 引入。
-
-## 支持的协议
-
-ss (Shadowsocks)、vmess、trojan、vless、hysteria2 (hy2)、socks、anytls、snell
+- **目录与文件**：一律 `kebab-case`，带明确角色后缀：
+  - `*.types.ts`、`*.codec.ts`、`*.registry.ts`、`*.renderer.ts`、`*.rules.ts`
+  - `*.service.ts`、`*.repository.ts`、`*.handler.ts`、`*.guard.ts`、`*.adapter.ts`、`*.client.ts`
+  - `*.config.ts`、`*.utils.ts`、`use-*.ts`、`*-panel.tsx`、`*-modal.tsx`、`*-card.tsx`
+- **新增代理协议**：在 `src/modules/proxy/codecs/` 新增 `<name>.codec.ts`，并在 `src/modules/proxy/proxy.registry.ts` 的 `REGISTERED_CODECS` 注册即可自动同步前缀识别、解析、校验、序列化与 Sing-box 转换。
+- **Edge 兼容**：禁止在业务代码中新增 Node `Buffer` 等非 Web 标准 API，统一使用 `@/shared/utils/base64.utils`。
+- **UI 规范**：严格遵守 `AGENTS.md` 中的 BoardUI 规则（仅使用语义色 Token、复合排版工具类、逻辑间距属性、`cx()` 与 `@remixicon/react`）。
 
 ## 常用命令
 
 ```bash
-bun run dev          # 开发服务器 (Turbopack)
-bun run build        # 生产构建
-bun run build:cf     # 构建 Cloudflare Pages 部署产物
-bun run test         # 运行测试
+bun run dev          # 开发服务器
+bun run test         # Vitest 单元测试
 bun run lint         # ESLint 检查
+bun run build        # 生产构建
+bun run build:cf     # Cloudflare Pages 构建
 ```
-
-## 部署
-
-通过 open-next 构建后部署到 Cloudflare Pages。KV 命名空间（`LINKS_KV`）在 Cloudflare Dashboard 中配置。
