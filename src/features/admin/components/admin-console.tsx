@@ -12,13 +12,12 @@ import {
   type AdminTabKey,
 } from '@/features/admin/components/admin-sidebar'
 import { RecordsPanel } from '@/features/admin/components/records-panel'
+import { RulesPanel } from '@/features/admin/components/rules-panel'
 import { ShortLinksPanel } from '@/features/admin/components/short-links-panel'
 import { StatsPanel } from '@/features/admin/components/stats-panel'
-import { SystemPanel } from '@/features/admin/components/system-panel'
-import { ToolsPanel } from '@/features/admin/components/tools-panel'
 import { useAdminSession } from '@/features/admin/hooks/use-admin-session'
 
-const VALID_TABS = new Set<AdminTabKey>(['stats', 'records', 'shortLinks', 'tools', 'system'])
+const VALID_TABS = new Set<AdminTabKey>(['stats', 'records', 'shortLinks', 'config'])
 const tabListeners = new Set<() => void>()
 
 function readTabFromUrl(): AdminTabKey {
@@ -41,8 +40,7 @@ function subscribeTabUrl(onStoreChange: () => void): () => void {
 }
 
 export function AdminConsole() {
-  const { checking, authenticated, expiresAt, login, logout, resetAuthentication } =
-    useAdminSession()
+  const { checking, authenticated, login, logout, resetAuthentication } = useAdminSession()
   const activeTab = useSyncExternalStore(subscribeTabUrl, readTabFromUrl, getServerTab)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [recordCount, setRecordCount] = useState<number | null>(null)
@@ -59,7 +57,7 @@ export function AdminConsole() {
     for (const listener of tabListeners) listener()
   }, [])
 
-  // Cmd/Ctrl + K 快捷跳转到转换记录搜索框
+  // Cmd/Ctrl + K 快捷跳转到订阅搜索框
   useEffect(() => {
     if (!authenticated) return
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -121,21 +119,21 @@ export function AdminConsole() {
               </p>
             </div>
 
-            {activeTab !== 'tools' ? (
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
+              {activeTab !== 'config' ? (
                 <Switch size="sm" isSelected={autoRefresh} onChange={setAutoRefresh}>
                   <span className="text-caption-1-medium text-text-secondary">自动刷新</span>
                 </Switch>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  leadingIcon={RiRefreshLine}
-                  onClick={() => setRefreshSignal((count) => count + 1)}
-                >
-                  刷新
-                </Button>
-              </div>
-            ) : null}
+              ) : null}
+              <Button
+                variant="secondary"
+                size="small"
+                leadingIcon={RiRefreshLine}
+                onClick={() => setRefreshSignal((count) => count + 1)}
+              >
+                刷新
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -165,14 +163,8 @@ export function AdminConsole() {
               onCountChange={setShortLinkCount}
             />
           ) : null}
-          {activeTab === 'tools' ? <ToolsPanel onUnauthorized={resetAuthentication} /> : null}
-          {activeTab === 'system' ? (
-            <SystemPanel
-              autoRefresh={autoRefresh}
-              refreshSignal={refreshSignal}
-              sessionExpiresAt={expiresAt}
-              onUnauthorized={resetAuthentication}
-            />
+          {activeTab === 'config' ? (
+            <RulesPanel refreshSignal={refreshSignal} onUnauthorized={resetAuthentication} />
           ) : null}
         </main>
       </div>

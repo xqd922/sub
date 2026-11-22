@@ -181,7 +181,7 @@ export function ClientRulesCard({ refreshSignal = 0, onUnauthorized }: ClientRul
             ) : rules.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-8 text-center text-body-2-regular text-text-tertiary">
-                  暂无自定义规则（遇到无法识别的新客户端时，可先在「转换记录 → 详情」查看其原始 User-Agent 再在此添加）
+                  暂无自定义规则（遇到无法识别的新客户端时，可先在「订阅 → 详情」查看其原始 User-Agent 再在此添加）
                 </td>
               </tr>
             ) : (

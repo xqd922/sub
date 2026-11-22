@@ -24,6 +24,7 @@ export const KV_KEYS = {
   SHORT_URL_PREFIX: 'short:url:',
   SHORT_INDEX: 'index:shortlinks',
   CLIENT_RULES: 'config:client_rules',
+  ROUTING_RULES: 'config:routing_rules',
   LOGIN_LOG: 'admin:login-log',
   PING: 'admin:ping',
 } as const

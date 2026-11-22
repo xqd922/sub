@@ -3,6 +3,7 @@ import { proxyToClashProxy } from '@/modules/proxy/proxy.registry'
 import type { Proxy } from '@/modules/proxy/proxy.types'
 import { CLASH_BASE_CONFIG } from '@/modules/renderer/clash.rules'
 import type { ProxyGroup } from '@/modules/renderer/renderer.types'
+import type { CustomRoutingRule } from '@/shared/admin.types'
 
 const URL_TEST_DEFAULTS = {
   url: 'https://www.gstatic.com/generate_204',
@@ -70,7 +71,18 @@ export function buildClashProxyGroups(proxies: Array<{ name: string }>): ProxyGr
   return groups
 }
 
-export function renderClashConfig(proxies: Proxy[]): string {
+function formatClashCustomRule(rule: CustomRoutingRule): string {
+  if (rule.type === 'IP-CIDR') {
+    const clashType = rule.value.includes(':') ? 'IP-CIDR6' : 'IP-CIDR'
+    return `${clashType},${rule.value},${rule.action},no-resolve`
+  }
+  return `${rule.type},${rule.value},${rule.action}`
+}
+
+export function renderClashConfig(
+  proxies: Proxy[],
+  customRoutingRules: CustomRoutingRule[] = [],
+): string {
   const converted = proxies
     .map((proxy) => proxyToClashProxy(proxy))
     .filter((item): item is Record<string, unknown> => item !== null)
@@ -90,12 +102,21 @@ export function renderClashConfig(proxies: Proxy[]): string {
     return item
   })
 
+  // 将自定义分流规则插入到 private/private-ip 之后，确保覆盖所有内置公网分流规则
+  const baseRules = CLASH_BASE_CONFIG.rules
+  const formattedCustomRules = customRoutingRules.map(formatClashCustomRule)
+  const mergedRules =
+    formattedCustomRules.length > 0
+      ? [...baseRules.slice(0, 2), ...formattedCustomRules, ...baseRules.slice(2)]
+      : baseRules
+
   const clashConfig = {
     ...CLASH_BASE_CONFIG,
     proxies: clashProxies,
     'proxy-groups': buildClashProxyGroups(
       clashProxies.map((item) => ({ name: String(item.name || '') })),
     ),
+    rules: mergedRules,
   }
 
   const dumped = yaml.dump(clashConfig, {

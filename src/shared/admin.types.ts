@@ -8,6 +8,18 @@ export interface CustomClientRule {
   createdAt: number
 }
 
+export type RoutingRuleType = 'DOMAIN' | 'DOMAIN-SUFFIX' | 'DOMAIN-KEYWORD' | 'IP-CIDR'
+export type RoutingRuleAction = 'DIRECT' | 'Manual' | 'Emby' | 'AI' | 'REJECT'
+
+export interface CustomRoutingRule {
+  id: string
+  type: RoutingRuleType
+  value: string
+  action: RoutingRuleAction
+  note?: string
+  createdAt: number
+}
+
 export interface ConvertRecord {
   id: string
   originalUrl: string

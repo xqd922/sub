@@ -104,6 +104,7 @@ export function renderConversionResponse(
     targetOverride,
     clientHeaders,
     customClientRules,
+    customRoutingRules,
   } = input
   const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(
     userAgent,
@@ -113,7 +114,7 @@ export function renderConversionResponse(
   )
 
   if (isSingBox) {
-    const body = renderSingboxConfig(formattedProxies)
+    const body = renderSingboxConfig(formattedProxies, customRoutingRules)
     return {
       body,
       headers: buildResponseHeaders(subscription, true, false),
@@ -135,7 +136,7 @@ export function renderConversionResponse(
   if (isBrowser) {
     let yamlConfig: string
     try {
-      yamlConfig = renderClashConfig(formattedProxies)
+      yamlConfig = renderClashConfig(formattedProxies, customRoutingRules)
     } catch (error) {
       const msg = error instanceof Error ? error.message : '当前节点暂不兼容 Clash / Mihomo 内核'
       yamlConfig = `# ${msg}\n`
@@ -143,7 +144,7 @@ export function renderConversionResponse(
 
     let jsonConfig: string
     try {
-      jsonConfig = renderSingboxConfig(formattedProxies)
+      jsonConfig = renderSingboxConfig(formattedProxies, customRoutingRules)
     } catch (error) {
       const msg = error instanceof Error ? error.message : '当前节点暂不兼容 sing-box 内核'
       jsonConfig = JSON.stringify({ _note: msg }, null, 2)
@@ -165,7 +166,7 @@ export function renderConversionResponse(
     }
   }
 
-  const yamlConfig = renderClashConfig(formattedProxies)
+  const yamlConfig = renderClashConfig(formattedProxies, customRoutingRules)
 
   return {
     body: yamlConfig,

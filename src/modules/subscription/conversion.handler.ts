@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCustomClientRules } from '@/modules/record/client-rule.repository'
 import { isUrlEnabled, logConversion } from '@/modules/record/record.repository'
+import { getCustomRoutingRules } from '@/modules/record/routing-rule.repository'
 import { extractClientHeaders } from '@/modules/renderer/client-detector'
 import {
   formatProxiesIfNeeded,
@@ -114,9 +115,10 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       throw AppError.invalidSubscriptionUrl(url)
     }
 
-    const [enabled, customClientRules] = await Promise.all([
+    const [enabled, customClientRules, customRoutingRules] = await Promise.all([
       isUrlEnabled(url),
       getCustomClientRules(),
+      getCustomRoutingRules(),
     ])
     if (!enabled) {
       throw AppError.validation('该订阅链接已被禁用', 'url')
@@ -164,6 +166,7 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       targetOverride,
       clientHeaders: extractClientHeaders(request.headers),
       customClientRules,
+      customRoutingRules,
     })
 
     logger.info('\n=== 客户端信息 ===')

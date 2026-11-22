@@ -9,6 +9,7 @@ import {
   RiExternalLinkLine,
   RiFileCopyLine,
   RiLinkM,
+  RiPulseLine,
   RiQrCodeLine,
 } from '@remixicon/react'
 import { Chip } from '@/components/base/badges/chip'
@@ -31,7 +32,7 @@ import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
 import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { showToast } from '@/features/shared/hooks/use-toast'
-import type { ConvertRecord, ShortLink } from '@/shared/admin.types'
+import type { ConvertRecord, InspectSubscriptionResult, ShortLink } from '@/shared/admin.types'
 import { escapeCsvCell, formatDateTime, formatRelativeTime } from '@/shared/format.utils'
 import { buildConversionUrl } from '@/shared/url.utils'
 import { cx } from '@/utils/cx'
@@ -118,6 +119,10 @@ export function RecordsPanel({
   const [renameDraft, setRenameDraft] = useState('')
   const [qrRecord, setQrRecord] = useState<ConvertRecord | null>(null)
   const [shorteningId, setShorteningId] = useState<string | null>(null)
+  const [inspectingId, setInspectingId] = useState<string | null>(null)
+  const [inspectionsById, setInspectionsById] = useState<
+    Record<string, InspectSubscriptionResult>
+  >({})
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
 
   useAutoRefresh(refresh, autoRefresh)
@@ -216,6 +221,23 @@ export function RecordsPanel({
       handleAdminFetchError(error, onUnauthorized)
     } finally {
       setShorteningId(null)
+    }
+  }
+
+  const handleInspectRecord = async (record: ConvertRecord) => {
+    setInspectingId(record.id)
+    setExpandedId(record.id)
+    try {
+      const data = await adminFetch<{ inspection: InspectSubscriptionResult }>(
+        '/api/admin/inspect',
+        jsonBody('POST', { url: record.originalUrl }),
+      )
+      setInspectionsById((prev) => ({ ...prev, [record.id]: data.inspection }))
+      showToast(`检测完成，共解析 ${data.inspection.nodeCount} 个节点`, 'success')
+    } catch (error) {
+      handleAdminFetchError(error, onUnauthorized)
+    } finally {
+      setInspectingId(null)
     }
   }
 
@@ -439,6 +461,7 @@ export function RecordsPanel({
                 filteredRecords.map((record) => {
                   const isRowConfirmingDelete = confirmingDeleteId === record.id
                   const isShortening = shorteningId === record.id
+                  const isInspecting = inspectingId === record.id
                   return (
                     <Fragment key={record.id}>
                       <tr className="hover:bg-background-secondary-default/65">
@@ -515,6 +538,15 @@ export function RecordsPanel({
                             <Button
                               variant="ghost"
                               size="xs"
+                              leadingIcon={RiPulseLine}
+                              disabled={isInspecting}
+                              onClick={() => void handleInspectRecord(record)}
+                            >
+                              {isInspecting ? '检测中…' : '检测'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
                               leadingIcon={RiExternalLinkLine}
                               onClick={() => handlePreview(record)}
                             >
@@ -559,7 +591,13 @@ export function RecordsPanel({
                         </td>
                       </tr>
 
-                      {expandedId === record.id ? <RecordDetailRow record={record} /> : null}
+                      {expandedId === record.id ? (
+                        <RecordDetailRow
+                          record={record}
+                          inspection={inspectionsById[record.id]}
+                          inspecting={isInspecting}
+                        />
+                      ) : null}
                     </Fragment>
                   )
                 })

@@ -4,6 +4,11 @@ import {
   deleteCustomClientRule,
   getCustomClientRules,
 } from '@/modules/record/client-rule.repository'
+import {
+  addCustomRoutingRule,
+  deleteCustomRoutingRule,
+  getCustomRoutingRules,
+} from '@/modules/record/routing-rule.repository'
 import { rebuildKvIndexes } from '@/modules/record/index-maintenance.service'
 import {
   createRecordManually,
@@ -303,5 +308,30 @@ describe('record and short-link KV flows', () => {
     const dates = stats.map((item) => item.date)
     expect(dates).toEqual([...dates].sort((a, b) => a.localeCompare(b)))
     expect(stats.length).toBeLessThanOrEqual(7)
+  })
+
+  it('manages custom KV routing rules with normalization, deduplication, and deletion', async () => {
+    const { rule: domainRule } = await addCustomRoutingRule({
+      type: 'DOMAIN-SUFFIX',
+      value: '.MyDomain.COM ',
+      action: 'DIRECT',
+      note: '测试直连',
+    })
+    expect(domainRule.value).toBe('mydomain.com')
+
+    const { rule: ipRule } = await addCustomRoutingRule({
+      type: 'IP-CIDR',
+      value: '203.0.113.10',
+      action: 'REJECT',
+    })
+    expect(ipRule.value).toBe('203.0.113.10/32')
+
+    await expect(
+      addCustomRoutingRule({ type: 'DOMAIN-SUFFIX', value: 'mydomain.com', action: 'Manual' }),
+    ).rejects.toThrow('已存在')
+
+    expect(await getCustomRoutingRules()).toHaveLength(2)
+    const remaining = await deleteCustomRoutingRule(domainRule.id)
+    expect(remaining?.map((item) => item.id)).toEqual([ipRule.id])
   })
 })

@@ -4,19 +4,18 @@ import Link from 'next/link'
 import {
   RiArrowLeftLine,
   RiBarChartBoxLine,
+  RiEqualizerLine,
   RiFileList3Line,
   RiLinkM,
   RiLinksLine,
   RiLogoutBoxRLine,
   RiSearchLine,
-  RiShieldCheckLine,
-  RiToolsLine,
 } from '@remixicon/react'
 import { Kbd } from '@/components/base/kbd/kbd'
 import { ThemeIconButton } from '@/features/shared/components/theme-icon-button'
 import { cx } from '@/utils/cx'
 
-export type AdminTabKey = 'stats' | 'records' | 'shortLinks' | 'tools' | 'system'
+export type AdminTabKey = 'stats' | 'records' | 'shortLinks' | 'config'
 
 export interface AdminTabMeta {
   key: AdminTabKey
@@ -28,33 +27,27 @@ export interface AdminTabMeta {
 export const ADMIN_TABS: readonly AdminTabMeta[] = [
   {
     key: 'stats',
-    label: '概览统计',
-    description: '实时转换趋势、客户端占比与热门订阅',
+    label: '概览',
+    description: '实时转换趋势、客户端占比与活跃热力图',
     icon: RiBarChartBoxLine,
   },
   {
     key: 'records',
-    label: '转换记录',
-    description: '管理订阅启停状态、节点命中与备注信息',
+    label: '订阅',
+    description: '管理订阅启停、在线检测与备注信息',
     icon: RiFileList3Line,
   },
   {
     key: 'shortLinks',
-    label: '短链接',
-    description: '创建、编辑目标地址、扫码分享与管理短链跳转',
+    label: '短链',
+    description: '自定义短码、输出格式、访问控制与导入导出',
     icon: RiLinkM,
   },
   {
-    key: 'tools',
-    label: '快捷工具',
-    description: '检测订阅健康度、组装指定客户端链接与生成短链',
-    icon: RiToolsLine,
-  },
-  {
-    key: 'system',
-    label: '系统运维',
-    description: '环境配置状态检查、KV 存储维护与登录审计',
-    icon: RiShieldCheckLine,
+    key: 'config',
+    label: '配置',
+    description: '管理自定义分流规则与客户端 UA 适配，实时生效',
+    icon: RiEqualizerLine,
   },
 ]
 

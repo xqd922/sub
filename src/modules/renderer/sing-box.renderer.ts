@@ -1,6 +1,7 @@
 import { proxyToSingboxBundle } from '@/modules/proxy/proxy.registry'
 import type { Proxy, SingboxEndpoint, SingboxOutbound } from '@/modules/proxy/proxy.types'
 import { SINGBOX_STATIC_SECTIONS } from '@/modules/renderer/sing-box.rules'
+import type { CustomRoutingRule } from '@/shared/admin.types'
 
 const RESERVED_OUTBOUND_TAGS = new Set(['Auto', 'Manual', 'direct'])
 
@@ -23,7 +24,29 @@ function remapDetourTag(
   return tagMap.get(detour) ?? detour
 }
 
-export function buildSingboxConfig(proxies: Proxy[]) {
+function formatSingboxCustomRule(rule: CustomRoutingRule): Record<string, unknown> {
+  const matcher =
+    rule.type === 'DOMAIN'
+      ? { domain: [rule.value] }
+      : rule.type === 'DOMAIN-SUFFIX'
+        ? { domain_suffix: [rule.value] }
+        : rule.type === 'DOMAIN-KEYWORD'
+          ? { domain_keyword: [rule.value] }
+          : { ip_cidr: [rule.value] }
+
+  if (rule.action === 'REJECT') {
+    return { ...matcher, action: 'reject' }
+  }
+  if (rule.action === 'DIRECT') {
+    return { ...matcher, action: 'route', outbound: 'direct' }
+  }
+  return { ...matcher, action: 'route', outbound: 'Manual' }
+}
+
+export function buildSingboxConfig(
+  proxies: Proxy[],
+  customRoutingRules: CustomRoutingRule[] = [],
+) {
   const usedTags = new Set(RESERVED_OUTBOUND_TAGS)
   const firstTagByOriginalTag = new Map<string, string>()
 
@@ -101,6 +124,22 @@ export function buildSingboxConfig(proxies: Proxy[]) {
     return mapped && mapped !== ep.detour ? { ...ep, detour: mapped } : ep
   })
 
+  const baseRouteRules = SINGBOX_STATIC_SECTIONS.route.rules
+  const formattedCustomRules = customRoutingRules.map(formatSingboxCustomRule)
+  // 插入到 sniff + hijack-dns 之后，确保域名嗅探生效且自定义规则优先于内置规则
+  const hijackIdx = baseRouteRules.findIndex(
+    (item) => 'action' in item && item.action === 'hijack-dns',
+  )
+  const insertAt = hijackIdx >= 0 ? hijackIdx + 1 : 0
+  const mergedRouteRules =
+    formattedCustomRules.length > 0
+      ? [
+          ...baseRouteRules.slice(0, insertAt),
+          ...formattedCustomRules,
+          ...baseRouteRules.slice(insertAt),
+        ]
+      : baseRouteRules
+
   return {
     $schema: SINGBOX_STATIC_SECTIONS.$schema,
     log: SINGBOX_STATIC_SECTIONS.log,
@@ -132,12 +171,18 @@ export function buildSingboxConfig(proxies: Proxy[]) {
         tag: 'direct',
       },
     ],
-    route: SINGBOX_STATIC_SECTIONS.route,
+    route: {
+      ...SINGBOX_STATIC_SECTIONS.route,
+      rules: mergedRouteRules,
+    },
     services: SINGBOX_STATIC_SECTIONS.services,
     experimental: SINGBOX_STATIC_SECTIONS.experimental,
   }
 }
 
-export function renderSingboxConfig(proxies: Proxy[]): string {
-  return JSON.stringify(buildSingboxConfig(proxies), null, 2)
+export function renderSingboxConfig(
+  proxies: Proxy[],
+  customRoutingRules: CustomRoutingRule[] = [],
+): string {
+  return JSON.stringify(buildSingboxConfig(proxies, customRoutingRules), null, 2)
 }

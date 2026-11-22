@@ -160,6 +160,31 @@ describe('clash.renderer', () => {
     expect(yamlText).not.toContain('detour:')
     expect(yamlText).toContain('type: socks5')
   })
+
+  it('injects custom KV routing rules into both Clash YAML and sing-box JSON with top priority', () => {
+    const customRules = [
+      { id: 'r1', type: 'DOMAIN-SUFFIX' as const, value: 'custom-direct.test', action: 'DIRECT' as const, createdAt: 1 },
+      { id: 'r2', type: 'DOMAIN' as const, value: 'ads.blocked.test', action: 'REJECT' as const, createdAt: 2 },
+      { id: 'r3', type: 'IP-CIDR' as const, value: '203.0.113.0/24', action: 'Manual' as const, createdAt: 3 },
+      { id: 'r4', type: 'IP-CIDR' as const, value: '2001:db8::/32', action: 'DIRECT' as const, createdAt: 4 },
+    ]
+
+    const yamlText = renderClashConfig([baseProxy], customRules)
+    expect(yamlText).toContain('DOMAIN-SUFFIX,custom-direct.test,DIRECT')
+    expect(yamlText).toContain('DOMAIN,ads.blocked.test,REJECT')
+    expect(yamlText).toContain('IP-CIDR,203.0.113.0/24,Manual,no-resolve')
+    expect(yamlText).toContain('IP-CIDR6,2001:db8::/32,DIRECT,no-resolve')
+
+    const sbConfig = buildSingboxConfig([baseProxy], customRules)
+    expect(sbConfig.route.rules).toEqual(
+      expect.arrayContaining([
+        { domain_suffix: ['custom-direct.test'], action: 'route', outbound: 'direct' },
+        { domain: ['ads.blocked.test'], action: 'reject' },
+        { ip_cidr: ['203.0.113.0/24'], action: 'route', outbound: 'Manual' },
+        { ip_cidr: ['2001:db8::/32'], action: 'route', outbound: 'direct' },
+      ]),
+    )
+  })
 })
 
 describe('sing-box.renderer', () => {
