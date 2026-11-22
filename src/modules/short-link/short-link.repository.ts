@@ -1,10 +1,30 @@
+import { AppError, ErrorCode, ErrorSeverity } from '@/server/app-error'
 import { getKvStore } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
-import type { ShortLink } from '@/shared/admin.types'
-import { extractNameFromUrl } from '@/shared/url.utils'
+import type {
+  CreateShortLinkInput,
+  ShortLink,
+  ShortLinkImportResult,
+  UpdateShortLinkInput,
+} from '@/shared/admin.types'
+import { extractNameFromUrl, isValidCustomSlug } from '@/shared/url.utils'
 
 const SHORT_ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+export type ShortLinkResolveResult =
+  | { status: 'ok'; link: ShortLink }
+  | { status: 'not_found' }
+  | { status: 'disabled'; link: ShortLink }
+  | { status: 'expired'; link: ShortLink }
+  | { status: 'limit_reached'; link: ShortLink }
+  | { status: 'unauthorized'; link: ShortLink }
+
+export interface ResolveShortLinkContext {
+  key?: string | null
+  clientIp?: string
+  clientType?: string
+}
 
 async function sha256Hex(value: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -13,8 +33,8 @@ async function sha256Hex(value: string): Promise<string> {
     .join('')
 }
 
-async function generateShortId(url: string): Promise<string> {
-  const hashHex = await sha256Hex(url)
+async function generateShortId(seed: string): Promise<string> {
+  const hashHex = await sha256Hex(seed)
   let id = ''
   for (let i = 0; i < 6; i++) {
     const idx = parseInt(hashHex.slice(i * 2, i * 2 + 2), 16) % SHORT_ID_ALPHABET.length
@@ -23,8 +43,35 @@ async function generateShortId(url: string): Promise<string> {
   return id
 }
 
+async function generateUniqueShortId(targetUrl: string): Promise<string> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const candidate = await generateShortId(attempt === 0 ? targetUrl : `${targetUrl}#${attempt}`)
+    const occupied = await getShortLink(candidate)
+    if (!occupied || occupied.targetUrl === targetUrl) {
+      return candidate
+    }
+  }
+  return generateShortId(`${targetUrl}#${Date.now()}-${Math.random()}`)
+}
+
 async function getUrlHash(url: string): Promise<string> {
   return (await sha256Hex(url)).slice(0, 16)
+}
+
+function normalizeOptionalString(value?: string | null): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+function normalizeExpiresAt(value?: number | null): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined
+  return Math.floor(value)
+}
+
+function normalizeMaxHits(value?: number | null): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined
+  return Math.floor(value)
 }
 
 async function addShortIdToIndex(id: string): Promise<void> {
@@ -73,48 +120,98 @@ export async function getShortLink(id: string): Promise<ShortLink | null> {
 }
 
 export async function createShortLink(
-  targetUrl: string,
+  inputOrUrl: string | CreateShortLinkInput,
   customName?: string,
 ): Promise<ShortLink | null> {
   const kv = await getKvStore()
   if (!kv) return null
 
+  const input: CreateShortLinkInput =
+    typeof inputOrUrl === 'string'
+      ? { targetUrl: inputOrUrl, name: customName }
+      : inputOrUrl
+
+  const targetUrl = input.targetUrl.trim()
+  const customSlug = normalizeOptionalString(input.slug)
+  const name = normalizeOptionalString(input.name)
+  const comment = normalizeOptionalString(input.comment)
+  const password = normalizeOptionalString(input.password)
+  const expiresAt = normalizeExpiresAt(input.expiresAt)
+  const maxHits = normalizeMaxHits(input.maxHits)
+  const disabled = Boolean(input.disabled)
+
+  if (customSlug) {
+    if (!isValidCustomSlug(customSlug)) {
+      throw AppError.validation('自定义短码仅支持 2-32 位字母、数字、连字符或下划线', 'slug')
+    }
+    const existingBySlug = await getShortLink(customSlug)
+    if (existingBySlug) {
+      throw new AppError(
+        ErrorCode.VALIDATION_ERROR,
+        `短码 "${customSlug}" 已被占用，请更换其他短码`,
+        409,
+        ErrorSeverity.LOW,
+        { slug: customSlug },
+      )
+    }
+  }
+
   try {
     const urlHash = await getUrlHash(targetUrl)
-    const existingId = (await kv.get(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`)) as string | null
-    if (existingId) {
-      const existing = await getShortLink(existingId)
-      if (existing) {
-        if (customName && customName.trim() && customName.trim() !== existing.name) {
-          return (await updateShortLink(existing.id, { name: customName.trim() })) || existing
+
+    // 仅在未指定自定义短码且未配置独立限流/加密策略时复用同一目标地址的短链
+    const hasCustomPolicy = Boolean(
+      customSlug || comment || password || expiresAt || maxHits || disabled,
+    )
+    if (!hasCustomPolicy) {
+      const existingId = (await kv.get(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`)) as string | null
+      if (existingId) {
+        const existing = await getShortLink(existingId)
+        if (existing) {
+          if (name && name !== existing.name) {
+            return (await updateShortLink(existing.id, { name })) || existing
+          }
+          return existing
         }
-        return existing
       }
     }
 
-    const id = await generateShortId(targetUrl)
+    const id = customSlug || (await generateUniqueShortId(targetUrl))
     const now = Date.now()
     const shortLink: ShortLink = {
       id,
       targetUrl,
-      name: customName?.trim() || extractNameFromUrl(targetUrl),
+      name: name || extractNameFromUrl(targetUrl),
       createdAt: now,
       hits: 0,
       lastAccess: now,
+      ...(comment ? { comment } : {}),
+      ...(disabled ? { disabled: true } : {}),
+      ...(expiresAt ? { expiresAt } : {}),
+      ...(maxHits ? { maxHits } : {}),
+      ...(password ? { password } : {}),
     }
 
-    await Promise.all([
+    const putTasks: Array<Promise<void>> = [
       kv.put(`${KV_KEYS.SHORT_PREFIX}${id}`, JSON.stringify(shortLink), {
         expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
       }),
-      kv.put(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`, id, {
-        expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
-      }),
-    ])
+    ]
+
+    if (!customSlug) {
+      putTasks.push(
+        kv.put(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`, id, {
+          expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
+        }),
+      )
+    }
+
+    await Promise.all(putTasks)
     await addShortIdToIndex(id)
 
     return shortLink
   } catch (error) {
+    if (error instanceof AppError) throw error
     logger.error('[ShortLinkRepo] 创建失败:', error)
     return null
   }
@@ -139,7 +236,7 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
 
 export async function updateShortLink(
   id: string,
-  updates: Partial<Pick<ShortLink, 'name' | 'targetUrl'>>,
+  updates: UpdateShortLinkInput,
 ): Promise<ShortLink | null> {
   const kv = await getKvStore()
   if (!kv) return null
@@ -153,8 +250,33 @@ export async function updateShortLink(
 
     const updated: ShortLink = {
       ...existing,
-      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      ...(updates.name !== undefined ? { name: updates.name.trim() || existing.name } : {}),
       targetUrl: nextTargetUrl,
+      ...(updates.disabled !== undefined ? { disabled: updates.disabled } : {}),
+    }
+
+    if (updates.comment !== undefined) {
+      const cleaned = normalizeOptionalString(updates.comment)
+      if (cleaned) updated.comment = cleaned
+      else delete updated.comment
+    }
+
+    if (updates.password !== undefined) {
+      const cleaned = normalizeOptionalString(updates.password)
+      if (cleaned) updated.password = cleaned
+      else delete updated.password
+    }
+
+    if (updates.expiresAt !== undefined) {
+      const cleaned = normalizeExpiresAt(updates.expiresAt)
+      if (cleaned) updated.expiresAt = cleaned
+      else delete updated.expiresAt
+    }
+
+    if (updates.maxHits !== undefined) {
+      const cleaned = normalizeMaxHits(updates.maxHits)
+      if (cleaned) updated.maxHits = cleaned
+      else delete updated.maxHits
     }
 
     const tasks: Array<Promise<void>> = [
@@ -168,7 +290,10 @@ export async function updateShortLink(
         getUrlHash(existing.targetUrl),
         getUrlHash(nextTargetUrl),
       ])
-      tasks.push(kv.delete(`${KV_KEYS.SHORT_URL_PREFIX}${oldHash}`))
+      const oldMapping = (await kv.get(`${KV_KEYS.SHORT_URL_PREFIX}${oldHash}`)) as string | null
+      if (oldMapping === id) {
+        tasks.push(kv.delete(`${KV_KEYS.SHORT_URL_PREFIX}${oldHash}`))
+      }
       tasks.push(
         kv.put(`${KV_KEYS.SHORT_URL_PREFIX}${newHash}`, id, {
           expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
@@ -193,10 +318,14 @@ export async function deleteShortLink(id: string): Promise<boolean> {
     if (!existing) return false
 
     const urlHash = await getUrlHash(existing.targetUrl)
-    await Promise.all([
-      kv.delete(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`),
-      kv.delete(`${KV_KEYS.SHORT_PREFIX}${id}`),
-    ])
+    const reverseId = (await kv.get(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`)) as string | null
+
+    const deleteTasks: Array<Promise<void>> = [kv.delete(`${KV_KEYS.SHORT_PREFIX}${id}`)]
+    if (reverseId === id) {
+      deleteTasks.push(kv.delete(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`))
+    }
+
+    await Promise.all(deleteTasks)
     await removeShortIdFromIndex(id)
     return true
   } catch (error) {
@@ -205,26 +334,95 @@ export async function deleteShortLink(id: string): Promise<boolean> {
   }
 }
 
-export async function resolveShortLink(id: string): Promise<string | null> {
+export async function resolveShortLinkDetailed(
+  id: string,
+  context: ResolveShortLinkContext = {},
+): Promise<ShortLinkResolveResult> {
   const kv = await getKvStore()
-  if (!kv) return null
+  if (!kv) return { status: 'not_found' }
 
   try {
     const shortLink = await getShortLink(id)
-    if (!shortLink) return null
+    if (!shortLink) return { status: 'not_found' }
+
+    if (shortLink.disabled) {
+      return { status: 'disabled', link: shortLink }
+    }
+
+    if (shortLink.expiresAt && Date.now() >= shortLink.expiresAt) {
+      return { status: 'expired', link: shortLink }
+    }
+
+    if (shortLink.maxHits && shortLink.maxHits > 0 && shortLink.hits >= shortLink.maxHits) {
+      return { status: 'limit_reached', link: shortLink }
+    }
+
+    if (shortLink.password) {
+      const provided = context.key?.trim() || ''
+      if (provided !== shortLink.password) {
+        return { status: 'unauthorized', link: shortLink }
+      }
+    }
+
+    const clientHits = { ...(shortLink.clientHits || {}) }
+    if (context.clientType) {
+      clientHits[context.clientType] = (clientHits[context.clientType] || 0) + 1
+    }
 
     const updated: ShortLink = {
       ...shortLink,
       hits: shortLink.hits + 1,
       lastAccess: Date.now(),
+      ...(context.clientIp ? { lastIp: context.clientIp } : {}),
+      ...(context.clientType ? { lastClientType: context.clientType } : {}),
+      ...(Object.keys(clientHits).length > 0 ? { clientHits } : {}),
     }
 
     await kv.put(`${KV_KEYS.SHORT_PREFIX}${id}`, JSON.stringify(updated), {
       expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
     })
-    return shortLink.targetUrl
+
+    return { status: 'ok', link: updated }
   } catch (error) {
     logger.error('[ShortLinkRepo] 解析失败:', error)
-    return null
+    return { status: 'not_found' }
   }
+}
+
+export async function resolveShortLink(id: string): Promise<string | null> {
+  const result = await resolveShortLinkDetailed(id)
+  return result.status === 'ok' ? result.link.targetUrl : null
+}
+
+export async function importShortLinks(
+  items: CreateShortLinkInput[],
+): Promise<ShortLinkImportResult> {
+  let imported = 0
+  let skipped = 0
+  let failed = 0
+
+  for (const item of items) {
+    try {
+      const slug = normalizeOptionalString(item.slug)
+      if (slug) {
+        const exists = await getShortLink(slug)
+        if (exists) {
+          skipped++
+          continue
+        }
+      }
+
+      const created = await createShortLink(item)
+      if (created) imported++
+      else failed++
+    } catch (error) {
+      if (error instanceof AppError && error.statusCode === 409) {
+        skipped++
+      } else {
+        failed++
+      }
+    }
+  }
+
+  return { imported, skipped, failed }
 }

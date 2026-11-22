@@ -21,6 +21,41 @@ export interface ShortLink {
   createdAt: number
   hits: number
   lastAccess: number
+  comment?: string
+  disabled?: boolean
+  expiresAt?: number | null
+  maxHits?: number | null
+  password?: string
+  lastIp?: string
+  lastClientType?: string
+  clientHits?: Record<string, number>
+}
+
+export interface CreateShortLinkInput {
+  targetUrl: string
+  name?: string
+  slug?: string
+  comment?: string
+  disabled?: boolean
+  expiresAt?: number | null
+  maxHits?: number | null
+  password?: string
+}
+
+export interface UpdateShortLinkInput {
+  name?: string
+  targetUrl?: string
+  comment?: string | null
+  disabled?: boolean
+  expiresAt?: number | null
+  maxHits?: number | null
+  password?: string | null
+}
+
+export interface ShortLinkImportResult {
+  imported: number
+  skipped: number
+  failed: number
 }
 
 export interface StatsData {
@@ -49,9 +84,6 @@ export interface SystemConfigFlags {
   adminUsername: boolean
   adminPassword: boolean
   adminSecret: boolean
-  sink: boolean
-  bitly: boolean
-  cuttly: boolean
   siteUrl: boolean
 }
 

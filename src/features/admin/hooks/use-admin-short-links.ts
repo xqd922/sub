@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { showToast } from '@/features/shared/hooks/use-toast'
-import type { ShortLink } from '@/shared/admin.types'
+import type {
+  BatchOperationResult,
+  CreateShortLinkInput,
+  ShortLink,
+  ShortLinkImportResult,
+  UpdateShortLinkInput,
+} from '@/shared/admin.types'
 
 export function useAdminShortLinks(onUnauthorized?: () => void) {
   const [shortLinks, setShortLinks] = useState<ShortLink[]>([])
@@ -39,13 +45,10 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
   }, [onUnauthorized])
 
   const updateLink = useCallback(
-    async (
-      id: string,
-      updates: { name?: string; targetUrl?: string },
-    ): Promise<boolean> => {
+    async (id: string, updates: UpdateShortLinkInput): Promise<boolean> => {
       try {
         const data = await adminFetch<{ shortLink: ShortLink }>(
-          `/api/admin/short-links/${id}`,
+          `/api/admin/short-links/${encodeURIComponent(id)}`,
           jsonBody('PATCH', updates),
         )
         setShortLinks((prev) => prev.map((item) => (item.id === id ? data.shortLink : item)))
@@ -57,6 +60,46 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
       }
     },
     [onUnauthorized],
+  )
+
+  const setEnabled = useCallback(
+    async (id: string, enabled: boolean): Promise<boolean> => {
+      try {
+        const data = await adminFetch<{ shortLink: ShortLink }>(
+          `/api/admin/short-links/${encodeURIComponent(id)}`,
+          jsonBody('PATCH', { disabled: !enabled }),
+        )
+        setShortLinks((prev) => prev.map((item) => (item.id === id ? data.shortLink : item)))
+        showToast(enabled ? '已启用该短链' : '已禁用该短链', 'success')
+        return true
+      } catch (error) {
+        handleAdminFetchError(error, onUnauthorized)
+        return false
+      }
+    },
+    [onUnauthorized],
+  )
+
+  const batchSetEnabled = useCallback(
+    async (ids: string[], enabled: boolean): Promise<boolean> => {
+      try {
+        const data = await adminFetch<BatchOperationResult>(
+          '/api/admin/short-links',
+          jsonBody('PATCH', { ids, action: enabled ? 'enable' : 'disable' }),
+        )
+        await refresh()
+        const failedCount = data.failed?.length || 0
+        showToast(
+          failedCount > 0 ? `完成，${failedCount} 条操作失败` : '批量操作完成',
+          failedCount > 0 ? 'info' : 'success',
+        )
+        return true
+      } catch (error) {
+        handleAdminFetchError(error, onUnauthorized)
+        return false
+      }
+    },
+    [refresh, onUnauthorized],
   )
 
   const deleteLinks = useCallback(
@@ -75,11 +118,11 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
   )
 
   const createLink = useCallback(
-    async (targetUrl: string, name?: string): Promise<ShortLink | null> => {
+    async (input: CreateShortLinkInput): Promise<ShortLink | null> => {
       try {
         const data = await adminFetch<{ shortLink: ShortLink }>(
           '/api/admin/short-links',
-          jsonBody('POST', { targetUrl, name }),
+          jsonBody('POST', input),
         )
         setShortLinks((prev) => [
           data.shortLink,
@@ -95,5 +138,37 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
     [onUnauthorized],
   )
 
-  return { shortLinks, loading, refresh, updateLink, deleteLinks, createLink }
+  const importLinks = useCallback(
+    async (links: CreateShortLinkInput[]): Promise<ShortLinkImportResult | null> => {
+      try {
+        const data = await adminFetch<{ result: ShortLinkImportResult }>(
+          '/api/admin/short-links/import',
+          jsonBody('POST', { links }),
+        )
+        await refresh()
+        const { imported, skipped, failed } = data.result
+        showToast(
+          `导入完成：成功 ${imported}，跳过 ${skipped}${failed > 0 ? `，失败 ${failed}` : ''}`,
+          failed > 0 ? 'info' : 'success',
+        )
+        return data.result
+      } catch (error) {
+        handleAdminFetchError(error, onUnauthorized)
+        return null
+      }
+    },
+    [refresh, onUnauthorized],
+  )
+
+  return {
+    shortLinks,
+    loading,
+    refresh,
+    updateLink,
+    setEnabled,
+    batchSetEnabled,
+    deleteLinks,
+    createLink,
+    importLinks,
+  }
 }

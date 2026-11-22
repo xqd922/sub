@@ -15,7 +15,9 @@ import {
   createShortLink,
   deleteShortLink,
   getAllShortLinks,
+  importShortLinks,
   resolveShortLink,
+  resolveShortLinkDetailed,
   updateShortLink,
 } from '@/modules/short-link/short-link.repository'
 import { MemoryKvStore, resetFallbackKvStore } from '@/server/kv/kv.adapter'
@@ -97,6 +99,82 @@ describe('record and short-link KV flows', () => {
     const body = await response.text()
     expect(body).toContain('proxies:')
     expect(body).toContain('1.2.3.4')
+  })
+
+  it('supports Sink-style custom slug, expiration, maxHits, disabled state, password key, telemetry, and import', async () => {
+    const ssNode = `ss://${encodeBase64Utf8('aes-256-gcm:secret').replace(/=/g, '')}@1.2.3.4:8388#HK-Test`
+
+    const custom = await createShortLink({
+      targetUrl: ssNode,
+      slug: 'hk-vip',
+      name: '香港专线',
+      comment: '给手机端使用',
+      maxHits: 1,
+      password: 'mykey',
+    })
+    expect(custom?.id).toBe('hk-vip')
+    expect(custom?.comment).toBe('给手机端使用')
+
+    // 冲突短码拒绝覆盖
+    await expect(
+      createShortLink({ targetUrl: ssNode, slug: 'hk-vip' }),
+    ).rejects.toThrow('已被占用')
+
+    // 无密钥时客户端返回 401 JSON，浏览器返回 401 密码验证 HTML
+    const clientNoKey = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/hk-vip', {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      'hk-vip',
+    )
+    expect(clientNoKey.status).toBe(401)
+
+    const browserNoKey = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/hk-vip', {
+        headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120 Safari/537.36' },
+      }),
+      'hk-vip',
+    )
+    expect(browserNoKey.status).toBe(401)
+    expect(await browserNoKey.text()).toContain('密钥验证')
+
+    // 携带正确密钥第 1 次成功并记录客户端统计
+    const okRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/hk-vip?key=mykey', {
+        headers: { 'User-Agent': 'clash.meta/v1.19', 'x-forwarded-for': '203.0.113.5' },
+      }),
+      'hk-vip',
+    )
+    expect(okRes.status).toBe(200)
+
+    // 达到 maxHits=1 上限后第 2 次返回 410
+    const limitedRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/hk-vip?key=mykey', {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      'hk-vip',
+    )
+    expect(limitedRes.status).toBe(410)
+
+    // 禁用态与过期态检查
+    await updateShortLink('hk-vip', { maxHits: null, disabled: true })
+    expect((await resolveShortLinkDetailed('hk-vip', { key: 'mykey' })).status).toBe('disabled')
+
+    await updateShortLink('hk-vip', { disabled: false, expiresAt: Date.now() - 1000 })
+    const expiredRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/hk-vip?key=mykey', {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      'hk-vip',
+    )
+    expect(expiredRes.status).toBe(410)
+
+    // JSON 批量导入：新短码导入成功，已存在短码跳过
+    const importResult = await importShortLinks([
+      { targetUrl: ssNode, slug: 'hk-vip', name: '重复跳过' },
+      { targetUrl: ssNode, slug: 'jp-backup', name: '日本备用' },
+    ])
+    expect(importResult).toEqual({ imported: 1, skipped: 1, failed: 0 })
   })
 
   it('reports disabledRecords and totalShortLinks in getStats()', async () => {

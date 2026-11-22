@@ -59,6 +59,20 @@ export function isAllowedSubscriptionInput(raw: string): boolean {
   return sources.length > 0 && sources.every(isAllowedSubscriptionSource)
 }
 
+const CUSTOM_SLUG_RE = /^[a-zA-Z0-9_-]{2,32}$/
+
+export function isValidCustomSlug(slug: string): boolean {
+  return CUSTOM_SLUG_RE.test(slug.trim())
+}
+
+export function buildShortLinkPublicUrl(origin: string, id: string, password?: string): string {
+  const base = `${origin}/s/${encodeURIComponent(id)}`
+  if (password) {
+    return `${base}?key=${encodeURIComponent(password)}`
+  }
+  return base
+}
+
 export function buildConversionUrl(
   origin: string,
   rawSubscriptionUrl: string,

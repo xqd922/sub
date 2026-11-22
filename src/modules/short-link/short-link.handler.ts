@@ -1,30 +1,134 @@
 import { NextResponse } from 'next/server'
-import { resolveShortLink } from '@/modules/short-link/short-link.repository'
+import { detectClientType } from '@/modules/renderer/client-detector'
+import { resolveShortLinkDetailed } from '@/modules/short-link/short-link.repository'
 import { generateShortLink } from '@/modules/short-link/short-link.service'
 import { handleConversionRequest } from '@/modules/subscription/conversion.handler'
 import { logger } from '@/server/logger'
-import { parseJsonBody } from '@/server/route.utils'
+import { getClientIp, parseJsonBody } from '@/server/route.utils'
 import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
+
+function extractAccessKey(request: Request, incomingUrl: URL): string | null {
+  const fromQuery =
+    incomingUrl.searchParams.get('key') || incomingUrl.searchParams.get('pwd')
+  if (fromQuery) return fromQuery.trim()
+
+  const headerKey = request.headers.get('x-link-password')
+  if (headerKey) return headerKey.trim()
+
+  const auth = request.headers.get('authorization')
+  if (auth && /^Bearer\s+/i.test(auth)) {
+    return auth.replace(/^Bearer\s+/i, '').trim()
+  }
+
+  return null
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function renderPasswordPromptHtml(linkName: string, wrongKey: boolean, target?: string): string {
+  const safeName = escapeHtml(linkName)
+  const hiddenTarget = target
+    ? `<input type="hidden" name="target" value="${escapeHtml(target)}" />`
+    : ''
+  const errorNotice = wrongKey
+    ? '<p class="err">密钥不正确，请重新输入</p>'
+    : '<p class="hint">该订阅短链已开启密钥保护，验证后可预览或导入</p>'
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>密钥验证 · ${safeName}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #111; }
+    @media (prefers-color-scheme: dark) { body { background: #111010; color: #f5f5f5; } .card { background: #181818; border-color: #2a2a2a; } input { background: #111010; border-color: #333; color: #f5f5f5; } button { background: #f5f5f5; color: #111; } }
+    .card { width: 100%; max-width: 360px; padding: 24px; border-radius: 12px; border: 1px solid #e5e5e5; background: #fafafa; }
+    h1 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+    .hint { margin: 0 0 16px; font-size: 13px; color: #737373; line-height: 1.5; }
+    .err { margin: 0 0 16px; font-size: 13px; color: #dc2626; line-height: 1.5; }
+    input { width: 100%; height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid #d4d4d4; background: #fff; font-size: 14px; outline: none; }
+    button { margin-top: 12px; width: 100%; height: 38px; border: 0; border-radius: 8px; background: #171717; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <form class="card" method="GET">
+    <h1>${safeName}</h1>
+    ${errorNotice}
+    ${hiddenTarget}
+    <input type="password" name="key" placeholder="请输入访问密钥" required autofocus />
+    <button type="submit">验证并访问</button>
+  </form>
+</body>
+</html>`
+}
 
 export async function handleShortLinkRedirect(
   request: Request,
   id: string,
 ): Promise<NextResponse> {
-  if (!id || id.length < 4) {
+  if (!id || id.length < 2 || id.length > 64) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
   try {
-    const resolvedTarget = await resolveShortLink(id)
-    if (!resolvedTarget) {
+    const incomingUrl = new URL(request.url)
+    const incomingTarget = incomingUrl.searchParams.get('target')?.trim() || undefined
+    const userAgent = request.headers.get('user-agent') || ''
+    const { clientType } = detectClientType(userAgent, incomingTarget)
+    const accessKey = extractAccessKey(request, incomingUrl)
+    const clientIp = getClientIp(request)
+
+    const resolved = await resolveShortLinkDetailed(id, {
+      key: accessKey,
+      clientIp,
+      clientType,
+    })
+
+    if (resolved.status === 'not_found') {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    const incomingUrl = new URL(request.url)
-    const incomingTarget = incomingUrl.searchParams.get('target')?.trim()
+    if (resolved.status === 'disabled') {
+      return NextResponse.json({ error: '该短链接已被禁用' }, { status: 403 })
+    }
+
+    if (resolved.status === 'expired') {
+      return NextResponse.json({ error: '该短链接已过期' }, { status: 410 })
+    }
+
+    if (resolved.status === 'limit_reached') {
+      return NextResponse.json({ error: '该短链接已达到最大访问次数上限' }, { status: 410 })
+    }
+
+    if (resolved.status === 'unauthorized') {
+      if (clientType === 'browser') {
+        return new NextResponse(
+          renderPasswordPromptHtml(resolved.link.name, Boolean(accessKey), incomingTarget),
+          {
+            status: 401,
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-store',
+            },
+          },
+        )
+      }
+      return NextResponse.json(
+        { error: '该短链接受密钥保护，请在链接后附加 ?key=<密钥>' },
+        { status: 401 },
+      )
+    }
 
     // 自动解包历史存储的 `/sub?url=...` 或绝对转换链接，避免二次包装造成自请求死循环
-    const unwrapped = unwrapConversionUrl(resolvedTarget)
+    const unwrapped = unwrapConversionUrl(resolved.link.targetUrl)
     const conversionUrl = new URL(incomingUrl.origin)
     conversionUrl.pathname = '/sub'
     conversionUrl.searchParams.set('url', unwrapped.subscriptionUrl)
@@ -58,7 +162,10 @@ export async function handleShortenPost(request: Request): Promise<NextResponse>
 
     const { subscriptionUrl } = unwrapConversionUrl(rawUrl)
     if (!isAllowedSubscriptionInput(subscriptionUrl)) {
-      return NextResponse.json({ error: '仅支持有效的 HTTP(S) 订阅链接或代理节点 URI' }, { status: 400 })
+      return NextResponse.json(
+        { error: '仅支持有效的 HTTP(S) 订阅链接或代理节点 URI' },
+        { status: 400 },
+      )
     }
 
     const requestOrigin = new URL(request.url).origin
@@ -77,7 +184,7 @@ export async function handleShortenPost(request: Request): Promise<NextResponse>
       error: error instanceof Error ? error.message : '未知错误',
       duration: `${Date.now() - startedAt}ms`,
     })
-    return NextResponse.json({ error: '所有短链接服务都不可用' }, { status: 503 })
+    return NextResponse.json({ error: '短链接服务暂时不可用，请检查 KV 存储配置' }, { status: 503 })
   }
 }
 

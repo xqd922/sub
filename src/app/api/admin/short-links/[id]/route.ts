@@ -2,6 +2,7 @@ import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import { deleteShortLink, updateShortLink } from '@/modules/short-link/short-link.repository'
 import { AppError } from '@/server/app-error'
 import { jsonOk, parseJsonBody } from '@/server/route.utils'
+import type { UpdateShortLinkInput } from '@/shared/admin.types'
 import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
 
 export const runtime = 'edge'
@@ -12,22 +13,30 @@ interface RouteContext {
 
 export const PATCH = withAdminAuth<RouteContext>('更新短链接', async (request, { params }) => {
   const { id } = await params
-  const body = await parseJsonBody<{ name?: unknown; targetUrl?: unknown }>(request)
+  const body = await parseJsonBody<{
+    name?: unknown
+    targetUrl?: unknown
+    comment?: unknown
+    disabled?: unknown
+    expiresAt?: unknown
+    maxHits?: unknown
+    password?: unknown
+  }>(request)
+
   if (!body) {
     throw AppError.validation('请求体格式错误')
   }
 
-  const hasName = body.name !== undefined
-  const hasTargetUrl = body.targetUrl !== undefined
-  if (!hasName && !hasTargetUrl) {
-    throw AppError.validation('请提供要更新的字段（name 或 targetUrl）')
-  }
-  if (hasName && (typeof body.name !== 'string' || !body.name.trim())) {
-    throw AppError.validation('名称必须是非空字符串', 'name')
+  const updates: UpdateShortLinkInput = {}
+
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string' || !body.name.trim()) {
+      throw AppError.validation('名称必须是非空字符串', 'name')
+    }
+    updates.name = body.name.trim()
   }
 
-  let normalizedTargetUrl: string | undefined
-  if (hasTargetUrl) {
+  if (body.targetUrl !== undefined) {
     if (typeof body.targetUrl !== 'string' || !body.targetUrl.trim()) {
       throw AppError.validation('目标链接必须是非空字符串', 'targetUrl')
     }
@@ -35,17 +44,62 @@ export const PATCH = withAdminAuth<RouteContext>('更新短链接', async (reque
     if (!isAllowedSubscriptionInput(subscriptionUrl)) {
       throw AppError.validation('目标链接格式不正确', 'targetUrl')
     }
-    normalizedTargetUrl =
+    updates.targetUrl =
       target && target !== 'auto'
         ? `/sub?url=${encodeURIComponent(subscriptionUrl)}&target=${encodeURIComponent(target)}`
         : subscriptionUrl
   }
 
-  const shortLink = await updateShortLink(id, {
-    ...(hasName ? { name: (body.name as string).trim() } : {}),
-    ...(normalizedTargetUrl !== undefined ? { targetUrl: normalizedTargetUrl } : {}),
-  })
+  if (body.comment !== undefined) {
+    if (body.comment !== null && typeof body.comment !== 'string') {
+      throw AppError.validation('备注必须是字符串', 'comment')
+    }
+    updates.comment = body.comment === null ? null : body.comment.trim() || null
+  }
 
+  if (body.disabled !== undefined) {
+    if (typeof body.disabled !== 'boolean') {
+      throw AppError.validation('启用状态必须是布尔值', 'disabled')
+    }
+    updates.disabled = body.disabled
+  }
+
+  if (body.expiresAt !== undefined) {
+    if (body.expiresAt === null || body.expiresAt === '') {
+      updates.expiresAt = null
+    } else {
+      const parsed = Number(body.expiresAt)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw AppError.validation('过期时间格式不正确', 'expiresAt')
+      }
+      updates.expiresAt = parsed
+    }
+  }
+
+  if (body.maxHits !== undefined) {
+    if (body.maxHits === null || body.maxHits === '') {
+      updates.maxHits = null
+    } else {
+      const parsed = Number(body.maxHits)
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        throw AppError.validation('访问次数上限必须是大于等于 1 的整数', 'maxHits')
+      }
+      updates.maxHits = Math.floor(parsed)
+    }
+  }
+
+  if (body.password !== undefined) {
+    if (body.password !== null && typeof body.password !== 'string') {
+      throw AppError.validation('访问密钥必须是字符串', 'password')
+    }
+    updates.password = body.password === null ? null : body.password.trim() || null
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw AppError.validation('请提供要更新的字段')
+  }
+
+  const shortLink = await updateShortLink(id, updates)
   if (!shortLink) {
     throw AppError.notFound('短链接不存在', { id })
   }

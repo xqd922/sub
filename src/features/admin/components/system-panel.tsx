@@ -25,9 +25,6 @@ const CONFIG_ITEMS: ReadonlyArray<{ key: keyof SystemConfigFlags; label: string 
   { key: 'adminUsername', label: '管理员用户名 ADMIN_USERNAME' },
   { key: 'adminSecret', label: '会话密钥 ADMIN_SECRET（可选）' },
   { key: 'siteUrl', label: '站点地址 SITE_URL' },
-  { key: 'sink', label: 'Sink 短链服务' },
-  { key: 'bitly', label: 'Bitly 短链服务' },
-  { key: 'cuttly', label: 'Cuttly 短链服务' },
 ]
 
 export function SystemPanel({
