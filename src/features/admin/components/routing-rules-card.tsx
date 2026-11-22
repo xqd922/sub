@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@cloudflare/kumo/components/badge'
 import { Empty } from '@cloudflare/kumo/components/empty'
 import { LayerCard } from '@cloudflare/kumo/components/layer-card'
@@ -11,8 +11,12 @@ import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { Select, SelectItem } from '@/components/base/select/select'
+import {
+  bootstrapAdminCache,
+  updateCachedRoutingRules,
+  useAdminCache,
+} from '@/features/admin/admin.cache'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
-import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type {
   CustomRoutingRule,
@@ -43,8 +47,9 @@ const VALUE_PLACEHOLDER: Record<RoutingRuleType, string> = {
 }
 
 export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
-  const [rules, setRules] = useState<CustomRoutingRule[]>([])
-  const [loading, setLoading] = useState(true)
+  const cache = useAdminCache()
+  const rules = cache.routingRules
+  const loading = !cache.hydrated
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [ruleType, setRuleType] = useState<RoutingRuleType>('DOMAIN-SUFFIX')
   const [value, setValue] = useState('')
@@ -53,36 +58,12 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await adminFetch<{ rules: CustomRoutingRule[] }>('/api/admin/rules/routing')
-      setRules(data.rules || [])
-    } catch (error) {
-      handleAdminFetchError(error, onUnauthorized)
-    } finally {
-      setLoading(false)
-    }
-  }, [onUnauthorized])
-
   useEffect(() => {
-    let active = true
-    const run = async () => {
-      try {
-        const data = await adminFetch<{ rules: CustomRoutingRule[] }>('/api/admin/rules/routing')
-        if (active) setRules(data.rules || [])
-      } catch (error) {
-        if (active) handleAdminFetchError(error, onUnauthorized)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    void run()
-    return () => {
-      active = false
-    }
-  }, [onUnauthorized])
-
-  useFocusRefresh(refresh)
+    if (cache.hydrated) return
+    void bootstrapAdminCache().then((status) => {
+      if (status === 'unauthorized') onUnauthorized?.()
+    })
+  }, [cache.hydrated, onUnauthorized])
 
   const handleAddConfirm = async () => {
     if (!value.trim() || submitting) return
@@ -98,7 +79,7 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
           note: note.trim() || undefined,
         }),
       )
-      setRules(data.rules || [])
+      updateCachedRoutingRules(data.rules || [])
       setValue('')
       setNote('')
       setAddModalOpen(false)
@@ -117,7 +98,7 @@ export function RoutingRulesCard({ onUnauthorized }: RoutingRulesCardProps) {
         '/api/admin/rules/routing',
         jsonBody('DELETE', { id }),
       )
-      setRules(data.rules || [])
+      updateCachedRoutingRules(data.rules || [])
       showToast('分流规则已删除', 'success')
     } catch (error) {
       handleAdminFetchError(error, onUnauthorized)

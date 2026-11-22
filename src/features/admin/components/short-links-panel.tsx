@@ -35,7 +35,6 @@ import { ShortLinkEditModal } from '@/features/admin/components/short-link-edit-
 import { useAdminShortLinks } from '@/features/admin/hooks/use-admin-short-links'
 import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
-import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { CreateShortLinkInput, ShortLink, TargetClientOverride } from '@/shared/admin.types'
 import { formatDateTime, formatRelativeTime } from '@/shared/format.utils'
@@ -43,7 +42,6 @@ import { buildShortLinkPublicUrl } from '@/shared/url.utils'
 
 interface ShortLinksPanelProps {
   onUnauthorized?: () => void
-  onCountChange?: (count: number) => void
 }
 
 type SortKey = 'createdAt' | 'hits' | 'lastAccess'
@@ -116,11 +114,10 @@ const STATE_BADGE: Record<
   limit_reached: { label: '达上限', variant: 'error' },
 }
 
-export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPanelProps) {
+export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
   const {
     shortLinks,
     loading,
-    refresh,
     updateLink,
     setEnabled,
     batchSetEnabled,
@@ -157,12 +154,6 @@ export function ShortLinksPanel({ onUnauthorized, onCountChange }: ShortLinksPan
     const timer = window.setInterval(() => setNow(Date.now()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
-
-  useFocusRefresh(refresh)
-
-  useEffect(() => {
-    onCountChange?.(shortLinks.length)
-  }, [shortLinks.length, onCountChange])
 
   const filteredLinks = useMemo(() => {
     const keyword = search.trim().toLowerCase()

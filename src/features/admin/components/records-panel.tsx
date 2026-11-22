@@ -29,13 +29,13 @@ import { Input } from '@/components/base/input/input'
 import { AlertDialog, Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { SearchField } from '@/components/base/search-field/search-field'
 import { Select, SelectItem } from '@/components/base/select/select'
+import { updateCachedShortLinks } from '@/features/admin/admin.cache'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { RecordDetailDrawer } from '@/features/admin/components/record-detail-drawer'
 import { RenameEntityModal } from '@/features/admin/components/rename-entity-modal'
 import { useAdminRecords } from '@/features/admin/hooks/use-admin-records'
 import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
-import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { ConvertRecord, InspectSubscriptionResult, ShortLink } from '@/shared/admin.types'
 import { escapeCsvCell, formatDateTime, formatRelativeTime } from '@/shared/format.utils'
@@ -43,7 +43,6 @@ import { buildConversionUrl } from '@/shared/url.utils'
 
 interface RecordsPanelProps {
   onUnauthorized?: () => void
-  onCountChange?: (count: number) => void
   focusSearchSignal?: number
 }
 
@@ -95,13 +94,11 @@ function exportRecordsCsv(records: ConvertRecord[]): void {
 
 export function RecordsPanel({
   onUnauthorized,
-  onCountChange,
   focusSearchSignal = 0,
 }: RecordsPanelProps) {
   const {
     records,
     loading,
-    refresh,
     renameRecord,
     setEnabled,
     removeRecords,
@@ -130,12 +127,6 @@ export function RecordsPanel({
   >({})
   const [deletingRecord, setDeletingRecord] = useState<ConvertRecord | null>(null)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
-
-  useFocusRefresh(refresh)
-
-  useEffect(() => {
-    onCountChange?.(records.length)
-  }, [records.length, onCountChange])
 
   useEffect(() => {
     if (focusSearchSignal > 0) {
@@ -211,6 +202,10 @@ export function RecordsPanel({
         '/api/admin/short-links',
         jsonBody('POST', { targetUrl: record.originalUrl, name: record.name }),
       )
+      updateCachedShortLinks((prev) => [
+        data.shortLink,
+        ...prev.filter((item) => item.id !== data.shortLink.id),
+      ])
       const shortUrl = `${window.location.origin}/s/${data.shortLink.id}`
       const copied = await copyToClipboard(shortUrl)
       showToast(copied ? '短链已生成并复制' : `短链已生成：${shortUrl}`, 'success')

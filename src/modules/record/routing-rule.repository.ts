@@ -36,26 +36,29 @@ function normalizeRuleValue(type: RoutingRuleType, raw: string): string {
   return cleaned.replace(/^\.+/, '').toLowerCase()
 }
 
+export function parseCustomRoutingRules(data: unknown): CustomRoutingRule[] {
+  const rules = (data as { rules?: CustomRoutingRule[] } | null)?.rules
+  if (!Array.isArray(rules)) return []
+  return rules.filter(
+    (item): item is CustomRoutingRule =>
+      Boolean(
+        item &&
+          typeof item.id === 'string' &&
+          ALLOWED_TYPES.has(item.type) &&
+          typeof item.value === 'string' &&
+          item.value.trim() &&
+          ALLOWED_ACTIONS.has(item.action),
+      ),
+  )
+}
+
 export async function getCustomRoutingRules(): Promise<CustomRoutingRule[]> {
   const kv = await getKvStore()
   if (!kv) return []
 
   try {
-    const data = (await kv.get(KV_KEYS.ROUTING_RULES, 'json')) as {
-      rules?: CustomRoutingRule[]
-    } | null
-    if (!Array.isArray(data?.rules)) return []
-    return data.rules.filter(
-      (item): item is CustomRoutingRule =>
-        Boolean(
-          item &&
-            typeof item.id === 'string' &&
-            ALLOWED_TYPES.has(item.type) &&
-            typeof item.value === 'string' &&
-            item.value.trim() &&
-            ALLOWED_ACTIONS.has(item.action),
-        ),
-    )
+    const data = await kv.get(KV_KEYS.ROUTING_RULES, 'json')
+    return parseCustomRoutingRules(data)
   } catch (error) {
     logger.warn('[RoutingRuleRepo] 读取自定义分流规则失败:', error)
     return []

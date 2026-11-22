@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { Spinner } from '@/components/base/spinner/spinner'
+import { bootstrapAdminCache, useAdminCache } from '@/features/admin/admin.cache'
 import { AdminCommandPalette } from '@/features/admin/components/admin-command-palette'
 import { AdminLoginView } from '@/features/admin/components/admin-login-view'
 import {
@@ -15,6 +16,7 @@ import { RulesPanel } from '@/features/admin/components/rules-panel'
 import { ShortLinksPanel } from '@/features/admin/components/short-links-panel'
 import { StatsPanel } from '@/features/admin/components/stats-panel'
 import { useAdminSession } from '@/features/admin/hooks/use-admin-session'
+import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 
 const VALID_TABS = new Set<AdminTabKey>(['stats', 'records', 'shortLinks', 'config'])
 const tabListeners = new Set<() => void>()
@@ -41,9 +43,8 @@ function subscribeTabUrl(onStoreChange: () => void): () => void {
 export function AdminConsole() {
   const router = useRouter()
   const { checking, authenticated, login, logout, resetAuthentication } = useAdminSession()
+  const cache = useAdminCache()
   const activeTab = useSyncExternalStore(subscribeTabUrl, readTabFromUrl, getServerTab)
-  const [recordCount, setRecordCount] = useState<number | null>(null)
-  const [shortLinkCount, setShortLinkCount] = useState<number | null>(null)
   const [focusSearchSignal, setFocusSearchSignal] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
 
@@ -55,6 +56,16 @@ export function AdminConsole() {
     window.history.replaceState(null, '', url.toString())
     for (const listener of tabListeners) listener()
   }, [])
+
+  // 切回浏览器标签页时单点静默同步全量控制台快照
+  const handleSilentSync = useCallback(() => {
+    if (!authenticated) return
+    void bootstrapAdminCache({ force: true }).then((status) => {
+      if (status === 'unauthorized') resetAuthentication()
+    })
+  }, [authenticated, resetAuthentication])
+
+  useFocusRefresh(handleSilentSync)
 
   // Cmd/Ctrl + K 打开 Kumo 命令面板
   useEffect(() => {
@@ -69,11 +80,6 @@ export function AdminConsole() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [authenticated])
 
-  const handleStatsCountsLoaded = useCallback((recordsTotal: number, shortLinksTotal: number) => {
-    setRecordCount(recordsTotal)
-    setShortLinkCount(shortLinksTotal)
-  }, [])
-
   const handleFocusRecordSearch = useCallback(() => {
     setActiveTab('records')
     setFocusSearchSignal((count) => count + 1)
@@ -86,8 +92,8 @@ export function AdminConsole() {
   if (checking) {
     return (
       <section className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background-full text-text-tertiary">
-        <Spinner size="md" aria-label="检查登录状态" />
-        <p className="font-mono text-caption-1-regular">验证管理会话…</p>
+        <Spinner size="md" aria-label="加载控制台" />
+        <p className="font-mono text-caption-1-regular">加载控制台…</p>
       </section>
     )
   }
@@ -97,6 +103,8 @@ export function AdminConsole() {
   }
 
   const currentTab = ADMIN_TABS.find((tab) => tab.key === activeTab) ?? ADMIN_TABS[0]
+  const recordCount = cache.hydrated ? cache.records.length : null
+  const shortLinkCount = cache.hydrated ? cache.shortLinks.length : null
 
   return (
     <div className="flex min-h-screen flex-col bg-background-full text-text-primary lg:flex-row">
@@ -131,24 +139,15 @@ export function AdminConsole() {
         </div>
 
         <main className="mx-auto flex w-full max-w-[1160px] flex-1 flex-col px-5 py-6 sm:px-8">
-          {activeTab === 'stats' ? (
-            <StatsPanel
-              onUnauthorized={resetAuthentication}
-              onCountsLoaded={handleStatsCountsLoaded}
-            />
-          ) : null}
+          {activeTab === 'stats' ? <StatsPanel onUnauthorized={resetAuthentication} /> : null}
           {activeTab === 'records' ? (
             <RecordsPanel
               onUnauthorized={resetAuthentication}
-              onCountChange={setRecordCount}
               focusSearchSignal={focusSearchSignal}
             />
           ) : null}
           {activeTab === 'shortLinks' ? (
-            <ShortLinksPanel
-              onUnauthorized={resetAuthentication}
-              onCountChange={setShortLinkCount}
-            />
+            <ShortLinksPanel onUnauthorized={resetAuthentication} />
           ) : null}
           {activeTab === 'config' ? <RulesPanel onUnauthorized={resetAuthentication} /> : null}
         </main>

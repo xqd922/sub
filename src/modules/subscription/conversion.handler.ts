@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getCustomClientRules } from '@/modules/record/client-rule.repository'
-import { isUrlEnabled, logConversion } from '@/modules/record/record.repository'
-import { getCustomRoutingRules } from '@/modules/record/routing-rule.repository'
+import { parseCustomClientRules } from '@/modules/record/client-rule.repository'
+import { generateRecordId, logConversion } from '@/modules/record/record.repository'
+import { parseCustomRoutingRules } from '@/modules/record/routing-rule.repository'
 import { extractClientHeaders } from '@/modules/renderer/client-detector'
 import {
   formatProxiesIfNeeded,
@@ -15,8 +15,11 @@ import {
 import { AppError, ErrorCode, ErrorSeverity } from '@/server/app-error'
 import { DEFAULT_SITE_URL, getSiteUrl } from '@/server/env.config'
 import { reportError } from '@/server/error-handler'
+import { getManyJson } from '@/server/kv/kv.client'
+import { KV_KEYS } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 import { getClientIp, getExecutionContext, jsonError } from '@/server/route.utils'
+import type { ConvertRecord } from '@/shared/admin.types'
 import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
 
 function classifyConversionError(error: unknown, durationMs: number, url: string): AppError {
@@ -115,14 +118,18 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       throw AppError.invalidSubscriptionUrl(url)
     }
 
-    const [enabled, customClientRules, customRoutingRules] = await Promise.all([
-      isUrlEnabled(url),
-      getCustomClientRules(),
-      getCustomRoutingRules(),
+    const recordKey = `${KV_KEYS.RECORD_PREFIX}${await generateRecordId(url)}`
+    const precheckMap = await getManyJson<unknown>([
+      recordKey,
+      KV_KEYS.CLIENT_RULES,
+      KV_KEYS.ROUTING_RULES,
     ])
-    if (!enabled) {
+    const existingRecord = precheckMap.get(recordKey) as ConvertRecord | null | undefined
+    if (existingRecord?.deleted) {
       throw AppError.validation('该订阅链接已被禁用', 'url')
     }
+    const customClientRules = parseCustomClientRules(precheckMap.get(KV_KEYS.CLIENT_RULES))
+    const customRoutingRules = parseCustomRoutingRules(precheckMap.get(KV_KEYS.ROUTING_RULES))
 
     const { proxies, subscription } = await processSubscription(url)
 

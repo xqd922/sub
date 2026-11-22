@@ -6,19 +6,22 @@ import type { CustomClientRule } from '@/shared/admin.types'
 
 const MAX_CUSTOM_RULES = 100
 
+export function parseCustomClientRules(data: unknown): CustomClientRule[] {
+  const rules = (data as { rules?: CustomClientRule[] } | null)?.rules
+  if (!Array.isArray(rules)) return []
+  return rules.filter(
+    (item): item is CustomClientRule =>
+      Boolean(item && typeof item.id === 'string' && typeof item.keyword === 'string'),
+  )
+}
+
 export async function getCustomClientRules(): Promise<CustomClientRule[]> {
   const kv = await getKvStore()
   if (!kv) return []
 
   try {
-    const data = (await kv.get(KV_KEYS.CLIENT_RULES, 'json')) as {
-      rules?: CustomClientRule[]
-    } | null
-    if (!Array.isArray(data?.rules)) return []
-    return data.rules.filter(
-      (item): item is CustomClientRule =>
-        Boolean(item && typeof item.id === 'string' && typeof item.keyword === 'string'),
-    )
+    const data = await kv.get(KV_KEYS.CLIENT_RULES, 'json')
+    return parseCustomClientRules(data)
   } catch (error) {
     logger.warn('[ClientRuleRepo] 读取自定义 UA 规则失败:', error)
     return []

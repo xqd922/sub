@@ -31,6 +31,7 @@ import {
   updateShortLink,
 } from '@/modules/short-link/short-link.repository'
 import { MemoryKvStore, resetFallbackKvStore } from '@/server/kv/kv.adapter'
+import { getManyJson } from '@/server/kv/kv.client'
 import { encodeBase64Utf8 } from '@/shared/base64.utils'
 
 const TEST_URL = 'https://example.com/admin-flow-sub'
@@ -333,5 +334,29 @@ describe('record and short-link KV flows', () => {
     expect(await getCustomRoutingRules()).toHaveLength(2)
     const remaining = await deleteCustomRoutingRule(domainRule.id)
     expect(remaining?.map((item) => item.id)).toEqual([ipRule.id])
+  })
+
+  it('batch-reads JSON keys via getManyJson and excludes :urls keys in getRecentDailyStats', async () => {
+    const recA = await createRecordManually('https://example.com/bulk-a', 'Bulk A')
+    const recB = await createRecordManually('https://example.com/bulk-b', 'Bulk B')
+    expect(recA).not.toBeNull()
+    expect(recB).not.toBeNull()
+
+    const map = await getManyJson<{ id: string; name: string }>([
+      `record:${recA!.id}`,
+      `record:${recB!.id}`,
+      'record:non-existent',
+    ])
+    expect(map.get(`record:${recA!.id}`)?.name).toBe('Bulk A')
+    expect(map.get(`record:${recB!.id}`)?.name).toBe('Bulk B')
+    expect(map.get('record:non-existent')).toBeNull()
+
+    const kv = new MemoryKvStore()
+    await kv.put('k:a', JSON.stringify({ n: 1 }))
+    await kv.put('k:b', JSON.stringify({ n: 2 }))
+    const batch = await kv.getMany<{ n: number }>(['k:a', 'k:b', 'k:missing'], 'json')
+    expect(batch.get('k:a')).toEqual({ n: 1 })
+    expect(batch.get('k:b')).toEqual({ n: 2 })
+    expect(batch.get('k:missing')).toBeNull()
   })
 })

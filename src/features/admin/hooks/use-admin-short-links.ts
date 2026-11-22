@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
+import {
+  bootstrapAdminCache,
+  updateCachedShortLinks,
+  useAdminCache,
+} from '@/features/admin/admin.cache'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type {
@@ -10,39 +15,23 @@ import type {
 } from '@/shared/admin.types'
 
 export function useAdminShortLinks(onUnauthorized?: () => void) {
-  const [shortLinks, setShortLinks] = useState<ShortLink[]>([])
-  const [loading, setLoading] = useState(true)
+  const cache = useAdminCache()
 
   const refresh = useCallback(async () => {
     try {
       const data = await adminFetch<{ shortLinks: ShortLink[] }>('/api/admin/short-links')
-      setShortLinks(data.shortLinks || [])
+      updateCachedShortLinks(() => data.shortLinks || [])
     } catch (error) {
       handleAdminFetchError(error, onUnauthorized)
-    } finally {
-      setLoading(false)
     }
   }, [onUnauthorized])
 
   useEffect(() => {
-    let active = true
-
-    const load = async () => {
-      try {
-        const data = await adminFetch<{ shortLinks: ShortLink[] }>('/api/admin/short-links')
-        if (active) setShortLinks(data.shortLinks || [])
-      } catch (error) {
-        if (active) handleAdminFetchError(error, onUnauthorized)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    void load()
-    return () => {
-      active = false
-    }
-  }, [onUnauthorized])
+    if (cache.hydrated) return
+    void bootstrapAdminCache().then((status) => {
+      if (status === 'unauthorized') onUnauthorized?.()
+    })
+  }, [cache.hydrated, onUnauthorized])
 
   const updateLink = useCallback(
     async (id: string, updates: UpdateShortLinkInput): Promise<boolean> => {
@@ -51,7 +40,9 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
           `/api/admin/short-links/${encodeURIComponent(id)}`,
           jsonBody('PATCH', updates),
         )
-        setShortLinks((prev) => prev.map((item) => (item.id === id ? data.shortLink : item)))
+        updateCachedShortLinks((prev) =>
+          prev.map((item) => (item.id === id ? data.shortLink : item)),
+        )
         showToast('短链接已更新', 'success')
         return true
       } catch (error) {
@@ -69,7 +60,9 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
           `/api/admin/short-links/${encodeURIComponent(id)}`,
           jsonBody('PATCH', { disabled: !enabled }),
         )
-        setShortLinks((prev) => prev.map((item) => (item.id === id ? data.shortLink : item)))
+        updateCachedShortLinks((prev) =>
+          prev.map((item) => (item.id === id ? data.shortLink : item)),
+        )
         showToast(enabled ? '已启用该短链' : '已禁用该短链', 'success')
         return true
       } catch (error) {
@@ -87,7 +80,12 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
           '/api/admin/short-links',
           jsonBody('PATCH', { ids, action: enabled ? 'enable' : 'disable' }),
         )
-        await refresh()
+        const succeeded = new Set(data.succeeded || [])
+        if (succeeded.size > 0) {
+          updateCachedShortLinks((prev) =>
+            prev.map((item) => (succeeded.has(item.id) ? { ...item, disabled: !enabled } : item)),
+          )
+        }
         const failedCount = data.failed?.length || 0
         showToast(
           failedCount > 0 ? `完成，${failedCount} 条操作失败` : '批量操作完成',
@@ -99,14 +97,14 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
         return false
       }
     },
-    [refresh, onUnauthorized],
+    [onUnauthorized],
   )
 
   const deleteLinks = useCallback(
     async (ids: string[]): Promise<boolean> => {
       try {
         await adminFetch('/api/admin/short-links', jsonBody('DELETE', { ids }))
-        setShortLinks((prev) => prev.filter((item) => !ids.includes(item.id)))
+        updateCachedShortLinks((prev) => prev.filter((item) => !ids.includes(item.id)))
         showToast(ids.length > 1 ? `已删除 ${ids.length} 条短链` : '短链已删除', 'success')
         return true
       } catch (error) {
@@ -124,7 +122,7 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
           '/api/admin/short-links',
           jsonBody('POST', input),
         )
-        setShortLinks((prev) => [
+        updateCachedShortLinks((prev) => [
           data.shortLink,
           ...prev.filter((item) => item.id !== data.shortLink.id),
         ])
@@ -161,8 +159,8 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
   )
 
   return {
-    shortLinks,
-    loading,
+    shortLinks: cache.shortLinks,
+    loading: !cache.hydrated,
     refresh,
     updateLink,
     setEnabled,

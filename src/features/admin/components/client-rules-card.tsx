@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@cloudflare/kumo/components/badge'
 import { Empty } from '@cloudflare/kumo/components/empty'
 import { LayerCard } from '@cloudflare/kumo/components/layer-card'
@@ -11,8 +11,12 @@ import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { Select, SelectItem } from '@/components/base/select/select'
+import {
+  bootstrapAdminCache,
+  updateCachedClientRules,
+  useAdminCache,
+} from '@/features/admin/admin.cache'
 import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
-import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
 import type { CustomClientRule } from '@/shared/admin.types'
 
@@ -28,8 +32,9 @@ const TARGET_LABEL: Record<CustomClientRule['target'], string> = {
 }
 
 export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
-  const [rules, setRules] = useState<CustomClientRule[]>([])
-  const [loading, setLoading] = useState(true)
+  const cache = useAdminCache()
+  const rules = cache.clientRules
+  const loading = !cache.hydrated
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [target, setTarget] = useState<CustomClientRule['target']>('singbox')
@@ -37,40 +42,12 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await adminFetch<{ rules: CustomClientRule[] }>(
-        '/api/admin/system/client-rules',
-      )
-      setRules(data.rules || [])
-    } catch (error) {
-      handleAdminFetchError(error, onUnauthorized)
-    } finally {
-      setLoading(false)
-    }
-  }, [onUnauthorized])
-
   useEffect(() => {
-    let active = true
-    const run = async () => {
-      try {
-        const data = await adminFetch<{ rules: CustomClientRule[] }>(
-          '/api/admin/system/client-rules',
-        )
-        if (active) setRules(data.rules || [])
-      } catch (error) {
-        if (active) handleAdminFetchError(error, onUnauthorized)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    void run()
-    return () => {
-      active = false
-    }
-  }, [onUnauthorized])
-
-  useFocusRefresh(refresh)
+    if (cache.hydrated) return
+    void bootstrapAdminCache().then((status) => {
+      if (status === 'unauthorized') onUnauthorized?.()
+    })
+  }, [cache.hydrated, onUnauthorized])
 
   const handleAddConfirm = async () => {
     if (!keyword.trim() || submitting) return
@@ -85,7 +62,7 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
           note: note.trim() || undefined,
         }),
       )
-      setRules(data.rules || [])
+      updateCachedClientRules(data.rules || [])
       setKeyword('')
       setNote('')
       setAddModalOpen(false)
@@ -104,7 +81,7 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
         '/api/admin/system/client-rules',
         jsonBody('DELETE', { id }),
       )
-      setRules(data.rules || [])
+      updateCachedClientRules(data.rules || [])
       showToast('规则已删除', 'success')
     } catch (error) {
       handleAdminFetchError(error, onUnauthorized)

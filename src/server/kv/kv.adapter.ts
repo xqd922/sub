@@ -2,6 +2,33 @@ import { getRemoteKvConfig } from '@/server/env.config'
 import type { KvListResult, KvStoreAdapter } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 
+const KV_BULK_GET_LIMIT = 100
+
+function parseBulkValue<T>(raw: unknown, type?: 'json' | 'text'): T | null {
+  if (raw === null || raw === undefined) return null
+  // Cloudflare /bulk/get with metadata wraps as { value, metadata }; unwrap defensively
+  const candidate =
+    typeof raw === 'object' &&
+    raw !== null &&
+    'value' in raw &&
+    Object.keys(raw as Record<string, unknown>).every((k) => k === 'value' || k === 'metadata')
+      ? (raw as { value: unknown }).value
+      : raw
+
+  if (candidate === null || candidate === undefined) return null
+  if (type === 'json') {
+    if (typeof candidate === 'string') {
+      try {
+        return JSON.parse(candidate) as T
+      } catch {
+        return null
+      }
+    }
+    return candidate as T
+  }
+  return (typeof candidate === 'string' ? candidate : JSON.stringify(candidate)) as T
+}
+
 class RemoteKvStore implements KvStoreAdapter {
   private readonly baseUrl: string
   private readonly apiToken: string
@@ -40,6 +67,60 @@ class RemoteKvStore implements KvStoreAdapter {
       logger.error('[RemoteKV] GET 失败:', key, error)
       return null
     }
+  }
+
+  async getMany<T = unknown>(
+    keys: string[],
+    type: 'json' | 'text' = 'json',
+  ): Promise<Map<string, T | null>> {
+    const output = new Map<string, T | null>()
+    if (keys.length === 0) return output
+
+    const chunks: string[][] = []
+    for (let i = 0; i < keys.length; i += KV_BULK_GET_LIMIT) {
+      chunks.push(keys.slice(i, i + KV_BULK_GET_LIMIT))
+    }
+
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        try {
+          const res = await this.request('/bulk/get', {
+            method: 'POST',
+            body: JSON.stringify({ keys: chunk, type }),
+          })
+          if (res.ok) {
+            const payload = (await res.json()) as {
+              success?: boolean
+              result?: { values?: Record<string, unknown> } | Record<string, unknown>
+            }
+            const rawMap =
+              payload?.result &&
+              typeof payload.result === 'object' &&
+              'values' in payload.result &&
+              payload.result.values &&
+              typeof payload.result.values === 'object'
+                ? (payload.result.values as Record<string, unknown>)
+                : (payload?.result as Record<string, unknown> | undefined)
+
+            if (rawMap && typeof rawMap === 'object') {
+              for (const key of chunk) {
+                output.set(key, parseBulkValue<T>(rawMap[key], type))
+              }
+              return
+            }
+          }
+        } catch (error) {
+          logger.warn('[RemoteKV] BULK GET 回退到并发单键读取:', error)
+        }
+
+        const fallback = await Promise.all(chunk.map((key) => this.get<T>(key, type)))
+        chunk.forEach((key, idx) => {
+          output.set(key, fallback[idx] ?? null)
+        })
+      }),
+    )
+
+    return output
   }
 
   async put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> {
@@ -124,6 +205,17 @@ export class MemoryKvStore implements KvStoreAdapter {
       }
     }
     return entry.value as T
+  }
+
+  async getMany<T = unknown>(
+    keys: string[],
+    type: 'json' | 'text' = 'json',
+  ): Promise<Map<string, T | null>> {
+    const output = new Map<string, T | null>()
+    for (const key of keys) {
+      output.set(key, await this.get<T>(key, type))
+    }
+    return output
   }
 
   async put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> {

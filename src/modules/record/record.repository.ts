@@ -1,4 +1,4 @@
-import { getKvStore, isKvAvailable, listKeysByPrefix } from '@/server/kv/kv.client'
+import { getKvStore, getManyJson, isKvAvailable, listKeysByPrefix } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS, type RecordIndex } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 import type { ConvertRecord, DailyStats, StatsData } from '@/shared/admin.types'
@@ -213,9 +213,14 @@ export async function isUrlEnabled(url: string): Promise<boolean> {
 
 export async function getActiveRecords(): Promise<ConvertRecord[]> {
   const index = await getRecordIndex()
-  const records = (await Promise.all(index.ids.map(getRecordById))).filter(
-    (record): record is ConvertRecord => record !== null && !record.deleted,
-  )
+  if (index.ids.length === 0) return []
+
+  const keys = index.ids.map((id) => `${KV_KEYS.RECORD_PREFIX}${id}`)
+  const values = await getManyJson<ConvertRecord>(keys)
+  const records: ConvertRecord[] = []
+  for (const record of values.values()) {
+    if (record && !record.deleted) records.push(record)
+  }
 
   return records.sort((a, b) => b.lastAccess - a.lastAccess)
 }
@@ -223,14 +228,16 @@ export async function getActiveRecords(): Promise<ConvertRecord[]> {
 export async function listAllRecordsForAdmin(): Promise<ConvertRecord[]> {
   if (!(await isKvAvailable())) return []
 
-  const keys = await listKeysByPrefix(KV_KEYS.RECORD_PREFIX)
-  const ids = keys
-    .filter((name) => name.startsWith(KV_KEYS.RECORD_PREFIX))
-    .map((name) => name.slice(KV_KEYS.RECORD_PREFIX.length))
-
-  const records = (await Promise.all(ids.map(getRecordById))).filter(
-    (record): record is ConvertRecord => record !== null,
+  const keys = (await listKeysByPrefix(KV_KEYS.RECORD_PREFIX)).filter((name) =>
+    name.startsWith(KV_KEYS.RECORD_PREFIX),
   )
+  if (keys.length === 0) return []
+
+  const values = await getManyJson<ConvertRecord>(keys)
+  const records: ConvertRecord[] = []
+  for (const record of values.values()) {
+    if (record) records.push(record)
+  }
 
   return records.sort((a, b) => b.lastAccess - a.lastAccess)
 }
@@ -322,14 +329,11 @@ export async function createRecordManually(
   }
 }
 
-export async function getStats(): Promise<StatsData> {
-  const today = new Date().toISOString().slice(0, 10)
-  const [allRecords, dailyStats, shortKeys] = await Promise.all([
-    listAllRecordsForAdmin(),
-    getDailyStats(today),
-    listKeysByPrefix(KV_KEYS.SHORT_PREFIX),
-  ])
-
+export function computeStatsFromData(
+  allRecords: ConvertRecord[],
+  todayHits: number,
+  totalShortLinks: number,
+): StatsData {
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
   let totalRecords = 0
   let disabledRecords = 0
@@ -348,32 +352,55 @@ export async function getStats(): Promise<StatsData> {
     }
   }
 
-  const totalShortLinks = shortKeys.filter(
-    (name) => name.startsWith(KV_KEYS.SHORT_PREFIX) && !name.startsWith(KV_KEYS.SHORT_URL_PREFIX),
-  ).length
-
   return {
     totalRecords,
     disabledRecords,
     totalShortLinks,
     totalHits,
-    todayHits: dailyStats?.totalHits || 0,
+    todayHits,
     activeRecords,
   }
 }
 
-export async function getRecentDailyStats(days: number): Promise<DailyStats[]> {
-  const now = new Date()
-  const dates: string[] = []
+export async function getStats(): Promise<StatsData> {
+  const today = new Date().toISOString().slice(0, 10)
+  const [allRecords, dailyStats, shortKeys] = await Promise.all([
+    listAllRecordsForAdmin(),
+    getDailyStats(today),
+    listKeysByPrefix(KV_KEYS.SHORT_PREFIX),
+  ])
 
+  const totalShortLinks = shortKeys.filter(
+    (name) => name.startsWith(KV_KEYS.SHORT_PREFIX) && !name.startsWith(KV_KEYS.SHORT_URL_PREFIX),
+  ).length
+
+  return computeStatsFromData(allRecords, dailyStats?.totalHits || 0, totalShortLinks)
+}
+
+export async function getRecentDailyStats(days: number): Promise<DailyStats[]> {
+  if (days <= 0) return []
+
+  const now = new Date()
+  const targetKeys = new Set<string>()
   for (let i = 0; i < days; i++) {
     const date = new Date(now)
     date.setDate(date.getDate() - i)
-    dates.push(date.toISOString().slice(0, 10))
+    targetKeys.add(`${KV_KEYS.DAILY_PREFIX}${date.toISOString().slice(0, 10)}`)
   }
 
-  const results = await Promise.all(dates.map(getDailyStats))
-  return results
-    .filter((item): item is DailyStats => item !== null)
-    .sort((a, b) => a.date.localeCompare(b.date))
+  // 先 list 一次筛选真实存在的日期键，避免对空日期发起几十次 KV 缓存穿透回源
+  const existingKeys = (await listKeysByPrefix(KV_KEYS.DAILY_PREFIX)).filter((key) =>
+    targetKeys.has(key),
+  )
+  if (existingKeys.length === 0) return []
+
+  const values = await getManyJson<DailyStats>(existingKeys)
+  const results: DailyStats[] = []
+  for (const item of values.values()) {
+    if (item && typeof item.date === 'string') {
+      results.push(item)
+    }
+  }
+
+  return results.sort((a, b) => a.date.localeCompare(b.date))
 }

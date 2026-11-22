@@ -1,5 +1,5 @@
 import { AppError, ErrorCode, ErrorSeverity } from '@/server/app-error'
-import { getKvStore } from '@/server/kv/kv.client'
+import { getKvStore, getManyJson } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
 import type {
@@ -241,9 +241,14 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
   try {
     const indexData = (await kv.get(KV_KEYS.SHORT_INDEX, 'json')) as { ids?: string[] } | null
     const ids = indexData?.ids || []
-    const links = (await Promise.all(ids.map(getShortLink))).filter(
-      (link): link is ShortLink => link !== null,
-    )
+    if (ids.length === 0) return []
+
+    const keys = ids.map((id) => `${KV_KEYS.SHORT_PREFIX}${id}`)
+    const values = await getManyJson<ShortLink>(keys)
+    const links: ShortLink[] = []
+    for (const link of values.values()) {
+      if (link) links.push(link)
+    }
     return links.sort((a, b) => b.createdAt - a.createdAt)
   } catch (error) {
     logger.error('[ShortLinkRepo] 获取全部失败:', error)

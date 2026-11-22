@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Badge } from '@cloudflare/kumo/components/badge'
 import { LayerCard } from '@cloudflare/kumo/components/layer-card'
 import { Meter } from '@cloudflare/kumo/components/meter'
@@ -13,32 +13,16 @@ import {
 import { Skeleton } from '@/components/base/skeleton/skeleton'
 import { ActivityHeatmapCard } from '@/features/admin/components/activity-heatmap-card'
 import { TrendChartCard } from '@/features/admin/components/trend-chart-card'
-import { useAdminRecords } from '@/features/admin/hooks/use-admin-records'
 import { useAdminStats } from '@/features/admin/hooks/use-admin-stats'
-import { useFocusRefresh } from '@/features/shared/hooks/use-focus-refresh'
 import { formatCount } from '@/shared/format.utils'
 import { cx } from '@/utils/cx'
 
 interface StatsPanelProps {
   onUnauthorized?: () => void
-  onCountsLoaded?: (recordsTotal: number, shortLinksTotal: number) => void
 }
 
-export function StatsPanel({ onUnauthorized, onCountsLoaded }: StatsPanelProps) {
-  const { stats, daily, loading, refresh } = useAdminStats(onUnauthorized)
-  const { records, refresh: refreshRecords } = useAdminRecords(onUnauthorized)
-
-  const refreshAll = useCallback(() => {
-    void Promise.all([refresh(), refreshRecords()])
-  }, [refresh, refreshRecords])
-
-  useFocusRefresh(refreshAll)
-
-  useEffect(() => {
-    if (stats) {
-      onCountsLoaded?.(stats.totalRecords + stats.disabledRecords, stats.totalShortLinks)
-    }
-  }, [stats, onCountsLoaded])
+export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
+  const { stats, daily, records, loading } = useAdminStats(onUnauthorized)
 
   const clientTypes = useMemo(() => {
     const counts = new Map<string, number>()

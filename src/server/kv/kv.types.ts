@@ -6,6 +6,7 @@ export interface KvListResult {
 
 export interface KvStoreAdapter {
   get(key: string, type?: 'json' | 'text'): Promise<unknown>
+  getMany?<T = unknown>(keys: string[], type?: 'json' | 'text'): Promise<Map<string, T | null>>
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
   delete(key: string): Promise<void>
   list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<KvListResult>
