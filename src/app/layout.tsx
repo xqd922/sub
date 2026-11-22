@@ -1,10 +1,16 @@
-﻿import type { Metadata } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import { AppErrorBoundary } from '@/features/shared/components/app-error-boundary'
 import { AppProviders } from '@/features/shared/components/app-providers'
 import { AppToaster } from '@/features/shared/components/app-toaster'
 import '@/styles/globals.css'
 
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('boardui:theme');var dark=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);document.documentElement.setAttribute('data-mode',dark?'dark':'light');}catch(e){}})();`
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export const metadata: Metadata = {
   title: 'SubConvert · 通用订阅转换',

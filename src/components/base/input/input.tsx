@@ -155,7 +155,7 @@ const inputStyles = sortCx({
   leftSection: "flex flex-1 items-center gap-0.5 min-w-0",
 
   input: [
-    "min-w-0 flex-1 bg-transparent border-0 outline-none p-0 m-0",
+    "min-w-0 flex-1 truncate bg-transparent border-0 outline-none p-0 m-0",
     "font-sans text-body-regular text-text-primary",
     "placeholder:text-text-tertiary",
     "focus:placeholder:text-text-primary",
@@ -165,6 +165,7 @@ const inputStyles = sortCx({
   ].join(" "),
 
   icon: "size-5 shrink-0",
+  iconSmall: "size-4 shrink-0",
 });
 
 /** The field shell's state for a render-prop className. */
@@ -225,17 +226,23 @@ export function InputBase({
           {hasAddon ? (
             leadingAddon
           ) : Leading ? (
-            <Leading className={inputStyles.icon} aria-hidden />
+            <Leading className={size === "small" ? inputStyles.iconSmall : inputStyles.icon} aria-hidden />
           ) : null}
           <AriaInput
             ref={ref}
             {...inputProps}
             // Align to the field's start even when email/URL values use LTR.
-            className={cx(inputStyles.input, direction === "rtl" ? "pr-1 text-right" : "pl-1 text-left", ctx.inputClassName, className)}
+            className={cx(
+              inputStyles.input,
+              size === "small" && "text-body-2-regular",
+              direction === "rtl" ? "pr-1 text-right" : "pl-1 text-left",
+              ctx.inputClassName,
+              className,
+            )}
           />
         </div>
         {trailingAddon ?? (Trailing ? (
-          <Trailing className={inputStyles.icon} aria-hidden />
+          <Trailing className={size === "small" ? inputStyles.iconSmall : inputStyles.icon} aria-hidden />
         ) : null)}
       </div>
     </AriaGroup>

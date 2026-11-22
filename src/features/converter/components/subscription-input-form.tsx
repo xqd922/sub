@@ -42,7 +42,7 @@ export function SubscriptionInputForm({
     <form onSubmit={onSubmit} className="w-full">
       <div
         className={cx(
-          'flex items-center gap-2 rounded-xl border border-border-button-default bg-background-primary-default ps-3.5 pe-1.5 py-1.5 shadow-sm',
+          'flex h-12 items-center gap-2 rounded-2xl border border-border-button-default bg-background-primary-default ps-3.5 pe-1.5 shadow-sm sm:h-[52px]',
           'transition-[background-color,border-color,box-shadow] duration-150',
           'hover:border-border-button-hover',
           'focus-within:border-accent-500 focus-within:ring-3 focus-within:ring-accent-500/15',
@@ -65,16 +65,16 @@ export function SubscriptionInputForm({
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           onPaste={handlePaste}
-          placeholder="粘贴订阅链接或代理节点 URI（支持多行自动合并）"
+          placeholder="粘贴订阅链接或代理节点 URI"
           autoComplete="off"
           spellCheck={false}
           aria-label="订阅链接"
           aria-invalid={error ? true : undefined}
           className={cx(
-            'min-w-0 flex-1 border-0 bg-transparent py-2 text-text-primary outline-none',
+            'h-full min-w-0 flex-1 truncate border-0 bg-transparent text-text-primary outline-none',
             'placeholder:text-text-tertiary',
             'disabled:cursor-not-allowed disabled:opacity-60',
-            hasValue ? 'font-mono text-caption-1-regular' : 'text-body-2-regular',
+            hasValue ? 'font-mono text-body-2-regular' : 'text-body-2-regular sm:text-body-regular',
           )}
         />
 
@@ -83,7 +83,7 @@ export function SubscriptionInputForm({
             type="button"
             onClick={() => onChange('')}
             aria-label="清空输入"
-            className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-tertiary transition-colors duration-150 hover:bg-background-secondary-hover hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+            className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-tertiary transition-colors duration-150 hover:bg-background-secondary-hover hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
           >
             <RiCloseLine className="size-3.5" aria-hidden />
           </button>
@@ -93,7 +93,7 @@ export function SubscriptionInputForm({
           type="submit"
           disabled={disabled}
           className={cx(
-            'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-button-primary px-4 text-body-2-medium text-text-white shadow-xs transition-[opacity,transform] duration-150 active:scale-[0.98]',
+            'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border-0 bg-button-primary px-3.5 text-body-2-medium text-text-white shadow-xs transition-[opacity,transform] duration-150 active:scale-[0.98] sm:h-9.5 sm:px-4',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring focus-visible:ring-offset-1',
             !hasValue && 'opacity-90 hover:opacity-100',

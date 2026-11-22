@@ -292,18 +292,6 @@ input[type="search"]::-webkit-search-cancel-button {
   -webkit-appearance: none;
 }
 
-/* iOS Safari auto-zooms the page when a focused form field's font-size is
- * under 16px — our text-body-regular/medium tokens are 14px by design, so
- * bump just the font-size (not the whole token) on small screens instead of
- * changing the design system's type scale. */
-@media (max-width: 639px) {
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-  }
-}
-
 /* Soft fade applied to an animated number each time its target changes */
 @keyframes number-fade {
   from {
