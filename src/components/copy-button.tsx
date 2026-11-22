@@ -1,6 +1,13 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import {
+  RiCheckLine,
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiLinksLine,
+  RiQrCodeLine,
+} from '@remixicon/react'
 import { cx } from '@/utils/cx'
 
 interface ResultItemProps {
@@ -34,49 +41,64 @@ export default function ResultItem({
     }
   }
 
-  const linkClass =
-    'cursor-pointer border-0 bg-transparent p-0 text-body-2-regular text-text-primary underline decoration-text-primary/30 decoration-1 underline-offset-4 transition-colors duration-150 hover:decoration-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring rounded-xs'
+  const actionClass =
+    'inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg border border-transparent px-2.5 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:border-separator-border hover:bg-background-primary-default hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring'
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-3">
       <div
         dir="ltr"
-        className="rounded-lg bg-background-secondary-default px-3.5 py-3 font-mono text-caption-1-regular leading-relaxed break-all text-text-primary"
+        className="select-all font-mono text-caption-1-regular leading-relaxed break-all text-text-primary"
       >
         {url}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-body-2-regular text-text-secondary">
-        <span>已生成，可直接导入客户端</span>
-        <div className="flex items-center gap-3.5">
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          onClick={() => void handleCopyClick()}
+          className={cx(
+            actionClass,
+            copied && 'border-separator-border bg-background-primary-default text-status-lime-text',
+          )}
+        >
+          {copied ? <RiCheckLine className="size-3.5" aria-hidden /> : <RiFileCopyLine className="size-3.5" aria-hidden />}
+          <span>{copied ? '已复制' : '复制'}</span>
+        </button>
+
+        {onGenerateShort ? (
           <button
             type="button"
-            onClick={() => void handleCopyClick()}
-            className={cx(linkClass, copied && 'text-status-lime-text decoration-status-lime-text/50')}
+            disabled={shortLoading}
+            onClick={onGenerateShort}
+            className={actionClass}
           >
-            {copied ? '已复制' : '复制'}
+            <RiLinksLine className="size-3.5" aria-hidden />
+            <span>{shortLoading ? '生成中…' : hasShortUrl ? '重生成' : '短链'}</span>
           </button>
-          {onGenerateShort ? (
-            <button
-              type="button"
-              disabled={shortLoading}
-              onClick={onGenerateShort}
-              className={cx(linkClass, 'disabled:cursor-not-allowed disabled:opacity-50')}
-            >
-              {shortLoading ? '生成中…' : hasShortUrl ? '重新生成短链' : '短链接'}
-            </button>
-          ) : null}
-          {onToggleQr ? (
-            <button type="button" onClick={onToggleQr} className={linkClass}>
-              {showQr ? '收起二维码' : '二维码'}
-            </button>
-          ) : null}
-          {onPreview ? (
-            <button type="button" onClick={onPreview} className={linkClass}>
-              预览
-            </button>
-          ) : null}
-        </div>
+        ) : null}
+
+        {onToggleQr ? (
+          <button
+            type="button"
+            onClick={onToggleQr}
+            aria-pressed={showQr}
+            className={cx(
+              actionClass,
+              showQr && 'border-separator-border bg-background-primary-default text-text-primary',
+            )}
+          >
+            <RiQrCodeLine className="size-3.5" aria-hidden />
+            <span>二维码</span>
+          </button>
+        ) : null}
+
+        {onPreview ? (
+          <button type="button" onClick={onPreview} className={actionClass}>
+            <RiExternalLinkLine className="size-3.5" aria-hidden />
+            <span>预览</span>
+          </button>
+        ) : null}
       </div>
     </div>
   )

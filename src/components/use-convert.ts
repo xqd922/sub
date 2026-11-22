@@ -14,7 +14,7 @@ export function useUrlConverter() {
     const raw = (overrideUrl !== undefined ? overrideUrl : inputUrl).trim()
 
     if (!raw) {
-      setError('先贴一条订阅链接进来吧')
+      setError('请先粘贴链接')
       return ''
     }
 
