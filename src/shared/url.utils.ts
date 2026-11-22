@@ -194,6 +194,20 @@ export function extractFileNameFromUrlPath(rawUrl: string): string | null {
   }
 }
 
+const FLAG_EMOJI_RE = /[\u{1F1E6}-\u{1F1FF}]{2}/gu
+
+/**
+ * 清理订阅名称中的国旗 Emoji 与多余分隔符（节点列表保留国旗，订阅卡片标题保持清爽）。
+ */
+export function cleanSubscriptionTitle(name: string): string {
+  const cleaned = name
+    .replace(FLAG_EMOJI_RE, '')
+    .replace(/^[\s\-_|·•]+|[\s\-_|·•]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  return cleaned || name.trim()
+}
+
 export function extractNameFromUrl(url: string, fallback = '未知订阅'): string {
   try {
     const { subscriptionUrl } = unwrapConversionUrl(url)
@@ -205,22 +219,22 @@ export function extractNameFromUrl(url: string, fallback = '未知订阅'): stri
       urlObj.searchParams.get('tag')
     if (name) {
       try {
-        return decodeURIComponent(name)
+        return cleanSubscriptionTitle(decodeURIComponent(name))
       } catch {
-        return name
+        return cleanSubscriptionTitle(name)
       }
     }
 
     if (urlObj.hash && urlObj.hash.length > 1) {
       try {
-        return decodeURIComponent(urlObj.hash.slice(1))
+        return cleanSubscriptionTitle(decodeURIComponent(urlObj.hash.slice(1)))
       } catch {
-        return urlObj.hash.slice(1)
+        return cleanSubscriptionTitle(urlObj.hash.slice(1))
       }
     }
 
     const pathFileName = extractFileNameFromUrlPath(subscriptionUrl)
-    if (pathFileName) return pathFileName
+    if (pathFileName) return cleanSubscriptionTitle(pathFileName)
 
     return urlObj.hostname || fallback
   } catch {

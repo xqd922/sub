@@ -16,7 +16,11 @@ import { logger } from '@/server/logger'
 import type { InspectSubscriptionResult } from '@/shared/admin.types'
 import { decodeBase64Utf8 } from '@/shared/base64.utils'
 import { formatBytes } from '@/shared/format.utils'
-import { extractNameFromUrl, splitSubscriptionSources } from '@/shared/url.utils'
+import {
+  cleanSubscriptionTitle,
+  extractNameFromUrl,
+  splitSubscriptionSources,
+} from '@/shared/url.utils'
 
 function createDefaultSubscription(name = 'Me'): SubscriptionInfo {
   return {
@@ -184,7 +188,8 @@ async function processSingleSource(source: string): Promise<SubscriptionResult> 
     if (proxies.length === 0) {
       throw new Error('无效的节点链接')
     }
-    const nodeSubName = proxies[0]?.name || extractNameFromUrl(source, 'Node')
+    const rawNodeName = proxies[0]?.name || extractNameFromUrl(source, 'Node')
+    const nodeSubName = cleanSubscriptionTitle(rawNodeName) || 'Node'
     return { proxies, subscription: createDefaultSubscription(nodeSubName) }
   }
 

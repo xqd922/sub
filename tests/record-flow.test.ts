@@ -84,7 +84,7 @@ describe('record and short-link KV flows', () => {
   })
 
   it('unwraps legacy /sub?url=... targets inside /s/[id] without double-wrapping', async () => {
-    const ssNode = `ss://${encodeBase64Utf8('aes-256-gcm:secret').replace(/=/g, '')}@1.2.3.4:8388#HK-Test`
+    const ssNode = `ss://${encodeBase64Utf8('aes-256-gcm:secret').replace(/=/g, '')}@1.2.3.4:8388#${encodeURIComponent('🇭🇰 HK Test')}`
     const legacyTarget = `https://old.example.com/sub?url=${encodeURIComponent(ssNode)}&target=clash`
     const created = await createShortLink(legacyTarget, '历史短链')
     expect(created).not.toBeNull()
@@ -96,11 +96,13 @@ describe('record and short-link KV flows', () => {
       created!.id,
     )
     expect(response.status).toBe(200)
+    // 订阅卡片标题自动去除国旗 Emoji，节点自身仍保留国旗
     expect(response.headers.get('Content-Disposition')).toContain(
-      `filename*=UTF-8''${encodeURIComponent('HK-Test')}`,
+      `filename*=UTF-8''${encodeURIComponent('HK Test')}`,
     )
     const body = await response.text()
     expect(body).toContain('proxies:')
+    expect(body).toContain('🇭🇰 HK Test')
     expect(body).toContain('1.2.3.4')
 
     // 支持显式 ?name= 覆盖 Clash 客户端显示的订阅卡片名称

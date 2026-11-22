@@ -149,6 +149,9 @@ describe('url.utils', () => {
       ),
     ).toBeNull()
     expect(extractNameFromUrl('anytls://pw@example.net:443#HK-BestVM')).toBe('HK-BestVM')
+    expect(
+      extractNameFromUrl('anytls://pw@example.net:443#%F0%9F%87%AD%F0%9F%87%B0%20HK%20BestVM'),
+    ).toBe('HK BestVM')
 
     const inner = encodeURIComponent('https://api.test.com/link?name=Inner')
     expect(extractNameFromUrl(`https://example.com/sub?url=${inner}`)).toBe('Inner')
