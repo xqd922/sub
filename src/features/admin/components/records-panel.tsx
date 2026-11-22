@@ -8,6 +8,8 @@ import {
   RiEditLine,
   RiExternalLinkLine,
   RiFileCopyLine,
+  RiLinkM,
+  RiQrCodeLine,
 } from '@remixicon/react'
 import { Chip } from '@/components/base/badges/chip'
 import { StatusDot } from '@/components/base/badges/status-dot'
@@ -21,23 +23,22 @@ import {
   SegmentedControlItem,
 } from '@/components/base/segmented-control/segmented-control'
 import { Select, SelectItem } from '@/components/base/select/select'
+import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { RecordDetailRow } from '@/features/admin/components/record-detail-row'
 import { RenameEntityModal } from '@/features/admin/components/rename-entity-modal'
 import { useAdminRecords } from '@/features/admin/hooks/use-admin-records'
+import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
 import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { showToast } from '@/features/shared/hooks/use-toast'
-import type { ConvertRecord } from '@/shared/admin.types'
-import {
-  escapeCsvCell,
-  formatDateTime,
-  formatRelativeTime,
-} from '@/shared/format.utils'
+import type { ConvertRecord, ShortLink } from '@/shared/admin.types'
+import { escapeCsvCell, formatDateTime, formatRelativeTime } from '@/shared/format.utils'
 import { buildConversionUrl } from '@/shared/url.utils'
 import { cx } from '@/utils/cx'
 
 interface RecordsPanelProps {
   autoRefresh: boolean
+  refreshSignal?: number
   onUnauthorized?: () => void
   onCountChange?: (count: number) => void
   focusSearchSignal?: number
@@ -47,7 +48,18 @@ type SortKey = 'lastAccess' | 'hits' | 'createdAt' | 'nodeCount'
 type StatusFilter = 'all' | 'enabled' | 'disabled'
 
 function exportRecordsCsv(records: ConvertRecord[]): void {
-  const header = ['ID', '名称', '订阅链接', '状态', '客户端', '节点数', '命中次数', '创建时间', '最后访问', '最后IP']
+  const header = [
+    'ID',
+    '名称',
+    '订阅链接',
+    '状态',
+    '客户端',
+    '节点数',
+    '命中次数',
+    '创建时间',
+    '最后访问',
+    '最后IP',
+  ]
   const rows = records.map((record) => [
     record.id,
     record.name,
@@ -74,6 +86,7 @@ function exportRecordsCsv(records: ConvertRecord[]): void {
 
 export function RecordsPanel({
   autoRefresh,
+  refreshSignal = 0,
   onUnauthorized,
   onCountChange,
   focusSearchSignal = 0,
@@ -91,6 +104,7 @@ export function RecordsPanel({
   const { copyToClipboard } = useClipboard()
 
   const searchContainerRef = useRef<HTMLDivElement>(null)
+  const deleteTimerRef = useRef<number | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('lastAccess')
@@ -102,9 +116,25 @@ export function RecordsPanel({
   const [newName, setNewName] = useState('')
   const [renamingRecord, setRenamingRecord] = useState<ConvertRecord | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
+  const [qrRecord, setQrRecord] = useState<ConvertRecord | null>(null)
+  const [shorteningId, setShorteningId] = useState<string | null>(null)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
 
   useAutoRefresh(refresh, autoRefresh)
+
+  useEffect(() => {
+    if (refreshSignal > 0) {
+      void refresh()
+    }
+  }, [refreshSignal, refresh])
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current !== null) {
+        window.clearTimeout(deleteTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     onCountChange?.(records.length)
@@ -166,10 +196,27 @@ export function RecordsPanel({
 
   const handlePreview = (record: ConvertRecord) => {
     window.open(
-      `/sub?url=${encodeURIComponent(record.originalUrl)}`,
+      buildConversionUrl(window.location.origin, record.originalUrl, 'browser'),
       '_blank',
       'noopener,noreferrer',
     )
+  }
+
+  const handleCreateShortLink = async (record: ConvertRecord) => {
+    setShorteningId(record.id)
+    try {
+      const data = await adminFetch<{ shortLink: ShortLink }>(
+        '/api/admin/short-links',
+        jsonBody('POST', { targetUrl: record.originalUrl, name: record.name }),
+      )
+      const shortUrl = `${window.location.origin}/s/${data.shortLink.id}`
+      const copied = await copyToClipboard(shortUrl)
+      showToast(copied ? '短链已生成并复制' : `短链已生成：${shortUrl}`, 'success')
+    } catch (error) {
+      handleAdminFetchError(error, onUnauthorized)
+    } finally {
+      setShorteningId(null)
+    }
   }
 
   const openRenameModal = (record: ConvertRecord) => {
@@ -189,14 +236,21 @@ export function RecordsPanel({
   }
 
   const handleDeleteClick = (id: string) => {
+    if (deleteTimerRef.current !== null) {
+      window.clearTimeout(deleteTimerRef.current)
+      deleteTimerRef.current = null
+    }
+
     if (confirmingDeleteId === id) {
       setConfirmingDeleteId(null)
       void removeRecords([id])
       return
     }
+
     setConfirmingDeleteId(id)
-    window.setTimeout(() => {
+    deleteTimerRef.current = window.setTimeout(() => {
       setConfirmingDeleteId((prev) => (prev === id ? null : prev))
+      deleteTimerRef.current = null
     }, 3000)
   }
 
@@ -285,13 +339,13 @@ export function RecordsPanel({
             className="flex flex-wrap items-end gap-3 border-t border-separator-border bg-background-secondary-default px-4 py-3.5"
           >
             <Input
-              label="订阅链接"
+              label="订阅链接 / 节点 URI"
               size="small"
-              type="url"
+              type="text"
               inputDir="ltr"
               value={newUrl}
               onChange={setNewUrl}
-              placeholder="https://example.com/subscription"
+              placeholder="https://example.com/subscription 或 ss:// / vless://..."
               className="min-w-[240px] flex-1"
             />
             <Input
@@ -345,7 +399,7 @@ export function RecordsPanel({
         ) : null}
 
         <div className="overflow-x-auto">
-          <table className="bui-table min-w-[820px]">
+          <table className="bui-table min-w-[920px]">
             <thead>
               <tr>
                 <th className="w-10 ps-4">
@@ -384,6 +438,7 @@ export function RecordsPanel({
               ) : (
                 filteredRecords.map((record) => {
                   const isRowConfirmingDelete = confirmingDeleteId === record.id
+                  const isShortening = shorteningId === record.id
                   return (
                     <Fragment key={record.id}>
                       <tr className="hover:bg-background-secondary-default/65">
@@ -395,7 +450,7 @@ export function RecordsPanel({
                             aria-label={`选择 ${record.name}`}
                           />
                         </td>
-                        <td className="max-w-60">
+                        <td className="max-w-56">
                           <p className="truncate text-body-2-medium text-text-primary" title={record.name}>
                             {record.name}
                           </p>
@@ -439,6 +494,23 @@ export function RecordsPanel({
                               onClick={() => void handleCopyConversionLink(record)}
                             >
                               复制
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              leadingIcon={RiLinkM}
+                              disabled={isShortening}
+                              onClick={() => void handleCreateShortLink(record)}
+                            >
+                              {isShortening ? '生成中…' : '短链'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              leadingIcon={RiQrCodeLine}
+                              onClick={() => setQrRecord(record)}
+                            >
+                              二维码
                             </Button>
                             <Button
                               variant="ghost"
@@ -500,6 +572,14 @@ export function RecordsPanel({
       <p className="text-center text-caption-1-regular text-text-tertiary">
         共 {records.length} 条记录（含已禁用） · 禁用后该订阅链接将立即返回 400
       </p>
+
+      {qrRecord ? (
+        <QrCodeModal
+          url={buildConversionUrl(window.location.origin, qrRecord.originalUrl)}
+          title={qrRecord.name}
+          onClose={() => setQrRecord(null)}
+        />
+      ) : null}
 
       <RenameEntityModal
         isOpen={renamingRecord !== null}

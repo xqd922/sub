@@ -7,7 +7,7 @@ import {
 } from '@/modules/record/record.repository'
 import { AppError } from '@/server/app-error'
 import { jsonOk, parseJsonBody } from '@/server/route.utils'
-import { isValidUrl } from '@/shared/url.utils'
+import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
 
 export const runtime = 'edge'
 
@@ -21,11 +21,13 @@ export const POST = withAdminAuth('登记订阅', async (request) => {
   if (!body?.url || typeof body.url !== 'string') {
     throw AppError.validation('请提供订阅链接', 'url')
   }
-  if (!isValidUrl(body.url)) {
-    throw AppError.validation('订阅链接格式不正确', 'url', body.url)
+
+  const { subscriptionUrl } = unwrapConversionUrl(body.url)
+  if (!isAllowedSubscriptionInput(subscriptionUrl)) {
+    throw AppError.validation('订阅链接格式不正确（需为 HTTP(S) 或支持的代理协议）', 'url')
   }
 
-  const record = await createRecordManually(body.url, body.name)
+  const record = await createRecordManually(subscriptionUrl, body.name?.trim() || undefined)
   if (!record) {
     throw AppError.serviceUnavailable('存储不可用，无法登记订阅')
   }

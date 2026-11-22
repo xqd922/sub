@@ -151,10 +151,10 @@ export function anyTlsToSingboxOutbound(proxy: AnyTLSProxy): SingboxOutbound {
   }
 
   if (proxy['idle-session-check-interval']) {
-    outbound.idle_session_check_interval = proxy['idle-session-check-interval']
+    outbound.idle_session_check_interval = `${proxy['idle-session-check-interval']}s`
   }
   if (proxy['idle-session-timeout']) {
-    outbound.idle_session_timeout = proxy['idle-session-timeout']
+    outbound.idle_session_timeout = `${proxy['idle-session-timeout']}s`
   }
   if (proxy['min-idle-session']) {
     outbound.min_idle_session = proxy['min-idle-session']

@@ -1,10 +1,17 @@
 import { useCallback, useState } from 'react'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { useToast } from '@/features/shared/hooks/use-toast'
-import { buildConversionUrl } from '@/shared/url.utils'
+import type { TargetClientOverride } from '@/shared/admin.types'
+import {
+  buildConversionUrl,
+  isAllowedSubscriptionInput,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
 
 export function useSubscriptionConverter() {
   const [inputUrl, setInputUrl] = useState('')
+  const [normalizedSource, setNormalizedSource] = useState('')
+  const [target, setTargetState] = useState<TargetClientOverride>('auto')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [convertedUrl, setConvertedUrl] = useState('')
@@ -12,13 +19,29 @@ export function useSubscriptionConverter() {
   const { showToast } = useToast()
 
   const convert = useCallback(
-    async (overrideUrl?: string) => {
+    async (overrideUrl?: string, overrideTarget?: TargetClientOverride) => {
       const raw = (overrideUrl !== undefined ? overrideUrl : inputUrl).trim()
 
       if (!raw) {
-        setError('请先粘贴链接')
+        setError('请先粘贴订阅链接或代理节点')
         return ''
       }
+
+      const unwrapped = unwrapConversionUrl(raw)
+      const source = unwrapped.subscriptionUrl
+
+      if (!isAllowedSubscriptionInput(source)) {
+        setError('请输入有效的 HTTP(S) 订阅链接或代理节点 URI（支持用 | 合并多条）')
+        return ''
+      }
+
+      const effectiveTarget: TargetClientOverride =
+        overrideTarget ??
+        (unwrapped.target === 'clash' ||
+        unwrapped.target === 'singbox' ||
+        unwrapped.target === 'v2rayng'
+          ? unwrapped.target
+          : target)
 
       if (overrideUrl !== undefined) {
         setInputUrl(raw)
@@ -28,7 +51,9 @@ export function useSubscriptionConverter() {
       setLoading(true)
 
       try {
-        const nextUrl = buildConversionUrl(window.location.origin, raw)
+        const nextUrl = buildConversionUrl(window.location.origin, source, effectiveTarget)
+        setNormalizedSource(source)
+        setTargetState(effectiveTarget)
         setConvertedUrl(nextUrl)
         setLoading(false)
 
@@ -45,7 +70,17 @@ export function useSubscriptionConverter() {
         return ''
       }
     },
-    [inputUrl, copyToClipboard, showToast],
+    [inputUrl, target, copyToClipboard, showToast],
+  )
+
+  const changeTarget = useCallback(
+    (nextTarget: TargetClientOverride) => {
+      setTargetState(nextTarget)
+      if (normalizedSource && typeof window !== 'undefined') {
+        setConvertedUrl(buildConversionUrl(window.location.origin, normalizedSource, nextTarget))
+      }
+    },
+    [normalizedSource],
   )
 
   const copyText = useCallback(
@@ -60,6 +95,8 @@ export function useSubscriptionConverter() {
   return {
     inputUrl,
     setInputUrl,
+    target,
+    changeTarget,
     loading,
     error,
     convertedUrl,

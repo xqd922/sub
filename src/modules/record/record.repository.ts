@@ -209,8 +209,9 @@ export async function isUrlEnabled(url: string): Promise<boolean> {
 
 export async function getActiveRecords(): Promise<ConvertRecord[]> {
   const index = await getRecordIndex()
-  const records = (await Promise.all(index.ids.map(getRecordById)))
-    .filter((record): record is ConvertRecord => record !== null && !record.deleted)
+  const records = (await Promise.all(index.ids.map(getRecordById))).filter(
+    (record): record is ConvertRecord => record !== null && !record.deleted,
+  )
 
   return records.sort((a, b) => b.lastAccess - a.lastAccess)
 }
@@ -318,24 +319,39 @@ export async function createRecordManually(
 }
 
 export async function getStats(): Promise<StatsData> {
-  const records = await getActiveRecords()
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const today = new Date().toISOString().slice(0, 10)
+  const [allRecords, dailyStats, shortKeys] = await Promise.all([
+    listAllRecordsForAdmin(),
+    getDailyStats(today),
+    listKeysByPrefix(KV_KEYS.SHORT_PREFIX),
+  ])
 
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  let totalRecords = 0
+  let disabledRecords = 0
   let totalHits = 0
   let activeRecords = 0
 
-  for (const record of records) {
+  for (const record of allRecords) {
+    if (record.deleted) {
+      disabledRecords++
+      continue
+    }
+    totalRecords++
     totalHits += record.hits
     if (record.lastAccess > sevenDaysAgo) {
       activeRecords++
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10)
-  const dailyStats = await getDailyStats(today)
+  const totalShortLinks = shortKeys.filter(
+    (name) => name.startsWith(KV_KEYS.SHORT_PREFIX) && !name.startsWith(KV_KEYS.SHORT_URL_PREFIX),
+  ).length
 
   return {
-    totalRecords: records.length,
+    totalRecords,
+    disabledRecords,
+    totalShortLinks,
     totalHits,
     todayHits: dailyStats?.totalHits || 0,
     activeRecords,

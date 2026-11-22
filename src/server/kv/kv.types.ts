@@ -1,8 +1,14 @@
+export interface KvListResult {
+  keys: Array<{ name: string }>
+  list_complete?: boolean
+  cursor?: string
+}
+
 export interface KvStoreAdapter {
   get(key: string, type?: 'json' | 'text'): Promise<unknown>
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
   delete(key: string): Promise<void>
-  list(options?: { prefix?: string }): Promise<{ keys: Array<{ name: string }> }>
+  list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<KvListResult>
 }
 
 export interface RecordIndex {

@@ -5,5 +5,8 @@ export const runtime = 'edge'
 
 export async function GET(request: Request) {
   const session = await getSessionFromRequest(request)
-  return jsonOk({ authenticated: session !== null })
+  return jsonOk({
+    authenticated: session !== null,
+    expiresAt: session?.exp ?? null,
+  })
 }

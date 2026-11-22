@@ -8,12 +8,43 @@ import {
 import { fetchWithRetry, fetchWithTimeout } from '@/server/fetch.client'
 import { isKvAvailable } from '@/server/kv/kv.client'
 import { logger } from '@/server/logger'
-import type { ShortenResult } from '@/shared/admin.types'
-import { extractNameFromUrl } from '@/shared/url.utils'
+import type { ShortenResult, TargetClientOverride } from '@/shared/admin.types'
+import {
+  buildConversionUrl,
+  extractNameFromUrl,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
+
+interface NormalizedShortenTarget {
+  kvTarget: string
+  externalConversionUrl: string
+  rawSubscriptionUrl: string
+  siteOrigin: string
+}
 
 interface ShortLinkProvider {
   name: string
-  shorten: (url: string, requestOrigin?: string) => Promise<ShortenResult>
+  shorten: (target: NormalizedShortenTarget) => Promise<ShortenResult>
+}
+
+function buildNormalizedTarget(url: string, requestOrigin?: string): NormalizedShortenTarget {
+  const siteOrigin = process.env.SITE_URL || requestOrigin || getSiteUrl()
+  const { subscriptionUrl, target } = unwrapConversionUrl(url)
+  const targetClient = (target as TargetClientOverride | undefined) || 'auto'
+
+  const externalConversionUrl = buildConversionUrl(siteOrigin, subscriptionUrl, targetClient)
+  // KV 侧优先存干净的原始订阅地址；若指定了 target 则保留相对 `/sub?url=...&target=...`
+  const kvTarget =
+    target && target !== 'auto'
+      ? `/sub?url=${encodeURIComponent(subscriptionUrl)}&target=${encodeURIComponent(target)}`
+      : subscriptionUrl
+
+  return {
+    kvTarget,
+    externalConversionUrl,
+    rawSubscriptionUrl: subscriptionUrl,
+    siteOrigin,
+  }
 }
 
 async function generateSinkSlug(url: string): Promise<string> {
@@ -32,27 +63,27 @@ async function generateSinkSlug(url: string): Promise<string> {
   }
 }
 
-async function shortenWithKv(url: string, requestOrigin?: string): Promise<ShortenResult> {
+async function shortenWithKv(target: NormalizedShortenTarget): Promise<ShortenResult> {
   if (!(await isKvAvailable())) {
     throw new Error('KV 服务不可用')
   }
 
-  const shortLink = await createShortLink(url)
+  const shortLink = await createShortLink(target.kvTarget)
   if (!shortLink) {
     throw new Error('KV 创建短链接失败')
   }
 
-  const baseUrl = process.env.SITE_URL || requestOrigin || getSiteUrl()
   return {
-    shortUrl: `${baseUrl}/s/${shortLink.id}`,
+    shortUrl: `${target.siteOrigin}/s/${shortLink.id}`,
     provider: 'KV',
     id: shortLink.id,
     created: true,
   }
 }
 
-async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
-  const uniqueUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`
+async function shortenWithTinyUrl(target: NormalizedShortenTarget): Promise<ShortenResult> {
+  const baseUrl = target.externalConversionUrl
+  const uniqueUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`
   const response = await fetchWithRetry(
     `https://tinyurl.com/api-create.php?url=${encodeURIComponent(uniqueUrl)}`,
     {
@@ -70,20 +101,14 @@ async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
   return { shortUrl, provider: 'TinyURL', created: true }
 }
 
-async function shortenWithSink(url: string): Promise<ShortenResult> {
+async function shortenWithSink(target: NormalizedShortenTarget): Promise<ShortenResult> {
   const sink = getSinkConfig()
   if (!sink) {
     throw new Error('Sink 服务配置缺失')
   }
 
-  const parsed = new URL(url)
-  const originalUrl = parsed.searchParams.get('url')
-  if (!originalUrl) {
-    throw new Error('无法获取原始订阅链接')
-  }
-
-  const name = extractNameFromUrl(originalUrl, '订阅链接')
-  const slug = await generateSinkSlug(originalUrl)
+  const name = extractNameFromUrl(target.rawSubscriptionUrl, '订阅链接')
+  const slug = await generateSinkSlug(target.rawSubscriptionUrl)
   if (!slug) {
     throw new Error('无法生成短链接标识')
   }
@@ -95,7 +120,7 @@ async function shortenWithSink(url: string): Promise<ShortenResult> {
       Authorization: `Bearer ${sink.token}`,
     },
     body: JSON.stringify({
-      url,
+      url: target.externalConversionUrl,
       title: name || '订阅链接',
       description: '由订阅转换服务生成',
       slug,
@@ -119,14 +144,14 @@ async function shortenWithSink(url: string): Promise<ShortenResult> {
   throw new Error(`Sink API 错误: ${response.status} ${await response.text()}`)
 }
 
-async function shortenWithBitly(url: string): Promise<ShortenResult> {
+async function shortenWithBitly(target: NormalizedShortenTarget): Promise<ShortenResult> {
   const tokens = getBitlyTokens()
   if (tokens.length === 0) {
     throw new Error('Bitly 服务配置不完整')
   }
 
   const token = tokens[Math.floor(Math.random() * tokens.length)]
-  const fullUrl = url.replace(/https?:\/\/localhost:\d+/, getSiteUrl())
+  const fullUrl = target.externalConversionUrl.replace(/https?:\/\/localhost:\d+/, getSiteUrl())
 
   try {
     const checkRes = await fetchWithTimeout(
@@ -179,14 +204,14 @@ async function shortenWithBitly(url: string): Promise<ShortenResult> {
   return { shortUrl: data.link, provider: 'Bitly', created: true }
 }
 
-async function shortenWithCuttly(url: string): Promise<ShortenResult> {
+async function shortenWithCuttly(target: NormalizedShortenTarget): Promise<ShortenResult> {
   const token = getCuttlyToken()
   if (!token) {
     throw new Error('Cuttly 服务配置不完整')
   }
 
   const response = await fetchWithTimeout(
-    `https://cutt.ly/api/api.php?key=${token}&short=${encodeURIComponent(url)}`,
+    `https://cutt.ly/api/api.php?key=${token}&short=${encodeURIComponent(target.externalConversionUrl)}`,
   )
   if (!response.ok) {
     throw new Error('Cuttly 短链接服务暂时无法访问')
@@ -198,15 +223,6 @@ async function shortenWithCuttly(url: string): Promise<ShortenResult> {
   }
 
   throw new Error(`Cuttly API 错误: ${data.url?.status || 'unknown'}`)
-}
-
-function normalizeTargetUrl(url: string): string {
-  try {
-    const parsed = new URL(url)
-    return parsed.searchParams.get('url') ? url : `/sub?url=${encodeURIComponent(url)}`
-  } catch {
-    return url
-  }
 }
 
 const PROVIDERS: readonly ShortLinkProvider[] = [
@@ -225,15 +241,15 @@ export async function generateShortLink(
     throw new Error('请提供有效的 URL 地址')
   }
 
-  const targetUrl = normalizeTargetUrl(url)
-  logger.debug('短链接生成', { original: url, target: targetUrl })
+  const normalized = buildNormalizedTarget(url, requestOrigin)
+  logger.debug('短链接生成', { original: url, target: normalized.kvTarget })
 
   let lastError: Error | null = null
 
   for (const provider of PROVIDERS) {
     try {
       logger.debug(`尝试 ${provider.name} 服务`)
-      const result = await provider.shorten(targetUrl, requestOrigin)
+      const result = await provider.shorten(normalized)
       logger.debug(`${provider.name} 服务成功`, { shortUrl: result.shortUrl })
       return result
     } catch (error) {

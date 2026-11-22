@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RiCheckLine, RiFileCopyLine } from '@remixicon/react'
 import { cx } from '@/utils/cx'
 
@@ -11,6 +11,15 @@ interface ShortLinkBarProps {
 
 export function ShortLinkBar({ shortUrl, onCopy }: ShortLinkBarProps) {
   const [copied, setCopied] = useState(false)
+  const copyTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current)
+      }
+    }
+  }, [])
 
   if (!shortUrl) return null
 
@@ -18,7 +27,8 @@ export function ShortLinkBar({ shortUrl, onCopy }: ShortLinkBarProps) {
     const result = await onCopy()
     if (result !== false) {
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1600)
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = window.setTimeout(() => setCopied(false), 1600)
     }
   }
 

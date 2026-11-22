@@ -38,50 +38,62 @@ export function useAdminShortLinks(onUnauthorized?: () => void) {
     }
   }, [onUnauthorized])
 
-  const renameLink = useCallback(async (id: string, name: string): Promise<boolean> => {
-    try {
-      const data = await adminFetch<{ shortLink: ShortLink }>(
-        `/api/admin/short-links/${id}`,
-        jsonBody('PATCH', { name }),
-      )
-      setShortLinks((prev) => prev.map((item) => (item.id === id ? data.shortLink : item)))
-      showToast('名称已更新', 'success')
-      return true
-    } catch (error) {
-      handleAdminFetchError(error, onUnauthorized)
-      return false
-    }
-  }, [onUnauthorized])
+  const updateLink = useCallback(
+    async (
+      id: string,
+      updates: { name?: string; targetUrl?: string },
+    ): Promise<boolean> => {
+      try {
+        const data = await adminFetch<{ shortLink: ShortLink }>(
+          `/api/admin/short-links/${id}`,
+          jsonBody('PATCH', updates),
+        )
+        setShortLinks((prev) => prev.map((item) => (item.id === id ? data.shortLink : item)))
+        showToast('短链接已更新', 'success')
+        return true
+      } catch (error) {
+        handleAdminFetchError(error, onUnauthorized)
+        return false
+      }
+    },
+    [onUnauthorized],
+  )
 
-  const deleteLinks = useCallback(async (ids: string[]): Promise<boolean> => {
-    try {
-      await adminFetch('/api/admin/short-links', jsonBody('DELETE', { ids }))
-      setShortLinks((prev) => prev.filter((item) => !ids.includes(item.id)))
-      showToast(ids.length > 1 ? `已删除 ${ids.length} 条短链` : '短链已删除', 'success')
-      return true
-    } catch (error) {
-      handleAdminFetchError(error, onUnauthorized)
-      return false
-    }
-  }, [onUnauthorized])
+  const deleteLinks = useCallback(
+    async (ids: string[]): Promise<boolean> => {
+      try {
+        await adminFetch('/api/admin/short-links', jsonBody('DELETE', { ids }))
+        setShortLinks((prev) => prev.filter((item) => !ids.includes(item.id)))
+        showToast(ids.length > 1 ? `已删除 ${ids.length} 条短链` : '短链已删除', 'success')
+        return true
+      } catch (error) {
+        handleAdminFetchError(error, onUnauthorized)
+        return false
+      }
+    },
+    [onUnauthorized],
+  )
 
-  const createLink = useCallback(async (targetUrl: string): Promise<ShortLink | null> => {
-    try {
-      const data = await adminFetch<{ shortLink: ShortLink }>(
-        '/api/admin/short-links',
-        jsonBody('POST', { targetUrl }),
-      )
-      setShortLinks((prev) => [
-        data.shortLink,
-        ...prev.filter((item) => item.id !== data.shortLink.id),
-      ])
-      showToast('短链接已创建', 'success')
-      return data.shortLink
-    } catch (error) {
-      handleAdminFetchError(error, onUnauthorized)
-      return null
-    }
-  }, [onUnauthorized])
+  const createLink = useCallback(
+    async (targetUrl: string, name?: string): Promise<ShortLink | null> => {
+      try {
+        const data = await adminFetch<{ shortLink: ShortLink }>(
+          '/api/admin/short-links',
+          jsonBody('POST', { targetUrl, name }),
+        )
+        setShortLinks((prev) => [
+          data.shortLink,
+          ...prev.filter((item) => item.id !== data.shortLink.id),
+        ])
+        showToast('短链接已创建', 'success')
+        return data.shortLink
+      } catch (error) {
+        handleAdminFetchError(error, onUnauthorized)
+        return null
+      }
+    },
+    [onUnauthorized],
+  )
 
-  return { shortLinks, loading, refresh, renameLink, deleteLinks, createLink }
+  return { shortLinks, loading, refresh, updateLink, deleteLinks, createLink }
 }

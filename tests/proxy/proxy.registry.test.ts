@@ -54,13 +54,16 @@ describe('proxy.registry', () => {
       obfs: { type: 'salamander', password: 'opw' },
     })
 
-    const anytls = parseProxyUri('anytls://pw@at.example.net:443?sni=at.example.net&tfo=1&idle-session-timeout=60#AnyTLS')
+    const anytls = parseProxyUri(
+      'anytls://pw@at.example.net:443?sni=at.example.net&tfo=1&idle-session-check-interval=30&idle-session-timeout=60#AnyTLS',
+    )
     expect(anytls).toMatchObject({ type: 'anytls', name: 'AnyTLS', tfo: true })
     expect(validateProxy(anytls!)).toBe(true)
     expect(proxyToUri(anytls!)).toContain('anytls://')
     expect(proxyToSingboxOutbound(anytls!)).toMatchObject({
       type: 'anytls',
-      idle_session_timeout: 60,
+      idle_session_check_interval: '30s',
+      idle_session_timeout: '60s',
     })
 
     const snell = parseProxyUri('snell://sn.example.net:6160?psk=mypsk&version=4&obfs=http&obfs-host=bing.com#Snell%2001')
@@ -85,6 +88,83 @@ describe('proxy.registry', () => {
     const encodedSub = encodeBase64Subscription([trojan!, vless!, hy2!])
     const lines = decodeBase64Utf8(encodedSub).split('\n')
     expect(lines).toHaveLength(3)
+  })
+
+  it('handles encoded credentials, extra transports, Hysteria2 ports/bandwidth, and anonymous/IPv6 SOCKS5', () => {
+    const trojan = parseProxyUri(
+      'trojan://p%40ss%3A1@tj.example.net:443?sni=tj.example.net&fp=safari&alpn=h2,http/1.1#TrojanEncoded',
+    )
+    expect(trojan).toMatchObject({
+      type: 'trojan',
+      password: 'p@ss:1',
+      'client-fingerprint': 'safari',
+      alpn: ['h2', 'http/1.1'],
+    })
+    expect(proxyToUri(trojan!)).toContain('p%40ss%3A1@')
+    expect(proxyToSingboxOutbound(trojan!)).toMatchObject({
+      type: 'trojan',
+      password: 'p@ss:1',
+      tls: {
+        alpn: ['h2', 'http/1.1'],
+        utls: { enabled: true, fingerprint: 'safari' },
+      },
+    })
+
+    const vlessGrpc = parseProxyUri(
+      'vless://11111111-1111-1111-1111-111111111111@vl.example.net:443?security=tls&sni=vl.example.net&fp=chrome&type=grpc&serviceName=vl-svc#VLGrpc',
+    )
+    expect(vlessGrpc).toMatchObject({
+      type: 'vless',
+      network: 'grpc',
+      'grpc-opts': { 'grpc-service-name': 'vl-svc' },
+    })
+    expect(proxyToSingboxOutbound(vlessGrpc!)).toMatchObject({
+      type: 'vless',
+      transport: { type: 'grpc', service_name: 'vl-svc' },
+      tls: { utls: { enabled: true, fingerprint: 'chrome' } },
+    })
+
+    const vlessHttpUpgrade = parseProxyUri(
+      'vless://11111111-1111-1111-1111-111111111111@vl.example.net:443?security=tls&type=httpupgrade&path=%2Fup&host=cdn.example.net#VLHttpUpgrade',
+    )
+    expect(proxyToSingboxOutbound(vlessHttpUpgrade!)).toMatchObject({
+      type: 'vless',
+      transport: { type: 'httpupgrade', path: '/up', host: 'cdn.example.net' },
+    })
+
+    const hy2 = parseProxyUri(
+      'hy2://p%40ss@hy.example.net:443?sni=hy.example.net&mport=20000-30000&upmbps=50&downmbps=200&alpn=h3#HY2Full',
+    )
+    expect(hy2).toMatchObject({
+      type: 'hysteria2',
+      password: 'p@ss',
+      ports: '20000-30000',
+      up: '50 Mbps',
+      down: '200 Mbps',
+      alpn: ['h3'],
+    })
+    expect(proxyToSingboxOutbound(hy2!)).toMatchObject({
+      type: 'hysteria2',
+      password: 'p@ss',
+      server_ports: ['20000:30000'],
+      up_mbps: 50,
+      down_mbps: 200,
+      tls: { alpn: ['h3'] },
+    })
+    expect(proxyToUri(hy2!)).toContain('mport=20000-30000')
+
+    const anonSocks = parseProxyUri('socks://sk.example.net:1080#AnonSocks')
+    expect(anonSocks).toMatchObject({ type: 'socks5', server: 'sk.example.net', port: 1080 })
+    expect(proxyToUri(anonSocks!)).toBe('socks://sk.example.net:1080#AnonSocks')
+
+    const ipv6Socks = parseProxyUri('socks://[::1]:1080#V6Socks')
+    expect(ipv6Socks).toMatchObject({ type: 'socks5', server: '::1', port: 1080 })
+    expect(proxyToSingboxOutbound({ ...anonSocks!, type: 'socks' as 'socks5' })).toMatchObject({
+      type: 'socks',
+      version: '5',
+      server: 'sk.example.net',
+      server_port: 1080,
+    })
   })
 
   it('returns null for unsupported schemes', () => {

@@ -6,7 +6,7 @@ import {
 } from '@/modules/short-link/short-link.repository'
 import { AppError } from '@/server/app-error'
 import { jsonOk, parseJsonBody } from '@/server/route.utils'
-import { isValidUrl } from '@/shared/url.utils'
+import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
 
 export const runtime = 'edge'
 
@@ -16,15 +16,22 @@ export const GET = withAdminAuth('获取短链接', async () => {
 })
 
 export const POST = withAdminAuth('创建短链接', async (request) => {
-  const body = await parseJsonBody<{ targetUrl?: string }>(request)
+  const body = await parseJsonBody<{ targetUrl?: string; name?: string }>(request)
   if (!body?.targetUrl || typeof body.targetUrl !== 'string') {
     throw AppError.validation('请提供目标链接', 'targetUrl')
   }
-  if (!isValidUrl(body.targetUrl)) {
-    throw AppError.validation('目标链接格式不正确', 'targetUrl', body.targetUrl)
+
+  const { subscriptionUrl, target } = unwrapConversionUrl(body.targetUrl)
+  if (!isAllowedSubscriptionInput(subscriptionUrl)) {
+    throw AppError.validation('目标链接格式不正确（需为 HTTP(S) 或支持的代理协议）', 'targetUrl')
   }
 
-  const shortLink = await createShortLink(body.targetUrl)
+  const normalizedTarget =
+    target && target !== 'auto'
+      ? `/sub?url=${encodeURIComponent(subscriptionUrl)}&target=${encodeURIComponent(target)}`
+      : subscriptionUrl
+
+  const shortLink = await createShortLink(normalizedTarget, body.name?.trim() || undefined)
   if (!shortLink) {
     throw AppError.serviceUnavailable('存储不可用，无法创建短链接')
   }

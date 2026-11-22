@@ -8,6 +8,8 @@ interface CloudflareBindings {
   LINKS_KV?: KVNamespace
 }
 
+const MAX_LIST_PAGES = 20
+
 export async function getKvStore(): Promise<KvStoreAdapter | null> {
   if (isDevelopment()) {
     return getFallbackKvStore()
@@ -16,7 +18,7 @@ export async function getKvStore(): Promise<KvStoreAdapter | null> {
   try {
     const { getRequestContext } = await import('@cloudflare/next-on-pages')
     const env = getRequestContext().env as CloudflareBindings
-    return env.LINKS_KV || null
+    return (env.LINKS_KV as unknown as KvStoreAdapter | undefined) || null
   } catch {
     return getFallbackKvStore()
   }
@@ -30,12 +32,25 @@ export async function listKeysByPrefix(prefix: string): Promise<string[]> {
   const kv = await getKvStore()
   if (!kv) return []
 
+  const allKeys: string[] = []
+  let cursor: string | undefined
+
   try {
-    const result = await kv.list({ prefix })
-    return result.keys.map((item) => item.name)
+    for (let page = 0; page < MAX_LIST_PAGES; page++) {
+      const result = await kv.list({ prefix, ...(cursor ? { cursor } : {}) })
+      for (const item of result.keys) {
+        allKeys.push(item.name)
+      }
+
+      if (result.list_complete !== false || !result.cursor) {
+        break
+      }
+      cursor = result.cursor
+    }
+    return allKeys
   } catch (error) {
     logger.error('[KV] 列举键失败:', error)
-    return []
+    return allKeys
   }
 }
 

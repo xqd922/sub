@@ -9,12 +9,12 @@ import {
   logSubscriptionStats,
   processSubscription,
 } from '@/modules/subscription/subscription.service'
+import { AppError, ErrorCode, ErrorSeverity } from '@/server/app-error'
 import { DEFAULT_SITE_URL, getSiteUrl } from '@/server/env.config'
-import { AppError, ErrorCode } from '@/server/app-error'
 import { reportError } from '@/server/error-handler'
-import { getClientIp, getExecutionContext, jsonError } from '@/server/route.utils'
 import { logger } from '@/server/logger'
-import { isValidUrl } from '@/shared/url.utils'
+import { getClientIp, getExecutionContext, jsonError } from '@/server/route.utils'
+import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
 
 function classifyConversionError(error: unknown, durationMs: number, url: string): AppError {
   if (error instanceof AppError) {
@@ -72,13 +72,19 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
 
   try {
     const requestUrl = new URL(request.url)
-    const url = requestUrl.searchParams.get('url')
+    const rawUrl = requestUrl.searchParams.get('url')?.trim()
+    const explicitTarget = requestUrl.searchParams.get('target')?.trim() || undefined
 
-    if (!url) {
+    if (!rawUrl) {
       throw AppError.validation('缺少订阅链接参数', 'url')
     }
 
-    if (!isValidUrl(url)) {
+    // 如果误传入转换器自身链接，自动解包防止自请求循环
+    const unwrapped = unwrapConversionUrl(rawUrl)
+    const url = unwrapped.subscriptionUrl
+    const targetOverride = explicitTarget || unwrapped.target
+
+    if (!isAllowedSubscriptionInput(url)) {
       throw AppError.invalidSubscriptionUrl(url)
     }
 
@@ -88,6 +94,15 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
     }
 
     const { proxies, subscription } = await processSubscription(url)
+
+    if (proxies.length === 0) {
+      throw new AppError(
+        ErrorCode.VALIDATION_ERROR,
+        '未解析到任何有效代理节点，请检查订阅链接内容',
+        422,
+        ErrorSeverity.LOW,
+      )
+    }
 
     // 原始订阅缺少 profile-web-page-url 时，使用当前转换器域名作为首页
     const configuredSite = getSiteUrl()
@@ -107,6 +122,7 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       formattedProxies,
       subscription,
       userAgent,
+      targetOverride,
     })
 
     logger.info('\n=== 客户端信息 ===')
@@ -129,9 +145,17 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
 
     if (ctx?.waitUntil) {
       ctx.waitUntil(recordPromise)
+    } else {
+      await recordPromise
     }
 
-    logConfigStats(proxies, formattedProxies, rendered.body, rendered.clientType, Date.now() - startedAt)
+    logConfigStats(
+      proxies,
+      formattedProxies,
+      rendered.body,
+      rendered.clientType,
+      Date.now() - startedAt,
+    )
     return response
   } catch (error: unknown) {
     return handleConversionError(error, request, startedAt, userAgent, clientIp)

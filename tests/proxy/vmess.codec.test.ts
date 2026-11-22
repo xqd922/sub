@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   parseVmessUri,
   validateVmessProxy,
+  vmessToSingboxOutbound,
   vmessToUri,
 } from '@/modules/proxy/codecs/vmess.codec'
 import { encodeBase64Utf8 } from '@/shared/base64.utils'
@@ -59,6 +60,51 @@ describe('vmess.codec', () => {
 
     const badAid = parseVmessUri(buildVmessUri(defaultConfig({ aid: 'abc' })))
     expect(badAid.alterId).toBe(0)
+  })
+
+  it('preserves scy cipher, gRPC transport, fp, alpn, and insecure flag across URI and sing-box', () => {
+    const grpcProxy = parseVmessUri(
+      buildVmessUri(
+        defaultConfig({
+          scy: 'aes-128-gcm',
+          net: 'grpc',
+          path: 'vmess-grpc-svc',
+          tls: 'tls',
+          sni: 'grpc.example.com',
+          fp: 'firefox',
+          alpn: 'h2,http/1.1',
+          allowInsecure: 1,
+        }),
+      ),
+    )
+
+    expect(grpcProxy.cipher).toBe('aes-128-gcm')
+    expect(grpcProxy.network).toBe('grpc')
+    expect(grpcProxy['grpc-opts']?.['grpc-service-name']).toBe('vmess-grpc-svc')
+    expect(grpcProxy['client-fingerprint']).toBe('firefox')
+    expect(grpcProxy.alpn).toEqual(['h2', 'http/1.1'])
+    expect(grpcProxy['skip-cert-verify']).toBe(true)
+
+    const outbound = vmessToSingboxOutbound(grpcProxy)
+    expect(outbound).toMatchObject({
+      type: 'vmess',
+      security: 'aes-128-gcm',
+      transport: { type: 'grpc', service_name: 'vmess-grpc-svc' },
+      tls: {
+        enabled: true,
+        server_name: 'grpc.example.com',
+        insecure: true,
+        alpn: ['h2', 'http/1.1'],
+        utls: { enabled: true, fingerprint: 'firefox' },
+      },
+    })
+
+    const reparsed = parseVmessUri(vmessToUri(grpcProxy))
+    expect(reparsed.cipher).toBe('aes-128-gcm')
+    expect(reparsed.network).toBe('grpc')
+    expect(reparsed['grpc-opts']?.['grpc-service-name']).toBe('vmess-grpc-svc')
+    expect(reparsed['client-fingerprint']).toBe('firefox')
+    expect(reparsed.alpn).toEqual(['h2', 'http/1.1'])
   })
 
   it('parses WebSocket transport and defaults network to tcp when missing', () => {

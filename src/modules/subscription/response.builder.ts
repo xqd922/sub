@@ -1,3 +1,4 @@
+import { proxiesToUris } from '@/modules/proxy/proxy.registry'
 import type { Proxy } from '@/modules/proxy/proxy.types'
 import { renderClashConfig } from '@/modules/renderer/clash.renderer'
 import { detectClientType } from '@/modules/renderer/client-detector'
@@ -41,6 +42,15 @@ function buildV2rayHeaders(subscription: SubscriptionInfo): Record<string, strin
     'profile-update-interval': String(subscription.updateInterval || 24),
     'subscription-userinfo': `upload=${subscription.upload}; download=${subscription.download}; total=${subscription.total}; expire=${subscription.expire}`,
   }
+}
+
+function countProtocols(proxies: Proxy[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const proxy of proxies) {
+    const key = proxy.type.toLowerCase()
+    counts[key] = (counts[key] || 0) + 1
+  }
+  return counts
 }
 
 export function buildResponseHeaders(
@@ -87,8 +97,11 @@ export function buildResponseHeaders(
 export function renderConversionResponse(
   input: RenderConversionInput,
 ): RenderedConversionResponse {
-  const { formattedProxies, subscription, userAgent } = input
-  const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(userAgent)
+  const { formattedProxies, subscription, userAgent, targetOverride } = input
+  const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(
+    userAgent,
+    targetOverride,
+  )
 
   if (isSingBox) {
     const body = renderSingboxConfig(formattedProxies)
@@ -114,7 +127,14 @@ export function renderConversionResponse(
 
   if (isBrowser) {
     const jsonConfig = renderSingboxConfig(formattedProxies)
-    const body = renderPreviewHtml(yamlConfig, jsonConfig)
+    const rawUris = proxiesToUris(formattedProxies).join('\n')
+    const body = renderPreviewHtml(yamlConfig, jsonConfig, {
+      subscriptionName: subscription.name,
+      nodeCount: formattedProxies.length,
+      protocolCounts: countProtocols(formattedProxies),
+      rawUris,
+      v2rayBase64: renderV2raySubscription(formattedProxies),
+    })
     return {
       body,
       headers: buildResponseHeaders(subscription, false, true),

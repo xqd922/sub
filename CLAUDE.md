@@ -14,7 +14,7 @@ src/
 │   └── api/
 │       ├── shorten/route.ts      短链生成（POST / GET）
 │       ├── s/[id]/route.ts       短链跳转 API 兼容入口
-│       └── admin/                后台管理 API（login / logout / session / stats / records / short-links / system）
+│       └── admin/                后台管理 API（login / logout / session / stats / records / short-links / inspect / system）
 ├── components/                   BoardUI 设计系统组件（base / application / foundations）
 ├── features/                     客户端功能模块（严禁导入 server/ 或 modules/）
 │   ├── shared/                   components/ + hooks/（toaster / error-boundary / qr-code-modal）

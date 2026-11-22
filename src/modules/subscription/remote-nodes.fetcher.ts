@@ -3,7 +3,7 @@ import type { Proxy } from '@/modules/proxy/proxy.types'
 import { deduplicateProxies } from '@/modules/subscription/proxy-dedup'
 import { formatProxyNames } from '@/modules/subscription/proxy-namer'
 import { parseSubscriptionResponse } from '@/modules/subscription/subscription.parser'
-import { fetchWithRetry } from '@/server/fetch.client'
+import { assertPublicHttpUrl, fetchWithRetry } from '@/server/fetch.client'
 import { logger } from '@/server/logger'
 
 const HTTP_PREFIXES = ['http://', 'https://'] as const
@@ -47,6 +47,8 @@ export async function fetchNodesFromRemote(
   fetchSubscription: (subUrl: string) => Promise<Response>,
 ): Promise<{ proxies: Proxy[] }> {
   try {
+    assertPublicHttpUrl(url)
+
     const response = await fetchWithRetry(url, {
       retries: 2,
       timeoutMs: 15_000,
@@ -74,29 +76,34 @@ export async function fetchNodesFromRemote(
       }
     }
 
-    const subscriptionResults: Proxy[][] = []
-    const subCounters: Record<string, number> = {}
+    // 并发拉取多条订阅链接，拉取后再按原始顺序格式化以保持编号稳定
+    const rawSubscriptionLists = await Promise.all(
+      subscriptionLines.map(async (line) => {
+        try {
+          const subResponse = await fetchSubscription(line)
+          return await parseSubscriptionResponse(subResponse)
+        } catch (error) {
+          logger.warn(`订阅解析失败，跳过: ${line}`, error)
+          return [] as Proxy[]
+        }
+      }),
+    )
 
-    for (const line of subscriptionLines) {
-      try {
-        const subResponse = await fetchSubscription(line)
-        const parsed = await parseSubscriptionResponse(subResponse)
-        subscriptionResults.push(formatProxyNames(parsed, subCounters))
-      } catch (error) {
-        logger.warn(`订阅解析失败，跳过: ${line}`, error)
-        subscriptionResults.push([])
-      }
-    }
+    const subCounters: Record<string, number> = {}
+    const subscriptionResults = rawSubscriptionLists.map((list) =>
+      formatProxyNames(list, subCounters),
+    )
 
     const subscriptionProxies = subscriptionResults.flat()
     const subNames = new Set(subscriptionProxies.map((proxy) => proxy.name))
     logger.info(`Gist 订阅节点: ${subscriptionProxies.length} 个（已格式化名称）`)
 
-    const validSingleNodes = singleNodeLines
-      .map(parseSingleRemoteNode)
-      .filter((proxy): proxy is Proxy => proxy !== null)
+    // 保留与 singleNodeLines 相同的槽位索引，避免某个单节点解析失败导致后续行错位
+    const parsedSingleSlots = singleNodeLines.map(parseSingleRemoteNode)
+    const conflictNodes = parsedSingleSlots.filter(
+      (proxy): proxy is Proxy => proxy !== null && subNames.has(proxy.name),
+    )
 
-    const conflictNodes = validSingleNodes.filter((proxy) => subNames.has(proxy.name))
     const formattedConflicts = formatProxyNames(conflictNodes)
     if (conflictNodes.length > 0) {
       logger.info(`自建节点名称冲突: ${conflictNodes.length} 个，已重新格式化`)
@@ -107,17 +114,18 @@ export async function fetchNodesFromRemote(
       conflictMap.set(node, formattedConflicts[idx])
     })
 
-    const processedSingleNodes = validSingleNodes.map((proxy) => conflictMap.get(proxy) ?? proxy)
-    logger.info(`Gist 自建节点: ${processedSingleNodes.length} 个`)
+    const processedSingleSlots = parsedSingleSlots.map((proxy) =>
+      proxy ? (conflictMap.get(proxy) ?? proxy) : null,
+    )
+    logger.info(
+      `Gist 自建节点: ${processedSingleSlots.filter(Boolean).length} 个`,
+    )
 
     const orderedProxies: Proxy[] = []
-    let singleIdx = 0
-
     for (const item of lineOrder) {
       if (item.type === 'single') {
-        if (singleIdx < processedSingleNodes.length) {
-          orderedProxies.push(processedSingleNodes[singleIdx++])
-        }
+        const node = processedSingleSlots[item.index]
+        if (node) orderedProxies.push(node)
       } else {
         const subResult = subscriptionResults[item.index]
         if (subResult) orderedProxies.push(...subResult)

@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { RiRefreshLine } from '@remixicon/react'
 import { Breadcrumb, BreadcrumbItem } from '@/components/base/breadcrumb/breadcrumb'
+import { Button } from '@/components/base/buttons/button'
 import { Spinner } from '@/components/base/spinner/spinner'
 import { Switch } from '@/components/base/switch/switch'
 import { AdminLoginView } from '@/features/admin/components/admin-login-view'
@@ -17,13 +19,46 @@ import { SystemPanel } from '@/features/admin/components/system-panel'
 import { ToolsPanel } from '@/features/admin/components/tools-panel'
 import { useAdminSession } from '@/features/admin/hooks/use-admin-session'
 
+const VALID_TABS = new Set<AdminTabKey>(['stats', 'records', 'shortLinks', 'tools', 'system'])
+const tabListeners = new Set<() => void>()
+
+function readTabFromUrl(): AdminTabKey {
+  if (typeof window === 'undefined') return 'stats'
+  const param = new URLSearchParams(window.location.search).get('tab') as AdminTabKey | null
+  return param && VALID_TABS.has(param) ? param : 'stats'
+}
+
+function getServerTab(): AdminTabKey {
+  return 'stats'
+}
+
+function subscribeTabUrl(onStoreChange: () => void): () => void {
+  tabListeners.add(onStoreChange)
+  window.addEventListener('popstate', onStoreChange)
+  return () => {
+    tabListeners.delete(onStoreChange)
+    window.removeEventListener('popstate', onStoreChange)
+  }
+}
+
 export function AdminConsole() {
-  const { checking, authenticated, login, logout, resetAuthentication } = useAdminSession()
-  const [activeTab, setActiveTab] = useState<AdminTabKey>('stats')
+  const { checking, authenticated, expiresAt, login, logout, resetAuthentication } =
+    useAdminSession()
+  const activeTab = useSyncExternalStore(subscribeTabUrl, readTabFromUrl, getServerTab)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [recordCount, setRecordCount] = useState<number | null>(null)
   const [shortLinkCount, setShortLinkCount] = useState<number | null>(null)
   const [focusSearchSignal, setFocusSearchSignal] = useState(0)
+  const [refreshSignal, setRefreshSignal] = useState(0)
+
+  const setActiveTab = useCallback((nextTab: AdminTabKey) => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (nextTab === 'stats') url.searchParams.delete('tab')
+    else url.searchParams.set('tab', nextTab)
+    window.history.replaceState(null, '', url.toString())
+    for (const listener of tabListeners) listener()
+  }, [])
 
   // Cmd/Ctrl + K 快捷跳转到转换记录搜索框
   useEffect(() => {
@@ -37,7 +72,12 @@ export function AdminConsole() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [authenticated])
+  }, [authenticated, setActiveTab])
+
+  const handleStatsCountsLoaded = useCallback((recordsTotal: number, shortLinksTotal: number) => {
+    setRecordCount(recordsTotal)
+    setShortLinkCount(shortLinksTotal)
+  }, [])
 
   if (checking) {
     return (
@@ -82,20 +122,39 @@ export function AdminConsole() {
               <p className="text-body-2-regular text-text-secondary">{currentTab.description}</p>
             </div>
 
-            <div className="flex items-center gap-3 rounded-2xl border border-border-button-default bg-background-primary-default px-3.5 py-2 shadow-xs">
-              <Switch size="sm" isSelected={autoRefresh} onChange={setAutoRefresh}>
-                <span className="text-body-2-medium text-text-secondary">自动刷新（30s）</span>
-              </Switch>
+            <div className="flex items-center gap-2">
+              {activeTab !== 'tools' ? (
+                <Button
+                  variant="secondary"
+                  size="small"
+                  leadingIcon={RiRefreshLine}
+                  onClick={() => setRefreshSignal((count) => count + 1)}
+                >
+                  刷新
+                </Button>
+              ) : null}
+
+              <div className="flex items-center gap-3 rounded-2xl border border-border-button-default bg-background-primary-default px-3.5 py-2 shadow-xs">
+                <Switch size="sm" isSelected={autoRefresh} onChange={setAutoRefresh}>
+                  <span className="text-body-2-medium text-text-secondary">自动刷新（30s）</span>
+                </Switch>
+              </div>
             </div>
           </div>
 
           <main className="min-w-0">
             {activeTab === 'stats' ? (
-              <StatsPanel autoRefresh={autoRefresh} onUnauthorized={resetAuthentication} />
+              <StatsPanel
+                autoRefresh={autoRefresh}
+                refreshSignal={refreshSignal}
+                onUnauthorized={resetAuthentication}
+                onCountsLoaded={handleStatsCountsLoaded}
+              />
             ) : null}
             {activeTab === 'records' ? (
               <RecordsPanel
                 autoRefresh={autoRefresh}
+                refreshSignal={refreshSignal}
                 onUnauthorized={resetAuthentication}
                 onCountChange={setRecordCount}
                 focusSearchSignal={focusSearchSignal}
@@ -104,13 +163,19 @@ export function AdminConsole() {
             {activeTab === 'shortLinks' ? (
               <ShortLinksPanel
                 autoRefresh={autoRefresh}
+                refreshSignal={refreshSignal}
                 onUnauthorized={resetAuthentication}
                 onCountChange={setShortLinkCount}
               />
             ) : null}
-            {activeTab === 'tools' ? <ToolsPanel /> : null}
+            {activeTab === 'tools' ? <ToolsPanel onUnauthorized={resetAuthentication} /> : null}
             {activeTab === 'system' ? (
-              <SystemPanel autoRefresh={autoRefresh} onUnauthorized={resetAuthentication} />
+              <SystemPanel
+                autoRefresh={autoRefresh}
+                refreshSignal={refreshSignal}
+                sessionExpiresAt={expiresAt}
+                onUnauthorized={resetAuthentication}
+              />
             ) : null}
           </main>
         </div>

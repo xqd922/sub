@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   RiBarChart2Line,
   RiDatabase2Line,
@@ -19,14 +19,37 @@ import { cx } from '@/utils/cx'
 
 interface StatsPanelProps {
   autoRefresh: boolean
+  refreshSignal?: number
   onUnauthorized?: () => void
+  onCountsLoaded?: (recordsTotal: number, shortLinksTotal: number) => void
 }
 
-export function StatsPanel({ autoRefresh, onUnauthorized }: StatsPanelProps) {
+export function StatsPanel({
+  autoRefresh,
+  refreshSignal = 0,
+  onUnauthorized,
+  onCountsLoaded,
+}: StatsPanelProps) {
   const { stats, daily, loading, refresh } = useAdminStats(onUnauthorized)
-  const { records } = useAdminRecords(onUnauthorized)
+  const { records, refresh: refreshRecords } = useAdminRecords(onUnauthorized)
 
-  useAutoRefresh(refresh, autoRefresh)
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refresh(), refreshRecords()])
+  }, [refresh, refreshRecords])
+
+  useAutoRefresh(refreshAll, autoRefresh)
+
+  useEffect(() => {
+    if (refreshSignal > 0) {
+      void refreshAll()
+    }
+  }, [refreshSignal, refreshAll])
+
+  useEffect(() => {
+    if (stats) {
+      onCountsLoaded?.(stats.totalRecords + stats.disabledRecords, stats.totalShortLinks)
+    }
+  }, [stats, onCountsLoaded])
 
   const clientTypes = useMemo(() => {
     const counts = new Map<string, number>()
@@ -71,8 +94,12 @@ export function StatsPanel({ autoRefresh, onUnauthorized }: StatsPanelProps) {
     {
       label: '有效订阅',
       value: stats ? formatCount(stats.totalRecords) : '—',
-      hint: '未含已禁用条目',
-      badge: `共 ${records.length}`,
+      hint: stats
+        ? stats.disabledRecords > 0
+          ? `已禁用 ${stats.disabledRecords} 条 · 短链 ${stats.totalShortLinks} 条`
+          : `短链 ${stats.totalShortLinks} 条`
+        : '未含已禁用条目',
+      badge: stats ? `共 ${stats.totalRecords + stats.disabledRecords}` : `共 ${records.length}`,
       badgeColor: 'neutral' as const,
       icon: RiDatabase2Line,
     },

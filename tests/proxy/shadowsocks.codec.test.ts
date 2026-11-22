@@ -63,6 +63,18 @@ describe('shadowsocks.codec', () => {
     expect(proxy.plugin).toBe('obfs')
     expect(proxy['plugin-opts']?.mode).toBe('http')
     expect(proxy['plugin-opts']?.host).toBe('www.bing.com')
+
+    // 支持不带前导斜杠的 ?plugin= 写法，并验证 shadowsocksToUri 保留插件参数
+    const noSlashUri = uri.replace('/?plugin=', '?plugin=')
+    const noSlashProxy = parseShadowsocksUri(noSlashUri)
+    expect(noSlashProxy.plugin).toBe('obfs')
+    expect(noSlashProxy['plugin-opts']?.host).toBe('www.bing.com')
+
+    const serialized = shadowsocksToUri(noSlashProxy)
+    expect(serialized).toContain('plugin=')
+    const reparsed = parseShadowsocksUri(serialized)
+    expect(reparsed.plugin).toBe('obfs')
+    expect(reparsed['plugin-opts']).toEqual(noSlashProxy['plugin-opts'])
   })
 
   it('parses legacy base64 URIs with and without remarks', () => {

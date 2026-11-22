@@ -2,6 +2,8 @@ import {
   cleanStringHeaders,
   extractFragmentName,
   formatHostForUri,
+  normalizeAlpnList,
+  safeDecodeUriComponent,
   stripIpv6Brackets,
 } from '@/modules/proxy/codecs/codec.utils'
 import type {
@@ -17,14 +19,20 @@ export function parseTrojanUri(uri: string): TrojanProxy {
   const params = url.searchParams
   const server = stripIpv6Brackets(url.hostname)
 
+  const allowInsecure = params.get('allowInsecure') || params.get('skip-cert-verify')
+  const fp = params.get('fp') || params.get('client-fingerprint')
+  const alpn = params.get('alpn')
+
   const proxy: TrojanProxy = {
     type: 'trojan',
     name: extractFragmentName(url, server),
     server,
     port: parsePort(url.port),
-    password: url.username,
+    password: safeDecodeUriComponent(url.username),
     sni: params.get('sni') || server,
-    'skip-cert-verify': params.get('allowInsecure') === '1',
+    'skip-cert-verify': allowInsecure === '1' || allowInsecure === 'true',
+    ...(fp ? { 'client-fingerprint': fp } : {}),
+    ...(alpn ? { alpn: alpn.split(',') } : {}),
   }
 
   const transportType = params.get('type')
@@ -53,6 +61,10 @@ export function trojanToUri(proxy: TrojanProxy): string {
   const params = new URLSearchParams()
   if (proxy.sni) params.set('sni', proxy.sni)
   if (proxy['skip-cert-verify']) params.set('allowInsecure', '1')
+  if (proxy['client-fingerprint'] || proxy.fp) {
+    params.set('fp', proxy['client-fingerprint'] || proxy.fp || '')
+  }
+  if (proxy.alpn) params.set('alpn', Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn)
 
   if (proxy.network === 'ws') {
     params.set('type', 'ws')
@@ -69,10 +81,13 @@ export function trojanToUri(proxy: TrojanProxy): string {
   }
 
   const query = params.toString() ? `?${params.toString()}` : ''
-  return `trojan://${proxy.password}@${formatHostForUri(proxy.server)}:${proxy.port}${query}#${encodeURIComponent(proxy.name)}`
+  return `trojan://${encodeURIComponent(proxy.password)}@${formatHostForUri(proxy.server)}:${proxy.port}${query}#${encodeURIComponent(proxy.name)}`
 }
 
 export function trojanToSingboxOutbound(proxy: TrojanProxy): SingboxOutbound {
+  const alpn = normalizeAlpnList(proxy.alpn)
+  const fp = proxy['client-fingerprint'] || proxy.fp
+
   const outbound: SingboxOutbound = {
     type: 'trojan',
     tag: proxy.name,
@@ -81,8 +96,10 @@ export function trojanToSingboxOutbound(proxy: TrojanProxy): SingboxOutbound {
     password: proxy.password || '',
     tls: {
       enabled: true,
-      server_name: proxy.sni || proxy.server,
+      server_name: proxy.sni || proxy.servername || proxy.server,
       insecure: proxy['skip-cert-verify'] ?? false,
+      ...(alpn ? { alpn } : {}),
+      ...(fp ? { utls: { enabled: true, fingerprint: fp } } : {}),
     },
   }
 

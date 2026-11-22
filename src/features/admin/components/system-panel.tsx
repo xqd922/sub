@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RiDatabase2Line, RiPulseLine, RiRefreshLine, RiShieldCheckLine } from '@remixicon/react'
 import { Chip } from '@/components/base/badges/chip'
 import { StatusDot } from '@/components/base/badges/status-dot'
@@ -15,6 +15,8 @@ import { formatDateTime } from '@/shared/format.utils'
 
 interface SystemPanelProps {
   autoRefresh: boolean
+  refreshSignal?: number
+  sessionExpiresAt?: number | null
   onUnauthorized?: () => void
 }
 
@@ -28,7 +30,12 @@ const CONFIG_ITEMS: ReadonlyArray<{ key: keyof SystemConfigFlags; label: string 
   { key: 'cuttly', label: 'Cuttly 短链服务' },
 ]
 
-export function SystemPanel({ autoRefresh, onUnauthorized }: SystemPanelProps) {
+export function SystemPanel({
+  autoRefresh,
+  refreshSignal = 0,
+  sessionExpiresAt = null,
+  onUnauthorized,
+}: SystemPanelProps) {
   const { system, loading, refresh, pingKv, rebuildIndex } = useAdminSystem(onUnauthorized)
   const [pingResult, setPingResult] = useState<{ ok: boolean; text: string } | null>(null)
   const [rebuildResult, setRebuildResult] = useState<string | null>(null)
@@ -36,6 +43,12 @@ export function SystemPanel({ autoRefresh, onUnauthorized }: SystemPanelProps) {
   const [confirmRebuildOpen, setConfirmRebuildOpen] = useState(false)
 
   useAutoRefresh(refresh, autoRefresh)
+
+  useEffect(() => {
+    if (refreshSignal > 0) {
+      void refresh()
+    }
+  }, [refreshSignal, refresh])
 
   const handlePingKv = async () => {
     setBusy(true)
@@ -147,6 +160,15 @@ export function SystemPanel({ autoRefresh, onUnauthorized }: SystemPanelProps) {
             {rebuildResult ? (
               <div className="mt-3 rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 text-body-2-regular text-text-secondary">
                 {rebuildResult}
+              </div>
+            ) : null}
+
+            {sessionExpiresAt ? (
+              <div className="mt-4 flex items-center justify-between gap-2 border-t border-separator-border pt-3 text-caption-1-regular text-text-tertiary">
+                <span>当前管理会话有效期至</span>
+                <span className="font-mono tabular-nums text-text-secondary">
+                  {formatDateTime(sessionExpiresAt)}
+                </span>
               </div>
             ) : null}
           </div>

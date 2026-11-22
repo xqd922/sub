@@ -72,7 +72,10 @@ export async function getShortLink(id: string): Promise<ShortLink | null> {
   }
 }
 
-export async function createShortLink(targetUrl: string): Promise<ShortLink | null> {
+export async function createShortLink(
+  targetUrl: string,
+  customName?: string,
+): Promise<ShortLink | null> {
   const kv = await getKvStore()
   if (!kv) return null
 
@@ -81,7 +84,12 @@ export async function createShortLink(targetUrl: string): Promise<ShortLink | nu
     const existingId = (await kv.get(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`)) as string | null
     if (existingId) {
       const existing = await getShortLink(existingId)
-      if (existing) return existing
+      if (existing) {
+        if (customName && customName.trim() && customName.trim() !== existing.name) {
+          return (await updateShortLink(existing.id, { name: customName.trim() })) || existing
+        }
+        return existing
+      }
     }
 
     const id = await generateShortId(targetUrl)
@@ -89,7 +97,7 @@ export async function createShortLink(targetUrl: string): Promise<ShortLink | nu
     const shortLink: ShortLink = {
       id,
       targetUrl,
-      name: extractNameFromUrl(targetUrl),
+      name: customName?.trim() || extractNameFromUrl(targetUrl),
       createdAt: now,
       hits: 0,
       lastAccess: now,
@@ -131,7 +139,7 @@ export async function getAllShortLinks(): Promise<ShortLink[]> {
 
 export async function updateShortLink(
   id: string,
-  updates: Partial<Pick<ShortLink, 'name'>>,
+  updates: Partial<Pick<ShortLink, 'name' | 'targetUrl'>>,
 ): Promise<ShortLink | null> {
   const kv = await getKvStore()
   if (!kv) return null
@@ -140,10 +148,35 @@ export async function updateShortLink(
     const existing = await getShortLink(id)
     if (!existing) return null
 
-    const updated: ShortLink = { ...existing, ...updates }
-    await kv.put(`${KV_KEYS.SHORT_PREFIX}${id}`, JSON.stringify(updated), {
-      expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
-    })
+    const nextTargetUrl = updates.targetUrl?.trim() || existing.targetUrl
+    const targetChanged = nextTargetUrl !== existing.targetUrl
+
+    const updated: ShortLink = {
+      ...existing,
+      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      targetUrl: nextTargetUrl,
+    }
+
+    const tasks: Array<Promise<void>> = [
+      kv.put(`${KV_KEYS.SHORT_PREFIX}${id}`, JSON.stringify(updated), {
+        expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
+      }),
+    ]
+
+    if (targetChanged) {
+      const [oldHash, newHash] = await Promise.all([
+        getUrlHash(existing.targetUrl),
+        getUrlHash(nextTargetUrl),
+      ])
+      tasks.push(kv.delete(`${KV_KEYS.SHORT_URL_PREFIX}${oldHash}`))
+      tasks.push(
+        kv.put(`${KV_KEYS.SHORT_URL_PREFIX}${newHash}`, id, {
+          expirationTtl: KV_TTL_SECONDS.ONE_YEAR,
+        }),
+      )
+    }
+
+    await Promise.all(tasks)
     return updated
   } catch (error) {
     logger.error('[ShortLinkRepo] 更新失败:', error)

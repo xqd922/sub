@@ -3,6 +3,7 @@ import {
   extractFragmentName,
   formatHostForUri,
   normalizeAlpnList,
+  safeDecodeUriComponent,
   stripIpv6Brackets,
 } from '@/modules/proxy/codecs/codec.utils'
 import type {
@@ -20,7 +21,7 @@ export function parseVlessUri(uri: string): VlessProxy {
 
   const host = params.get('host')
   const flow = params.get('flow')
-  const fp = params.get('fp') || 'chrome'
+  const fp = params.get('fp') || params.get('client-fingerprint') || 'chrome'
   const security = params.get('security') || 'none'
   const type = params.get('type') || 'tcp'
   const pbk = params.get('pbk')
@@ -35,7 +36,7 @@ export function parseVlessUri(uri: string): VlessProxy {
     name: extractFragmentName(url, server),
     server,
     port: parsePort(url.port),
-    uuid: url.username,
+    uuid: safeDecodeUriComponent(url.username),
     tls: security === 'tls' || security === 'reality',
     ...(flow ? { flow } : {}),
     servername: sni,
@@ -52,13 +53,21 @@ export function parseVlessUri(uri: string): VlessProxy {
           },
         }
       : {}),
-    ...(type === 'ws'
+    ...(type === 'ws' || type === 'httpupgrade'
       ? {
           'ws-opts': {
             path: params.get('path') || '',
             headers: {
               Host: host || server,
             },
+          },
+        }
+      : {}),
+    ...(type === 'grpc'
+      ? {
+          'grpc-opts': {
+            'grpc-service-name': params.get('serviceName') || '',
+            ...(params.get('mode') ? { 'grpc-mode': params.get('mode')! } : {}),
           },
         }
       : {}),
@@ -86,12 +95,19 @@ export function vlessToUri(proxy: VlessProxy): string {
     if (proxy['reality-opts']['short-id']) params.set('sid', proxy['reality-opts']['short-id'])
   }
 
-  if (proxy.network === 'ws' && proxy['ws-opts']) {
+  if ((proxy.network === 'ws' || proxy.network === 'httpupgrade') && proxy['ws-opts']) {
     if (proxy['ws-opts'].path) params.set('path', proxy['ws-opts'].path)
     if (proxy['ws-opts'].headers?.Host) params.set('host', proxy['ws-opts'].headers.Host)
+  } else if (proxy.network === 'grpc' && proxy['grpc-opts']) {
+    if (proxy['grpc-opts']['grpc-service-name']) {
+      params.set('serviceName', proxy['grpc-opts']['grpc-service-name'])
+    }
+    if (proxy['grpc-opts']['grpc-mode']) {
+      params.set('mode', proxy['grpc-opts']['grpc-mode'])
+    }
   }
 
-  return `vless://${proxy.uuid}@${formatHostForUri(proxy.server)}:${proxy.port}?${params.toString()}#${encodeURIComponent(proxy.name)}`
+  return `vless://${encodeURIComponent(proxy.uuid)}@${formatHostForUri(proxy.server)}:${proxy.port}?${params.toString()}#${encodeURIComponent(proxy.name)}`
 }
 
 export function vlessToSingboxOutbound(proxy: VlessProxy): SingboxOutbound {
@@ -108,11 +124,13 @@ export function vlessToSingboxOutbound(proxy: VlessProxy): SingboxOutbound {
 
   if (proxy.tls) {
     const alpn = normalizeAlpnList(proxy.alpn)
+    const fp = proxy['client-fingerprint'] || proxy.fp
     outbound.tls = {
       enabled: true,
       server_name: proxy.servername || proxy.sni || proxy.server,
       insecure: proxy['skip-cert-verify'] ?? false,
       ...(alpn ? { alpn } : {}),
+      ...(fp ? { utls: { enabled: true, fingerprint: fp } } : {}),
       ...(realityOpts
         ? {
             reality: {
@@ -122,23 +140,37 @@ export function vlessToSingboxOutbound(proxy: VlessProxy): SingboxOutbound {
             },
             utls: {
               enabled: true,
-              fingerprint: proxy['client-fingerprint'] || 'chrome',
+              fingerprint: fp || 'chrome',
             },
           }
         : {}),
     }
   }
 
-  if (proxy.network && proxy.network !== 'tcp') {
+  if (proxy.network === 'grpc') {
     outbound.transport = {
-      type: proxy.network,
-      ...(proxy.network === 'ws'
-        ? {
-            path: proxy['ws-opts']?.path || '',
-            headers: cleanStringHeaders(proxy['ws-opts']?.headers),
-          }
-        : {}),
+      type: 'grpc',
+      service_name: proxy['grpc-opts']?.['grpc-service-name'] || '',
+      idle_timeout: '15s',
+      ping_timeout: '15s',
     }
+  } else if (proxy.network === 'ws') {
+    outbound.transport = {
+      type: 'ws',
+      path: proxy['ws-opts']?.path || proxy.path || '',
+      headers: cleanStringHeaders(proxy['ws-opts']?.headers),
+    }
+  } else if (proxy.network === 'httpupgrade') {
+    const headers = cleanStringHeaders(proxy['ws-opts']?.headers)
+    const host = headers.Host || headers.host
+    outbound.transport = {
+      type: 'httpupgrade',
+      ...(host ? { host } : {}),
+      path: proxy['ws-opts']?.path || proxy.path || '',
+      ...(Object.keys(headers).length > 0 ? { headers } : {}),
+    }
+  } else if (proxy.network && proxy.network !== 'tcp') {
+    outbound.transport = { type: proxy.network }
   }
 
   if (proxy.detour) {

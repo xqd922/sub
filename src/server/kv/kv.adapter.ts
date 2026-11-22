@@ -1,6 +1,6 @@
 import { getRemoteKvConfig } from '@/server/env.config'
+import type { KvListResult, KvStoreAdapter } from '@/server/kv/kv.types'
 import { logger } from '@/server/logger'
-import type { KvStoreAdapter } from '@/server/kv/kv.types'
 
 class RemoteKvStore implements KvStoreAdapter {
   private readonly baseUrl: string
@@ -68,50 +68,98 @@ class RemoteKvStore implements KvStoreAdapter {
     }
   }
 
-  async list(options?: { prefix?: string }): Promise<{ keys: Array<{ name: string }> }> {
+  async list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<KvListResult> {
     try {
       const params = new URLSearchParams()
       if (options?.prefix) params.set('prefix', options.prefix)
+      if (options?.cursor) params.set('cursor', options.cursor)
+      if (options?.limit) params.set('limit', String(options.limit))
+
       const res = await this.request(`/keys?${params.toString()}`)
-      if (!res.ok) return { keys: [] }
-      const data = (await res.json()) as { result?: Array<{ name: string }> }
-      return { keys: data.result || [] }
+      if (!res.ok) return { keys: [], list_complete: true }
+
+      const data = (await res.json()) as {
+        result?: Array<{ name: string }>
+        result_info?: { cursor?: string }
+      }
+      const nextCursor = data.result_info?.cursor || undefined
+      return {
+        keys: data.result || [],
+        list_complete: !nextCursor,
+        cursor: nextCursor,
+      }
     } catch (error) {
       logger.error('[RemoteKV] LIST 失败:', error)
-      return { keys: [] }
+      return { keys: [], list_complete: true }
     }
   }
 }
 
-class MemoryKvStore implements KvStoreAdapter {
-  private readonly records = new Map<string, string>()
+interface MemoryEntry {
+  value: string
+  expiresAt?: number
+}
+
+export class MemoryKvStore implements KvStoreAdapter {
+  private readonly records = new Map<string, MemoryEntry>()
+
+  private getValidEntry(key: string): MemoryEntry | null {
+    const entry = this.records.get(key)
+    if (!entry) return null
+    if (entry.expiresAt !== undefined && Date.now() >= entry.expiresAt) {
+      this.records.delete(key)
+      return null
+    }
+    return entry
+  }
 
   async get<T = unknown>(key: string, type?: 'json' | 'text'): Promise<T | null> {
-    const value = this.records.get(key)
-    if (!value) return null
+    const entry = this.getValidEntry(key)
+    if (!entry) return null
     if (type === 'json') {
       try {
-        return JSON.parse(value) as T
+        return JSON.parse(entry.value) as T
       } catch {
         return null
       }
     }
-    return value as T
+    return entry.value as T
   }
 
-  async put(key: string, value: string): Promise<void> {
-    this.records.set(key, value)
+  async put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> {
+    const expiresAt =
+      typeof options?.expirationTtl === 'number'
+        ? Date.now() + options.expirationTtl * 1000
+        : undefined
+    this.records.set(key, { value, expiresAt })
   }
 
   async delete(key: string): Promise<void> {
     this.records.delete(key)
   }
 
-  async list(options?: { prefix?: string }): Promise<{ keys: Array<{ name: string }> }> {
+  async list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<KvListResult> {
     const prefix = options?.prefix
-    const keys = Array.from(this.records.keys())
-    const filtered = prefix ? keys.filter((key) => key.startsWith(prefix)) : keys
-    return { keys: filtered.map((name) => ({ name })) }
+    const names: string[] = []
+    for (const key of Array.from(this.records.keys())) {
+      if (!this.getValidEntry(key)) continue
+      if (!prefix || key.startsWith(prefix)) {
+        names.push(key)
+      }
+    }
+    names.sort()
+
+    const offset = options?.cursor ? Math.max(0, Number.parseInt(options.cursor, 10) || 0) : 0
+    const limit = options?.limit && options.limit > 0 ? options.limit : names.length
+    const slice = names.slice(offset, offset + limit)
+    const nextOffset = offset + slice.length
+    const hasMore = nextOffset < names.length
+
+    return {
+      keys: slice.map((name) => ({ name })),
+      list_complete: !hasMore,
+      cursor: hasMore ? String(nextOffset) : undefined,
+    }
   }
 }
 

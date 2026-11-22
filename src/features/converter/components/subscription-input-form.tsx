@@ -22,6 +22,22 @@ export function SubscriptionInputForm({
 }: SubscriptionInputFormProps) {
   const hasValue = value.trim().length > 0
 
+  // 粘贴多行节点 URI 或多条订阅链接时自动用 `|` 拼接，避免单行输入框吞掉换行
+  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData('text')
+    if (!/[\r\n]/.test(pasted)) return
+
+    const lines = pasted
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    if (lines.length > 1) {
+      event.preventDefault()
+      onChange(lines.join('|'))
+    }
+  }
+
   return (
     <form onSubmit={onSubmit} className="w-full">
       <div
@@ -42,7 +58,8 @@ export function SubscriptionInputForm({
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="粘贴订阅链接"
+          onPaste={handlePaste}
+          placeholder="粘贴订阅链接或代理节点（支持多条合并）"
           autoComplete="off"
           spellCheck={false}
           aria-label="订阅链接"

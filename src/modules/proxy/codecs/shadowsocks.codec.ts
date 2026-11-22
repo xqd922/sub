@@ -12,12 +12,21 @@ import { logger } from '@/server/logger'
 import { decodeBase64Utf8, encodeBase64UrlUtf8 } from '@/shared/base64.utils'
 import { parsePort } from '@/shared/url.utils'
 
+function decodeRemarkFully(rawRemark: string): string {
+  const once = safeDecodeUriComponent(rawRemark)
+  if (/%[0-9a-fA-F]{2}/.test(once)) {
+    return safeDecodeUriComponent(once)
+  }
+  return once
+}
+
 export function parseShadowsocksUri(uri: string): SSProxy {
   const content = uri.slice(5)
-  const decodedContent = safeDecodeUriComponent(content)
-  const [mainPart = '', remark = ''] = decodedContent.split('#')
+  const hashIndex = content.indexOf('#')
+  const rawMainPart = hashIndex === -1 ? content : content.slice(0, hashIndex)
+  const rawRemark = hashIndex === -1 ? '' : content.slice(hashIndex + 1)
 
-  if (!mainPart) {
+  if (!rawMainPart) {
     throw new Error('SS链接格式错误：缺少主体部分')
   }
 
@@ -25,14 +34,23 @@ export function parseShadowsocksUri(uri: string): SSProxy {
   const pluginOpts: Record<string, string> = {}
 
   try {
-    const [basePart = '', queryString] = mainPart.split('/?')
+    const queryIdx = rawMainPart.indexOf('?')
+    let basePart = queryIdx === -1 ? rawMainPart : rawMainPart.slice(0, queryIdx)
+    const queryString = queryIdx === -1 ? '' : rawMainPart.slice(queryIdx + 1)
+
+    if (basePart.endsWith('/')) {
+      basePart = basePart.slice(0, -1)
+    }
 
     if (queryString) {
       const params = new URLSearchParams(queryString)
       const plugin = params.get('plugin')
       if (plugin) {
         for (const param of plugin.split(';')) {
-          const [key, value] = param.split('=')
+          const eqIdx = param.indexOf('=')
+          if (eqIdx === -1) continue
+          const key = param.slice(0, eqIdx).trim()
+          const value = param.slice(eqIdx + 1).trim()
           if (key && value && (key === 'obfs' || key === 'obfs-host')) {
             pluginOpts[key] = value
           }
@@ -40,16 +58,17 @@ export function parseShadowsocksUri(uri: string): SSProxy {
       }
     }
 
-    if (basePart.includes('@')) {
-      const separatorIndex = basePart.lastIndexOf('@')
-      const userInfo = basePart.slice(0, separatorIndex)
-      const serverPart = basePart.slice(separatorIndex + 1)
+    const decodedBase = safeDecodeUriComponent(basePart)
+    if (decodedBase.includes('@')) {
+      const separatorIndex = decodedBase.lastIndexOf('@')
+      const userInfo = decodedBase.slice(0, separatorIndex)
+      const serverPart = decodedBase.slice(separatorIndex + 1)
       if (!userInfo) {
         throw new Error('SS链接格式错误：缺少用户信息')
       }
       decoded = `${decodeBase64Utf8(userInfo)}@${serverPart}`
     } else {
-      decoded = decodeBase64Utf8(basePart)
+      decoded = decodeBase64Utf8(decodedBase)
     }
   } catch (error) {
     logger.error('SS链接解析错误:', {
@@ -59,7 +78,13 @@ export function parseShadowsocksUri(uri: string): SSProxy {
     throw new Error('无效的 SS 链接格式：Base64 解码失败')
   }
 
-  const [methodAndPassword, serverAndPort] = decoded.split('@')
+  const atIndex = decoded.lastIndexOf('@')
+  if (atIndex === -1) {
+    throw new Error(`无效的 SS 链接格式：解析失败 - ${decoded}`)
+  }
+
+  const methodAndPassword = decoded.slice(0, atIndex)
+  const serverAndPort = decoded.slice(atIndex + 1)
   if (!methodAndPassword || !serverAndPort) {
     throw new Error(`无效的 SS 链接格式：解析失败 - ${decoded}`)
   }
@@ -85,16 +110,16 @@ export function parseShadowsocksUri(uri: string): SSProxy {
     password = methodAndPassword
   }
 
-  const ipv6Match = serverAndPort.match(/\[(.*)\]:(\d+)/)
+  const ipv6Match = serverAndPort.match(/^\[(.*)\]:(\d+)$/)
   let server: string
   let port: string
   if (ipv6Match) {
-    server = ipv6Match[1] || 'localhost'
-    port = ipv6Match[2] || '8080'
+    server = ipv6Match[1] || ''
+    port = ipv6Match[2] || ''
   } else {
     const lastColon = serverAndPort.lastIndexOf(':')
-    server = serverAndPort.slice(0, lastColon)
-    port = serverAndPort.slice(lastColon + 1)
+    server = lastColon === -1 ? '' : serverAndPort.slice(0, lastColon)
+    port = lastColon === -1 ? '' : serverAndPort.slice(lastColon + 1)
   }
 
   if (!method) throw new Error('SS 链接缺少加密方法')
@@ -103,7 +128,7 @@ export function parseShadowsocksUri(uri: string): SSProxy {
   if (!port) throw new Error('SS 链接缺少端口')
 
   const cleanPassword = password.split('\r')[0]?.trim() || ''
-  const decodedRemark = safeDecodeUriComponent(remark)
+  const decodedRemark = rawRemark ? decodeRemarkFully(rawRemark) : ''
 
   const proxy: SSProxy = {
     type: 'ss',
@@ -134,6 +159,14 @@ export function shadowsocksToUri(proxy: SSProxy): string {
   const userInfo = `${proxy['encrypt-method'] || proxy.cipher}:${proxy.password}`
   const encodedUserInfo = encodeBase64UrlUtf8(userInfo)
   let uri = `ss://${encodedUserInfo}@${formatHostForUri(proxy.server)}:${proxy.port}`
+
+  const obfsMode = proxy['plugin-opts']?.mode || proxy.obfs
+  const obfsHost = proxy['plugin-opts']?.host || proxy['obfs-host']
+  if (obfsMode) {
+    const pluginParts = ['obfs-local', `obfs=${obfsMode}`]
+    if (obfsHost) pluginParts.push(`obfs-host=${obfsHost}`)
+    uri += `/?plugin=${encodeURIComponent(pluginParts.join(';'))}`
+  }
 
   if (proxy.name && proxy.name !== proxy.server) {
     uri += `#${encodeURIComponent(proxy.name)}`

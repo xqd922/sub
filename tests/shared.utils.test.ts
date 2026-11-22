@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertPublicHttpUrl, isPublicHttpUrl } from '@/server/fetch.client'
 import {
   base64ToBytes,
   bytesToBase64Url,
@@ -7,7 +8,15 @@ import {
   encodeBase64Utf8,
 } from '@/shared/base64.utils'
 import { escapeCsvCell, formatBytes, formatCount, formatShortDate } from '@/shared/format.utils'
-import { buildConversionUrl, extractNameFromUrl, isValidUrl, parsePort } from '@/shared/url.utils'
+import {
+  buildConversionUrl,
+  extractNameFromUrl,
+  isAllowedSubscriptionInput,
+  isValidUrl,
+  parsePort,
+  splitSubscriptionSources,
+  unwrapConversionUrl,
+} from '@/shared/url.utils'
 
 describe('base64.utils', () => {
   it('roundtrips UTF-8 strings including CJK and emoji', () => {
@@ -58,6 +67,59 @@ describe('url.utils', () => {
     expect(buildConversionUrl('https://sub.example.com', 'https://a.com/x?a=1')).toBe(
       'https://sub.example.com/sub?url=https%3A%2F%2Fa.com%2Fx%3Fa%3D1',
     )
+    expect(buildConversionUrl('https://sub.example.com', 'https://a.com/x', 'clash')).toBe(
+      'https://sub.example.com/sub?url=https%3A%2F%2Fa.com%2Fx&target=clash',
+    )
+    expect(buildConversionUrl('https://sub.example.com', 'https://a.com/x', 'auto')).toBe(
+      'https://sub.example.com/sub?url=https%3A%2F%2Fa.com%2Fx',
+    )
+  })
+
+  it('unwraps nested conversion URLs and validates multi-source inputs', () => {
+    expect(unwrapConversionUrl('https://a.com/sub')).toEqual({
+      subscriptionUrl: 'https://a.com/sub',
+      target: undefined,
+    })
+
+    const once = buildConversionUrl('https://my.site', 'https://a.com/sub?token=1', 'singbox')
+    expect(unwrapConversionUrl(once)).toEqual({
+      subscriptionUrl: 'https://a.com/sub?token=1',
+      target: 'singbox',
+    })
+
+    const twice = buildConversionUrl('https://my.site', once)
+    expect(unwrapConversionUrl(twice)).toEqual({
+      subscriptionUrl: 'https://a.com/sub?token=1',
+      target: 'singbox',
+    })
+
+    expect(unwrapConversionUrl('/sub?url=ss%3A%2F%2Fabc%401.2.3.4%3A443&target=clash')).toEqual({
+      subscriptionUrl: 'ss://abc@1.2.3.4:443',
+      target: 'clash',
+    })
+
+    expect(splitSubscriptionSources('https://a.com/1 | https://b.com/2')).toEqual([
+      'https://a.com/1',
+      'https://b.com/2',
+    ])
+    expect(isAllowedSubscriptionInput('https://a.com/1|ss://abc@1.2.3.4:443')).toBe(true)
+    expect(isAllowedSubscriptionInput('javascript:alert(1)')).toBe(false)
+    expect(isAllowedSubscriptionInput('ftp://example.com/file')).toBe(false)
+  })
+
+  it('blocks SSRF targets in isPublicHttpUrl / assertPublicHttpUrl', () => {
+    expect(isPublicHttpUrl('https://sub.example.com/api')).toBe(true)
+    expect(isPublicHttpUrl('http://127.0.0.1:8080/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://localhost/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://10.0.0.5/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://192.168.1.1/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://172.16.0.1/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://169.254.169.254/latest/meta-data')).toBe(false)
+    expect(isPublicHttpUrl('http://[::1]/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://[::ffff:127.0.0.1]/sub')).toBe(false)
+    expect(isPublicHttpUrl('http://service.internal/sub')).toBe(false)
+    expect(isPublicHttpUrl('file:///etc/passwd')).toBe(false)
+    expect(() => assertPublicHttpUrl('http://127.0.0.1/secret')).toThrow()
   })
 
   it('extracts name from query params, nested url param, or hostname', () => {

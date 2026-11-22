@@ -1,3 +1,5 @@
+export type TargetClientOverride = 'auto' | 'clash' | 'singbox' | 'v2rayng' | 'browser'
+
 export interface ConvertRecord {
   id: string
   originalUrl: string
@@ -23,6 +25,8 @@ export interface ShortLink {
 
 export interface StatsData {
   totalRecords: number
+  disabledRecords: number
+  totalShortLinks: number
   totalHits: number
   todayHits: number
   activeRecords: number
@@ -81,6 +85,23 @@ export interface ShortenResult {
   updated?: boolean
   reused?: boolean
   id?: string
+}
+
+export interface InspectSubscriptionResult {
+  subscription: {
+    name: string
+    upload: string
+    download: string
+    total: string
+    expire: string
+    homepage: string
+    updateInterval?: number
+  }
+  nodeCount: number
+  protocolCounts: Record<string, number>
+  regionCounts: Array<{ code: string; flag: string; name: string; count: number }>
+  sampleNodes: Array<{ name: string; type: string; server: string; port: number }>
+  durationMs: number
 }
 
 export interface ApiErrorPayload {

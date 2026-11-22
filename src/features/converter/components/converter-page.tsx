@@ -13,11 +13,21 @@ import { SubscriptionInputForm } from '@/features/converter/components/subscript
 import { useShortLinkGenerator } from '@/features/converter/hooks/use-short-link-generator'
 import { useSubscriptionConverter } from '@/features/converter/hooks/use-subscription-converter'
 import { useQrCode } from '@/features/shared/hooks/use-qr-code'
+import type { TargetClientOverride } from '@/shared/admin.types'
 import { cx } from '@/utils/cx'
 
 export function ConverterPage() {
-  const { inputUrl, setInputUrl, loading, error, convertedUrl, convert, copyText } =
-    useSubscriptionConverter()
+  const {
+    inputUrl,
+    setInputUrl,
+    target,
+    changeTarget,
+    loading,
+    error,
+    convertedUrl,
+    convert,
+    copyText,
+  } = useSubscriptionConverter()
   const { shortUrl, loading: shortenLoading, generate, reset: resetShortUrl } =
     useShortLinkGenerator()
 
@@ -38,6 +48,11 @@ export function ConverterPage() {
     void convert()
   }
 
+  const handleChangeTarget = (nextTarget: TargetClientOverride) => {
+    resetShortUrl()
+    changeTarget(nextTarget)
+  }
+
   const handleToggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
     const origin =
       event.clientX === 0 && event.clientY === 0
@@ -51,7 +66,9 @@ export function ConverterPage() {
 
   const handlePreview = () => {
     if (!convertedUrl) return
-    window.open(convertedUrl, '_blank', 'noopener,noreferrer')
+    const previewUrl = new URL(convertedUrl)
+    previewUrl.searchParams.set('target', 'preview')
+    window.open(previewUrl.toString(), '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -105,6 +122,8 @@ export function ConverterPage() {
                 <div className="mt-4 rounded-xl border border-separator-border bg-background-secondary-default/70 p-3.5">
                   <ConversionResultCard
                     url={convertedUrl}
+                    target={target}
+                    onChangeTarget={handleChangeTarget}
                     onCopy={() => copyText(convertedUrl)}
                     onGenerateShort={() => void generate(convertedUrl)}
                     shortLoading={shortenLoading}

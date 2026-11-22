@@ -16,10 +16,8 @@ export function buildClashProxyGroups(proxies: Proxy[]): ProxyGroup[] {
   const minProxies = proxyNames.filter((name) => /0\.[0-3](?:[0-9]*)?/.test(name))
 
   const manualProxies = ['Auto', 'DIRECT']
-  if (hkProxies.length >= 3) {
-    manualProxies.push('HK')
-    if (minProxies.length > 0) manualProxies.push('Min')
-  }
+  if (hkProxies.length >= 3) manualProxies.push('HK')
+  if (minProxies.length > 0) manualProxies.push('Min')
   manualProxies.push(...proxyNames)
 
   const embyProxies = ['Manual', 'DIRECT']
@@ -72,10 +70,13 @@ export function buildClashProxyGroups(proxies: Proxy[]): ProxyGroup[] {
 }
 
 export function renderClashConfig(proxies: Proxy[]): string {
-  const clashProxies = proxies.map((proxy) => {
-    const { detour: _omitted, ...clashProxy } = proxy
+  const clashProxies: Proxy[] = proxies.map((proxy) => {
+    const { detour: _omitted, ...rest } = proxy
     void _omitted
-    return clashProxy
+    if (rest.type === 'socks') {
+      return { ...rest, type: 'socks5' } as Proxy
+    }
+    return rest as Proxy
   })
 
   const clashConfig = {
