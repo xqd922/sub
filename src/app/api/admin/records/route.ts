@@ -1,13 +1,13 @@
-﻿import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
+import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import {
   createRecordManually,
   deleteRecordPermanently,
   listAllRecordsForAdmin,
   setRecordEnabled,
 } from '@/modules/record/record.repository'
-import { AppError } from '@/server/errors/app-error'
-import { jsonOk, parseJsonBody } from '@/server/http/route.utils'
-import { isValidUrl } from '@/shared/utils/url.utils'
+import { AppError } from '@/server/app-error'
+import { jsonOk, parseJsonBody } from '@/server/route.utils'
+import { isValidUrl } from '@/shared/url.utils'
 
 export const runtime = 'edge'
 

@@ -1,8 +1,8 @@
 import type { NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/modules/admin-auth/session.service'
-import { AppError } from '@/server/errors/app-error'
-import { jsonError } from '@/server/http/route.utils'
-import { logger } from '@/server/logger/logger'
+import { AppError } from '@/server/app-error'
+import { jsonError } from '@/server/route.utils'
+import { logger } from '@/server/logger'
 
 export async function requireAdmin(request: Request): Promise<AppError | null> {
   const session = await getSessionFromRequest(request)

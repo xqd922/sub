@@ -7,8 +7,8 @@ import { trojanCodec } from '@/modules/proxy/codecs/trojan.codec'
 import { vlessCodec } from '@/modules/proxy/codecs/vless.codec'
 import { vmessCodec } from '@/modules/proxy/codecs/vmess.codec'
 import type { ProtocolCodec, Proxy, SingboxOutbound } from '@/modules/proxy/proxy.types'
-import { logger } from '@/server/logger/logger'
-import { encodeBase64Utf8 } from '@/shared/utils/base64.utils'
+import { logger } from '@/server/logger'
+import { encodeBase64Utf8 } from '@/shared/base64.utils'
 
 function registerCodec<T extends Proxy>(codec: ProtocolCodec<T>): ProtocolCodec<Proxy> {
   return codec as unknown as ProtocolCodec<Proxy>

@@ -1,5 +1,5 @@
 import type { Proxy } from '@/modules/proxy/proxy.types'
-import { logger } from '@/server/logger/logger'
+import { logger } from '@/server/logger'
 
 const INFO_NODE_KEYWORDS = [
   '官网',

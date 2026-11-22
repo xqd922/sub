@@ -5,8 +5,8 @@ import type {
   SingboxOutbound,
   VmessProxy,
 } from '@/modules/proxy/proxy.types'
-import { decodeBase64Utf8, encodeBase64Utf8 } from '@/shared/utils/base64.utils'
-import { parsePort } from '@/shared/utils/url.utils'
+import { decodeBase64Utf8, encodeBase64Utf8 } from '@/shared/base64.utils'
+import { parsePort } from '@/shared/url.utils'
 
 interface RawVmessConfig {
   ps?: string

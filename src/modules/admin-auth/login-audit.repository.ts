@@ -1,7 +1,7 @@
 import { getKvStore } from '@/server/kv/kv.client'
 import { KV_KEYS } from '@/server/kv/kv.types'
-import { logger } from '@/server/logger/logger'
-import type { LoginAttempt } from '@/shared/types/admin.types'
+import { logger } from '@/server/logger'
+import type { LoginAttempt } from '@/shared/admin.types'
 
 const LOGIN_LOG_LIMIT = 20
 

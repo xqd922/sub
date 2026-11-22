@@ -8,9 +8,9 @@ import type {
   SSProxy,
   SingboxOutbound,
 } from '@/modules/proxy/proxy.types'
-import { logger } from '@/server/logger/logger'
-import { decodeBase64Utf8, encodeBase64UrlUtf8 } from '@/shared/utils/base64.utils'
-import { parsePort } from '@/shared/utils/url.utils'
+import { logger } from '@/server/logger'
+import { decodeBase64Utf8, encodeBase64UrlUtf8 } from '@/shared/base64.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseShadowsocksUri(uri: string): SSProxy {
   const content = uri.slice(5)

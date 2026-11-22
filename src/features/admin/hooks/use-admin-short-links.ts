@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/api/admin.client'
+import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { showToast } from '@/features/shared/hooks/use-toast'
-import type { ShortLink } from '@/shared/types/admin.types'
+import type { ShortLink } from '@/shared/admin.types'
 
 export function useAdminShortLinks(onUnauthorized?: () => void) {
   const [shortLinks, setShortLinks] = useState<ShortLink[]>([])

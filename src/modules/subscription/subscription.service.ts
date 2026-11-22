@@ -4,10 +4,10 @@ import { isGistUrl } from '@/modules/subscription/proxy-namer'
 import { fetchNodesFromRemote } from '@/modules/subscription/remote-nodes.fetcher'
 import { parseSubscriptionResponse } from '@/modules/subscription/subscription.parser'
 import type { SubscriptionInfo, SubscriptionResult } from '@/modules/subscription/subscription.types'
-import { getSiteUrl } from '@/server/config/env.config'
-import { fetchWithRetry, fetchWithTimeout } from '@/server/http/fetch.client'
-import { logger } from '@/server/logger/logger'
-import { formatBytes } from '@/shared/utils/format.utils'
+import { getSiteUrl } from '@/server/env.config'
+import { fetchWithRetry, fetchWithTimeout } from '@/server/fetch.client'
+import { logger } from '@/server/logger'
+import { formatBytes } from '@/shared/format.utils'
 
 function createDefaultSubscription(): SubscriptionInfo {
   return {

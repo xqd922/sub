@@ -5,8 +5,8 @@ import type {
   SingboxOutbound,
   SocksProxy,
 } from '@/modules/proxy/proxy.types'
-import { decodeBase64Utf8 } from '@/shared/utils/base64.utils'
-import { parsePort } from '@/shared/utils/url.utils'
+import { decodeBase64Utf8 } from '@/shared/base64.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseSocksUri(uri: string): SocksProxy {
   const content = uri.slice(8)

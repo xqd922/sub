@@ -11,7 +11,7 @@ import type {
   SingboxOutbound,
   VlessProxy,
 } from '@/modules/proxy/proxy.types'
-import { parsePort } from '@/shared/utils/url.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseVlessUri(uri: string): VlessProxy {
   const url = new URL(uri)

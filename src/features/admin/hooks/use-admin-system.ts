@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminFetch, handleAdminFetchError } from '@/features/admin/api/admin.client'
-import type { KvPingResult, RebuildIndexResult, SystemStatus } from '@/shared/types/admin.types'
+import { adminFetch, handleAdminFetchError } from '@/features/admin/admin.client'
+import type { KvPingResult, RebuildIndexResult, SystemStatus } from '@/shared/admin.types'
 
 export function useAdminSystem(onUnauthorized?: () => void) {
   const [system, setSystem] = useState<SystemStatus | null>(null)

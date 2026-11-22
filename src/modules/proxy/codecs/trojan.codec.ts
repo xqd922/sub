@@ -10,7 +10,7 @@ import type {
   SingboxOutbound,
   TrojanProxy,
 } from '@/modules/proxy/proxy.types'
-import { parsePort } from '@/shared/utils/url.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseTrojanUri(uri: string): TrojanProxy {
   const url = new URL(uri)

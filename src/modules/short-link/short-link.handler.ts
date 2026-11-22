@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { resolveShortLink } from '@/modules/short-link/short-link.repository'
 import { generateShortLink } from '@/modules/short-link/short-link.service'
 import { handleConversionRequest } from '@/modules/subscription/conversion.handler'
-import { parseJsonBody } from '@/server/http/route.utils'
-import { logger } from '@/server/logger/logger'
+import { parseJsonBody } from '@/server/route.utils'
+import { logger } from '@/server/logger'
 
 export async function handleShortLinkRedirect(
   request: Request,

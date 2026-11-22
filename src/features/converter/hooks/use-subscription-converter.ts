@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { useToast } from '@/features/shared/hooks/use-toast'
-import { buildConversionUrl } from '@/shared/utils/url.utils'
+import { buildConversionUrl } from '@/shared/url.utils'
 
 export function useSubscriptionConverter() {
   const [inputUrl, setInputUrl] = useState('')

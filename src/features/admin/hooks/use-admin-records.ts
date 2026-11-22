@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/api/admin.client'
+import { adminFetch, handleAdminFetchError, jsonBody } from '@/features/admin/admin.client'
 import { showToast } from '@/features/shared/hooks/use-toast'
-import type { BatchOperationResult, ConvertRecord } from '@/shared/types/admin.types'
+import type { BatchOperationResult, ConvertRecord } from '@/shared/admin.types'
 
 export function useAdminRecords(onUnauthorized?: () => void) {
   const [records, setRecords] = useState<ConvertRecord[]>([])

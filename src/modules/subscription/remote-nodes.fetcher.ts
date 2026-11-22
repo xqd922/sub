@@ -3,8 +3,8 @@ import type { Proxy } from '@/modules/proxy/proxy.types'
 import { deduplicateProxies } from '@/modules/subscription/proxy-dedup'
 import { formatProxyNames } from '@/modules/subscription/proxy-namer'
 import { parseSubscriptionResponse } from '@/modules/subscription/subscription.parser'
-import { fetchWithRetry } from '@/server/http/fetch.client'
-import { logger } from '@/server/logger/logger'
+import { fetchWithRetry } from '@/server/fetch.client'
+import { logger } from '@/server/logger'
 
 const HTTP_PREFIXES = ['http://', 'https://'] as const
 const CHAIN_SUFFIX_RE = /\|(dialer-proxy|detour|chain):\s*(.+?)$/i

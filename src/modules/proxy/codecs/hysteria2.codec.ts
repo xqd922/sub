@@ -9,7 +9,7 @@ import type {
   Proxy,
   SingboxOutbound,
 } from '@/modules/proxy/proxy.types'
-import { parsePort } from '@/shared/utils/url.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseHysteria2Uri(uri: string): Hysteria2Proxy {
   const normalized = uri.startsWith('hy2://') ? `hysteria2://${uri.slice(6)}` : uri

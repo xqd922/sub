@@ -1,7 +1,7 @@
 import { getKvStore, listKeysByPrefix } from '@/server/kv/kv.client'
 import { KV_KEYS } from '@/server/kv/kv.types'
-import { logger } from '@/server/logger/logger'
-import type { RebuildIndexResult } from '@/shared/types/admin.types'
+import { logger } from '@/server/logger'
+import type { RebuildIndexResult } from '@/shared/admin.types'
 
 export async function rebuildKvIndexes(): Promise<RebuildIndexResult> {
   const kv = await getKvStore()

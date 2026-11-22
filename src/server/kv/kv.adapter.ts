@@ -1,5 +1,5 @@
-import { getRemoteKvConfig } from '@/server/config/env.config'
-import { logger } from '@/server/logger/logger'
+import { getRemoteKvConfig } from '@/server/env.config'
+import { logger } from '@/server/logger'
 import type { KvStoreAdapter } from '@/server/kv/kv.types'
 
 class RemoteKvStore implements KvStoreAdapter {

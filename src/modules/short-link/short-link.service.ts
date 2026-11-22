@@ -4,12 +4,12 @@ import {
   getCuttlyToken,
   getSinkConfig,
   getSiteUrl,
-} from '@/server/config/env.config'
-import { fetchWithRetry, fetchWithTimeout } from '@/server/http/fetch.client'
+} from '@/server/env.config'
+import { fetchWithRetry, fetchWithTimeout } from '@/server/fetch.client'
 import { isKvAvailable } from '@/server/kv/kv.client'
-import { logger } from '@/server/logger/logger'
-import type { ShortenResult } from '@/shared/types/admin.types'
-import { extractNameFromUrl } from '@/shared/utils/url.utils'
+import { logger } from '@/server/logger'
+import type { ShortenResult } from '@/shared/admin.types'
+import { extractNameFromUrl } from '@/shared/url.utils'
 
 interface ShortLinkProvider {
   name: string

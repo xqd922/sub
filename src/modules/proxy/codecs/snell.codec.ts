@@ -9,7 +9,7 @@ import type {
   SingboxOutbound,
   SnellProxy,
 } from '@/modules/proxy/proxy.types'
-import { parsePort } from '@/shared/utils/url.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseSnellUri(uri: string): SnellProxy {
   const url = new URL(uri)

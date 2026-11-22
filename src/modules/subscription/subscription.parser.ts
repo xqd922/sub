@@ -3,7 +3,7 @@ import { isProxyUri, parseProxyUriList } from '@/modules/proxy/proxy.registry'
 import type { Proxy } from '@/modules/proxy/proxy.types'
 import type { YamlSubscription } from '@/modules/renderer/renderer.types'
 import { deduplicateProxies } from '@/modules/subscription/proxy-dedup'
-import { decodeBase64Utf8 } from '@/shared/utils/base64.utils'
+import { decodeBase64Utf8 } from '@/shared/base64.utils'
 
 const MAX_SUBSCRIPTION_BYTES = 10 * 1024 * 1024
 

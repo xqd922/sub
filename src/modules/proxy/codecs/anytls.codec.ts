@@ -12,7 +12,7 @@ import type {
   SingboxOutbound,
   SingboxTlsConfig,
 } from '@/modules/proxy/proxy.types'
-import { parsePort } from '@/shared/utils/url.utils'
+import { parsePort } from '@/shared/url.utils'
 
 export function parseAnyTlsUri(uri: string): AnyTLSProxy {
   const url = new URL(uri)

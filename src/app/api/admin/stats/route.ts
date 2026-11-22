@@ -1,6 +1,6 @@
-﻿import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
+import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import { getRecentDailyStats, getStats } from '@/modules/record/record.repository'
-import { jsonOk } from '@/server/http/route.utils'
+import { jsonOk } from '@/server/route.utils'
 
 export const runtime = 'edge'
 

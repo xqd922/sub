@@ -1,8 +1,8 @@
 import { getKvStore, isKvAvailable, listKeysByPrefix } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS, type RecordIndex } from '@/server/kv/kv.types'
-import { logger } from '@/server/logger/logger'
-import type { ConvertRecord, DailyStats, StatsData } from '@/shared/types/admin.types'
-import { extractNameFromUrl } from '@/shared/utils/url.utils'
+import { logger } from '@/server/logger'
+import type { ConvertRecord, DailyStats, StatsData } from '@/shared/admin.types'
+import { extractNameFromUrl } from '@/shared/url.utils'
 
 export async function generateRecordId(url: string): Promise<string> {
   const data = new TextEncoder().encode(url)

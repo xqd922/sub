@@ -1,8 +1,8 @@
 import { getKvStore } from '@/server/kv/kv.client'
 import { KV_KEYS, KV_TTL_SECONDS } from '@/server/kv/kv.types'
-import { logger } from '@/server/logger/logger'
-import type { ShortLink } from '@/shared/types/admin.types'
-import { extractNameFromUrl } from '@/shared/utils/url.utils'
+import { logger } from '@/server/logger'
+import type { ShortLink } from '@/shared/admin.types'
+import { extractNameFromUrl } from '@/shared/url.utils'
 
 const SHORT_ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
 

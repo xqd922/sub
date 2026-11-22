@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminFetch, handleAdminFetchError } from '@/features/admin/api/admin.client'
-import type { DailyStats, StatsData } from '@/shared/types/admin.types'
+import { adminFetch, handleAdminFetchError } from '@/features/admin/admin.client'
+import type { DailyStats, StatsData } from '@/shared/admin.types'
 
 export function useAdminStats(onUnauthorized?: () => void) {
   const [stats, setStats] = useState<StatsData | null>(null)

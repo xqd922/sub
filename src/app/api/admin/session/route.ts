@@ -1,5 +1,5 @@
 import { getSessionFromRequest } from '@/modules/admin-auth/session.service'
-import { jsonOk } from '@/server/http/route.utils'
+import { jsonOk } from '@/server/route.utils'
 
 export const runtime = 'edge'
 

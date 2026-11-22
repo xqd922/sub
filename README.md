@@ -9,22 +9,22 @@ src/
 ├── app/                   # Next.js App Router（极薄页面壳 + Edge API 路由）
 ├── components/            # BoardUI 设计系统原语（base / application / foundations）
 ├── features/              # 按页面切片的客户端 UI 模块（严禁依赖 server / modules）
-│   ├── shared/            # 跨页面共享 UI（toaster / error-boundary / qr-code-modal / hooks）
-│   ├── converter/         # 首页订阅转换器
-│   └── admin/             # 后台管理控制台（stats / records / short-links / tools / system）
+│   ├── shared/            # 跨页面共享 UI（components / hooks）
+│   ├── converter/         # 首页订阅转换（components / hooks）
+│   └── admin/             # 后台控制台（admin.client.ts / components / hooks）
 ├── modules/               # 高内聚服务端业务领域模块
-│   ├── proxy/             # 代理协议模型 + 8 协议 Codec + 统一注册表
-│   ├── renderer/          # Clash / sing-box / v2rayNG / Preview 配置渲染器与规则数据
+│   ├── proxy/             # 代理协议模型 + codecs/ 8 协议实现 + 统一注册表
+│   ├── renderer/          # Clash / sing-box / v2rayNG / Preview 渲染器与规则数据
 │   ├── subscription/      # 订阅拉取、解析、去重、地区识别、节点命名与转换编排
 │   ├── record/            # 转换记录、每日统计与 KV 索引维护
 │   ├── short-link/        # 多 Provider 短链服务、KV 仓储与跳转处理
-│   └── admin-auth/        # HMAC 会话、恒定时间密码校验、限速、登录审计与路由守卫
-├── server/                # 平台基础设施（env 配置、错误、日志、HTTP、路由工具、KV 适配）
+│   └── admin-auth/        # HMAC 会话、恒定时间校验、限速、登录审计与路由守卫
+├── server/                # 平台基础设施（env / error / logger / http / kv/）
 ├── shared/                # 前后端共享纯类型（DTO）与无副作用工具（base64 / url / format）
 ├── styles/                # BoardUI 全局样式、主题色 Token 与排版系统
 └── utils/                 # BoardUI 样式工具（cx 等）
 
-tests/                     # Vitest 单元测试（严格镜像 src/ 结构）
+tests/                     # Vitest 单元测试
 ```
 
 ## 快速开始

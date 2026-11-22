@@ -10,11 +10,11 @@ import {
   AdminSidebar,
   type AdminTabKey,
 } from '@/features/admin/components/admin-sidebar'
-import { RecordsPanel } from '@/features/admin/components/records/records-panel'
-import { ShortLinksPanel } from '@/features/admin/components/short-links/short-links-panel'
-import { StatsPanel } from '@/features/admin/components/stats/stats-panel'
-import { SystemPanel } from '@/features/admin/components/system/system-panel'
-import { ToolsPanel } from '@/features/admin/components/tools/tools-panel'
+import { RecordsPanel } from '@/features/admin/components/records-panel'
+import { ShortLinksPanel } from '@/features/admin/components/short-links-panel'
+import { StatsPanel } from '@/features/admin/components/stats-panel'
+import { SystemPanel } from '@/features/admin/components/system-panel'
+import { ToolsPanel } from '@/features/admin/components/tools-panel'
 import { useAdminSession } from '@/features/admin/hooks/use-admin-session'
 
 export function AdminConsole() {

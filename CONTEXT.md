@@ -14,9 +14,9 @@ This codebase implements a proxy subscription conversion platform and short-link
 ## Architecture Boundaries
 
 - `src/shared/` — Pure client/server-safe DTO types and stateless utilities (Web-API Base64, URL helpers, formatting).
-- `src/server/` — Runtime platform primitives (centralized env config, structured errors, sanitizing logger, retry HTTP client, route utilities, KV adapter).
+- `src/server/` — Runtime platform primitives (centralized env config, structured errors, sanitizing logger, retry HTTP client, route utilities, `kv/` adapter).
 - `src/modules/` — High-cohesion server domains (`proxy`, `renderer`, `subscription`, `record`, `short-link`, `admin-auth`) with strict one-way dependencies.
 - `src/features/` — Client UI sliced by product surface (`shared`, `converter`, `admin`). Never imports from `src/server/` or `src/modules/`.
 - `src/components/` — Source-owned BoardUI design system primitives only (`base`, `application`, `foundations`).
 - `src/app/` — Thin Next.js App Router pages and Edge route handlers.
-- `tests/` — Vitest unit tests mirroring `src/` one-to-one.
+- `tests/` — Vitest unit tests kept flat for single-file suites and grouped only for multi-file domains (`proxy/`, `subscription/`).

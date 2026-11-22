@@ -1,6 +1,6 @@
-﻿import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
+import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import { rebuildKvIndexes } from '@/modules/record/index-maintenance.service'
-import { jsonOk } from '@/server/http/route.utils'
+import { jsonOk } from '@/server/route.utils'
 
 export const runtime = 'edge'
 
