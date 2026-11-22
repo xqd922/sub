@@ -6,17 +6,14 @@ import {
   RiBarChartBoxLine,
   RiFileList3Line,
   RiLinkM,
+  RiLinksLine,
   RiLogoutBoxRLine,
   RiSearchLine,
   RiShieldCheckLine,
   RiToolsLine,
 } from '@remixicon/react'
-import { ThemeToggle } from '@/components/application/theme/theme-toggle'
-import { Counter } from '@/components/base/badges/counter'
-import { StatusDot } from '@/components/base/badges/status-dot'
-import { Button } from '@/components/base/buttons/button'
-import { Divider } from '@/components/base/divider/divider'
 import { Kbd } from '@/components/base/kbd/kbd'
+import { ThemeIconButton } from '@/features/shared/components/theme-icon-button'
 import { cx } from '@/utils/cx'
 
 export type AdminTabKey = 'stats' | 'records' | 'shortLinks' | 'tools' | 'system'
@@ -44,13 +41,13 @@ export const ADMIN_TABS: readonly AdminTabMeta[] = [
   {
     key: 'shortLinks',
     label: '短链接',
-    description: '创建、重命名、扫码分享与管理短链跳转',
+    description: '创建、编辑目标地址、扫码分享与管理短链跳转',
     icon: RiLinkM,
   },
   {
     key: 'tools',
     label: '快捷工具',
-    description: '粘贴订阅地址，一键生成转换链接与短链',
+    description: '检测订阅健康度、组装指定客户端链接与生成短链',
     icon: RiToolsLine,
   },
   {
@@ -92,31 +89,34 @@ export function AdminSidebar({
     <>
       <aside
         aria-label="后台导航"
-        className="hidden lg:sticky lg:top-5 lg:flex lg:h-[calc(100vh-2.5rem)] lg:w-[248px] lg:shrink-0 lg:flex-col lg:rounded-3xl lg:border lg:border-border-button-default lg:bg-background-primary-default lg:p-3.5 lg:shadow-sidebar"
+        className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[228px] lg:shrink-0 lg:flex-col lg:border-e lg:border-separator-border lg:bg-background-secondary-default/45 lg:px-3 lg:py-4"
       >
-        <div className="flex items-center gap-2.5 px-1.5 py-1">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-button-primary font-mono text-caption-1-bold text-text-white shadow-xs">
-            S/
-          </div>
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-background-secondary-hover/65 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+        >
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-separator-border bg-background-primary-default text-text-primary">
+            <RiLinksLine className="size-3.5" aria-hidden />
+          </span>
           <div className="min-w-0">
-            <div className="truncate text-body-semibold text-text-primary">Sub Console</div>
-            <div className="truncate text-caption-2-regular text-text-tertiary">订阅转换控制台</div>
+            <div className="truncate text-body-2-semibold text-text-primary">通用订阅转换</div>
+            <div className="truncate text-caption-2-regular text-text-tertiary">管理后台</div>
           </div>
-        </div>
+        </Link>
 
         <button
           type="button"
           onClick={onQuickSearch}
-          className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-xl border border-separator-border bg-background-secondary-default px-2.5 py-2 text-body-2-regular text-text-tertiary transition-colors duration-150 hover:border-border-button-hover hover:text-text-secondary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+          className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-lg border border-separator-border bg-background-primary-default/80 px-2.5 py-1.5 text-caption-1-regular text-text-tertiary transition-colors duration-150 hover:border-border-button-hover hover:text-text-secondary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
         >
           <span className="inline-flex items-center gap-2">
-            <RiSearchLine className="size-4 shrink-0" aria-hidden />
+            <RiSearchLine className="size-3.5 shrink-0" aria-hidden />
             <span>快速搜索</span>
           </span>
           <Kbd>⌘K</Kbd>
         </button>
 
-        <nav className="mt-3 flex flex-1 flex-col gap-1 overflow-y-auto">
+        <nav className="mt-4 flex flex-1 flex-col gap-0.5">
           {ADMIN_TABS.map((tab) => {
             const Icon = tab.icon
             const active = activeTab === tab.key
@@ -128,90 +128,98 @@ export function AdminSidebar({
                 onClick={() => onSelectTab(tab.key)}
                 aria-current={active ? 'page' : undefined}
                 className={cx(
-                  'flex w-full cursor-pointer items-center justify-between gap-2 rounded-2lg px-2.5 py-2 text-body-medium transition-[background-color,color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring',
+                  'flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 text-body-2-medium transition-[background-color,color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring',
                   active
-                    ? 'bg-button-primary text-text-white shadow-nav-selected'
-                    : 'text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary',
+                    ? 'bg-background-primary-default text-text-primary shadow-2xs ring-1 ring-separator-border'
+                    : 'text-text-secondary hover:bg-background-secondary-hover/65 hover:text-text-primary',
                 )}
               >
                 <span className="flex min-w-0 items-center gap-2.5">
                   <Icon
                     className={cx(
-                      'size-[18px] shrink-0',
-                      active ? 'text-text-white' : 'text-foreground-icon-secondary',
+                      'size-4 shrink-0',
+                      active ? 'text-text-primary' : 'text-foreground-icon-tertiary',
                     )}
                     aria-hidden
                   />
                   <span className="truncate">{tab.label}</span>
                 </span>
                 {count !== null ? (
-                  <Counter color={active ? 'primary' : 'neutral'}>{count}</Counter>
+                  <span
+                    className={cx(
+                      'font-mono text-caption-2-medium tabular-nums',
+                      active ? 'text-text-secondary' : 'text-text-tertiary',
+                    )}
+                  >
+                    {count}
+                  </span>
                 ) : null}
               </button>
             )
           })}
         </nav>
 
-        <div className="mt-3 flex flex-col gap-2.5 pt-2">
-          <Divider />
+        <div className="mt-3 flex items-center justify-between gap-1 border-t border-separator-border pt-3">
+          <Link
+            href="/"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-caption-1-medium text-text-tertiary transition-colors duration-150 hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+          >
+            <RiArrowLeftLine className="size-3.5" aria-hidden />
+            <span>首页</span>
+          </Link>
 
-          <div className="flex items-center justify-between px-1.5">
-            <span className="inline-flex items-center gap-2 text-caption-1-medium text-text-secondary">
-              <StatusDot color="green" />
-              Cloudflare Edge
-            </span>
-            <ThemeToggle appearance="sidebar-segmented" size="small" />
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Link
-              href="/"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border-button-default bg-background-primary-default px-2.5 py-1.5 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:bg-background-primary-hover hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
-            >
-              <RiArrowLeftLine className="size-3.5" aria-hidden />
-              首页
-            </Link>
-            <Button
-              variant="secondary"
-              size="small"
-              leadingIcon={RiLogoutBoxRLine}
+          <div className="flex items-center gap-0.5">
+            <ThemeIconButton className="hover:bg-background-primary-default" />
+            <button
+              type="button"
               onClick={onLogout}
-              className="flex-1 text-caption-1-medium"
+              aria-label="退出登录"
+              title="退出登录"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary transition-colors duration-150 hover:bg-background-primary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
             >
-              退出
-            </Button>
+              <RiLogoutBoxRLine className="size-4" aria-hidden />
+            </button>
           </div>
         </div>
       </aside>
 
-      <header className="flex flex-col gap-3 rounded-2xl border border-border-button-default bg-background-primary-default p-3.5 shadow-card lg:hidden">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-button-primary font-mono text-caption-1-bold text-text-white shadow-xs">
-              S/
-            </div>
-            <div>
-              <div className="text-body-semibold text-text-primary">Sub Console</div>
-              <div className="text-caption-2-regular text-text-tertiary">订阅转换控制台</div>
-            </div>
-          </div>
+      <header className="sticky top-0 z-20 flex flex-col border-b border-separator-border bg-background-full/95 backdrop-blur-md lg:hidden">
+        <div className="flex h-13 items-center justify-between gap-3 px-4">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-2 text-body-2-semibold text-text-primary"
+          >
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-separator-border bg-background-secondary-default text-text-primary">
+              <RiLinksLine className="size-3.5" aria-hidden />
+            </span>
+            <span className="truncate">通用订阅转换</span>
+            <span className="text-caption-1-regular text-text-tertiary">/</span>
+            <span className="truncate text-caption-1-medium text-text-secondary">管理</span>
+          </Link>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle appearance="segmented" size="small" />
+          <div className="flex shrink-0 items-center gap-0.5">
             <Link
               href="/"
               aria-label="返回首页"
-              className="inline-flex size-8 items-center justify-center rounded-2lg border border-border-button-default bg-background-primary-default text-foreground-icon-secondary hover:bg-background-primary-hover hover:text-foreground-icon-primary"
+              title="返回首页"
+              className="inline-flex size-8 items-center justify-center rounded-lg text-text-tertiary transition-colors duration-150 hover:bg-background-secondary-default hover:text-text-primary"
             >
               <RiArrowLeftLine className="size-4" aria-hidden />
             </Link>
-            <Button variant="secondary" size="small" onClick={onLogout}>
-              退出
-            </Button>
+            <ThemeIconButton />
+            <button
+              type="button"
+              onClick={onLogout}
+              aria-label="退出登录"
+              title="退出登录"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary transition-colors duration-150 hover:bg-background-secondary-default hover:text-text-primary"
+            >
+              <RiLogoutBoxRLine className="size-4" aria-hidden />
+            </button>
           </div>
         </div>
 
-        <nav className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav className="flex gap-1 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {ADMIN_TABS.map((tab) => {
             const Icon = tab.icon
             const active = activeTab === tab.key
@@ -221,17 +229,20 @@ export function AdminSidebar({
                 key={tab.key}
                 type="button"
                 onClick={() => onSelectTab(tab.key)}
+                aria-current={active ? 'page' : undefined}
                 className={cx(
-                  'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-body-2-medium whitespace-nowrap transition-colors duration-150',
+                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-caption-1-medium whitespace-nowrap transition-colors duration-150',
                   active
-                    ? 'bg-button-primary text-text-white shadow-nav-selected'
-                    : 'text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary',
+                    ? 'bg-background-secondary-default text-text-primary ring-1 ring-separator-border'
+                    : 'text-text-tertiary hover:bg-background-secondary-default/60 hover:text-text-primary',
                 )}
               >
-                <Icon className="size-4 shrink-0" aria-hidden />
+                <Icon className="size-3.5 shrink-0" aria-hidden />
                 <span>{tab.label}</span>
                 {count !== null ? (
-                  <Counter color={active ? 'primary' : 'neutral'}>{count}</Counter>
+                  <span className="font-mono text-caption-2-medium tabular-nums text-text-tertiary">
+                    {count}
+                  </span>
                 ) : null}
               </button>
             )

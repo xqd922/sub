@@ -4,6 +4,16 @@ import { useMemo } from 'react'
 import { RiFireLine } from '@remixicon/react'
 import type { ConvertRecord, DailyStats } from '@/shared/admin.types'
 import { formatCount, formatShortDate } from '@/shared/format.utils'
+import { cx } from '@/utils/cx'
+
+const HEATMAP_TIER_CLASSES = [
+  'bg-background-tertiary-default',
+  'bg-text-primary/15',
+  'bg-text-primary/30',
+  'bg-text-primary/50',
+  'bg-text-primary/75',
+  'bg-text-primary',
+] as const
 
 interface ActivityHeatmapCardProps {
   daily: DailyStats[]
@@ -39,8 +49,8 @@ export function ActivityHeatmapCard({ daily, records }: ActivityHeatmapCardProps
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+    <div className="flex flex-col gap-5">
+      <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-headline-medium text-text-primary">近 30 天活跃度</h2>
           <span className="text-caption-1-regular tabular-nums text-text-tertiary">
@@ -48,23 +58,31 @@ export function ActivityHeatmapCard({ daily, records }: ActivityHeatmapCardProps
           </span>
         </div>
 
-        <div className="contributions-grid grid grid-cols-10 gap-1.5 sm:grid-cols-15" data-accent="blue">
+        <div className="grid grid-cols-10 gap-1.5 sm:grid-cols-15">
           {daily.length === 0
             ? Array.from({ length: 30 }).map((_, idx) => (
-                <span key={idx} data-tier="0" className="contribution-cell aspect-square rounded-full" />
-              ))
-            : daily.map((item) => (
                 <span
-                  key={item.date}
-                  data-tier={getHeatmapTier(item.totalHits, maxAllDaily)}
-                  title={`${formatShortDate(item.date)}：${item.totalHits} 次转换`}
-                  className="contribution-cell aspect-square rounded-full transition-transform duration-150 hover:scale-125"
+                  key={idx}
+                  className="aspect-square rounded-full bg-background-tertiary-default"
                 />
-              ))}
+              ))
+            : daily.map((item) => {
+                const tier = getHeatmapTier(item.totalHits, maxAllDaily)
+                return (
+                  <span
+                    key={item.date}
+                    title={`${formatShortDate(item.date)}：${item.totalHits} 次转换`}
+                    className={cx(
+                      'aspect-square rounded-full transition-transform duration-150 hover:scale-125',
+                      HEATMAP_TIER_CLASSES[tier],
+                    )}
+                  />
+                )
+              })}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+      <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
         <div className="mb-3.5 flex items-center justify-between">
           <span className="inline-flex items-center gap-1.5 text-headline-medium text-text-primary">
             <RiFireLine className="size-4 text-foreground-icon-secondary" aria-hidden />
@@ -90,7 +108,7 @@ export function ActivityHeatmapCard({ daily, records }: ActivityHeatmapCardProps
                 </span>
                 <div className="hidden h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-background-secondary-default sm:block">
                   <div
-                    className="h-full rounded-full bg-accent-500/80"
+                    className="h-full rounded-full bg-text-primary/75"
                     style={{ width: `${Math.max((record.hits / maxRecordHits) * 100, 4)}%` }}
                   />
                 </div>

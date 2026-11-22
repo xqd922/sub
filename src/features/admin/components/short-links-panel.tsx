@@ -195,8 +195,8 @@ export function ShortLinksPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default shadow-card">
-        <div className="flex flex-wrap items-center gap-2.5 p-4">
+      <div className="overflow-hidden rounded-xl border border-separator-border bg-background-primary-default">
+        <div className="flex flex-wrap items-center gap-2.5 p-3.5 sm:p-4">
           <div className="min-w-[200px] flex-1">
             <SearchField
               size="small"
@@ -235,7 +235,7 @@ export function ShortLinksPanel({
         {showCreateForm ? (
           <form
             onSubmit={handleCreate}
-            className="flex flex-wrap items-end gap-3 border-t border-separator-border bg-background-secondary-default px-4 py-3.5"
+            className="flex flex-wrap items-end gap-3 border-t border-separator-border bg-background-secondary-default/60 px-4 py-3.5"
           >
             <Input
               label="目标订阅地址 / 节点 URI"
@@ -263,7 +263,7 @@ export function ShortLinksPanel({
         ) : null}
 
         {selectedIds.size > 0 ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-separator-border bg-status-blue-background/50 px-4 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-separator-border bg-background-secondary-default/80 px-4 py-2.5">
             <span className="text-body-2-medium text-text-primary">
               已选中 {selectedIds.size} 条短链接
             </span>
@@ -336,7 +336,7 @@ export function ShortLinksPanel({
                         </p>
                         <p
                           dir="ltr"
-                          className="truncate font-mono text-caption-1-regular text-status-blue-text"
+                          className="truncate font-mono text-caption-1-regular text-text-secondary"
                         >
                           {getShortLinkUrl(link.id)}
                         </p>

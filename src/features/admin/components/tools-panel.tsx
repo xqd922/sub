@@ -115,15 +115,8 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
   const expireText = inspection ? formatExpireSummary(inspection.subscription.expire) : null
 
   return (
-    <div className="flex max-w-4xl flex-col gap-4">
-      <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
-        <div className="mb-4">
-          <h2 className="text-headline-medium text-text-primary">快捷转换、订阅检测与短链工具</h2>
-          <p className="mt-1 text-body-2-regular text-text-secondary">
-            粘贴订阅链接或代理节点 URI（支持用 | 合并多个来源），即时检测节点健康与协议分布、组装指定客户端链接或生成短链。
-          </p>
-        </div>
-
+    <div className="flex max-w-4xl flex-col gap-5">
+      <div className="rounded-xl border border-separator-border bg-background-secondary-default/45 p-5">
         <div className="flex flex-col gap-4">
           <Input
             label="原始订阅地址 / 节点 URI"
@@ -217,13 +210,13 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
       </div>
 
       {inspectError ? (
-        <div className="rounded-2xl border border-border-error-default bg-background-primary-default p-4 text-body-2-regular text-text-error-primary shadow-card">
+        <div className="rounded-xl border border-border-error-default bg-background-tertiary-error p-4 text-body-2-regular text-text-error-primary">
           {inspectError}
         </div>
       ) : null}
 
       {inspection ? (
-        <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default shadow-card">
+        <div className="overflow-hidden rounded-xl border border-separator-border bg-background-primary-default">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-separator-border px-5 py-4">
             <div className="min-w-0">
               <h3 className="truncate text-headline-medium text-text-primary">
@@ -241,7 +234,7 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
               <Chip variant="caption" color={inspection.nodeCount > 0 ? 'lime' : 'orange'}>
                 {inspection.nodeCount} 个节点
               </Chip>
-              <Chip variant="caption" color="neutral">
+              <Chip variant="caption" color="soft">
                 耗时 {inspection.durationMs} ms
               </Chip>
             </div>
@@ -255,7 +248,7 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
                   {Object.entries(inspection.protocolCounts)
                     .sort(([, a], [, b]) => b - a)
                     .map(([protocol, count]) => (
-                      <Chip key={protocol} variant="caption" color="blue">
+                      <Chip key={protocol} variant="caption" color="gray">
                         {protocol.toUpperCase()} · {count}
                       </Chip>
                     ))}
@@ -268,7 +261,7 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
                 <span className="text-caption-1-semibold text-text-secondary">地区分布</span>
                 <div className="flex flex-wrap gap-1.5">
                   {inspection.regionCounts.map((region) => (
-                    <Chip key={region.code} variant="caption" color="neutral">
+                    <Chip key={region.code} variant="caption" color="soft">
                       {region.flag} {region.name} · {region.count}
                     </Chip>
                   ))}
@@ -324,8 +317,8 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
       ) : null}
 
       {conversionUrl ? (
-        <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
-          <div className="mb-2.5 flex items-center justify-between gap-2">
+        <div className="rounded-xl border border-separator-border bg-background-secondary-default/55 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <h3 className="text-caption-1-semibold text-text-secondary">转换链接</h3>
             <Button
               variant="ghost"
@@ -338,42 +331,42 @@ export function ToolsPanel({ onUnauthorized }: ToolsPanelProps) {
           </div>
           <div
             dir="ltr"
-            className="rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 font-mono text-caption-1-regular break-all text-text-primary"
+            className="select-all font-mono text-caption-1-regular leading-relaxed break-all text-text-primary"
           >
             {conversionUrl}
           </div>
-        </div>
-      ) : null}
 
-      {shortUrl ? (
-        <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
-          <div className="mb-2.5 flex items-center justify-between gap-2">
-            <h3 className="text-caption-1-semibold text-text-secondary">短链接</h3>
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="xs"
-                leadingIcon={RiQrCodeLine}
-                onClick={() => setQrTarget({ url: shortUrl, title: '短链接二维码' })}
-              >
-                二维码
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                leadingIcon={RiFileCopyLine}
-                onClick={() => void handleCopy(shortUrl, '短链接已复制')}
-              >
-                复制
-              </Button>
+          {shortUrl ? (
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-separator-border pt-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <span className="shrink-0 text-caption-2-medium text-text-tertiary">短链</span>
+                <span
+                  dir="ltr"
+                  className="min-w-0 flex-1 select-all truncate font-mono text-caption-1-regular text-text-primary"
+                >
+                  {shortUrl}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  leadingIcon={RiQrCodeLine}
+                  onClick={() => setQrTarget({ url: shortUrl, title: '短链接二维码' })}
+                >
+                  二维码
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  leadingIcon={RiFileCopyLine}
+                  onClick={() => void handleCopy(shortUrl, '短链接已复制')}
+                >
+                  复制
+                </Button>
+              </div>
             </div>
-          </div>
-          <div
-            dir="ltr"
-            className="rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 font-mono text-body-2-medium break-all text-status-blue-text"
-          >
-            {shortUrl}
-          </div>
+          ) : null}
         </div>
       ) : null}
 

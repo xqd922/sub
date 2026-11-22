@@ -108,24 +108,29 @@ export function StatsPanel({
       value: stats ? formatCount(stats.activeRecords) : '—',
       hint: '最近有客户端拉取',
       badge: `${activeRate}%`,
-      badgeColor: activeRate >= 50 ? ('blue' as const) : ('neutral' as const),
+      badgeColor: activeRate >= 50 ? ('lime' as const) : ('neutral' as const),
       icon: RiPulseLine,
     },
   ]
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {tiles.map((tile) => {
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-separator-border bg-background-secondary-default/40 xl:grid-cols-4">
+        {tiles.map((tile, idx) => {
           const Icon = tile.icon
           return (
             <div
               key={tile.label}
-              className="flex flex-col gap-2 rounded-2xl border border-border-button-default bg-background-primary-default p-4 shadow-card"
+              className={cx(
+                'flex flex-col gap-2 p-4 sm:p-5',
+                idx % 2 === 1 && 'border-s border-separator-border',
+                idx >= 2 && 'border-t border-separator-border xl:border-t-0',
+                idx === 2 && 'xl:border-s xl:border-separator-border',
+              )}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-caption-1-medium text-text-secondary">
-                  <Icon className="size-4 text-foreground-icon-tertiary" aria-hidden />
+                  <Icon className="size-3.5 text-foreground-icon-tertiary" aria-hidden />
                   {tile.label}
                 </span>
                 <Chip variant="caption" color={tile.badgeColor}>
@@ -145,8 +150,8 @@ export function StatsPanel({
 
       <TrendChartCard daily={daily} loading={loading} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-headline-medium text-text-primary">客户端分布</h2>
             <span className="text-caption-1-regular text-text-tertiary">按请求量</span>
@@ -168,11 +173,11 @@ export function StatsPanel({
                       {formatCount(hits)}（{percent}%）
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-background-secondary-default">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-background-secondary-default">
                     <div
                       className={cx(
                         'h-full rounded-full transition-all duration-300',
-                        index === 0 ? 'bg-accent-500' : 'bg-accent-400/75',
+                        index === 0 ? 'bg-text-primary' : 'bg-text-tertiary/60',
                       )}
                       style={{ width: `${Math.max(percent, 2)}%` }}
                     />

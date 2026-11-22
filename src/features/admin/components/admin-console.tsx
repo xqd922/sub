@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { RiRefreshLine } from '@remixicon/react'
-import { Breadcrumb, BreadcrumbItem } from '@/components/base/breadcrumb/breadcrumb'
 import { Button } from '@/components/base/buttons/button'
 import { Spinner } from '@/components/base/spinner/spinner'
 import { Switch } from '@/components/base/switch/switch'
@@ -81,7 +80,7 @@ export function AdminConsole() {
 
   if (checking) {
     return (
-      <section className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background-secondary-default text-text-secondary">
+      <section className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background-full text-text-tertiary">
         <Spinner size="md" aria-label="检查登录状态" />
         <p className="text-body-2-regular">检查登录状态…</p>
       </section>
@@ -100,30 +99,33 @@ export function AdminConsole() {
   }
 
   return (
-    <div className="min-h-screen bg-background-secondary-default text-text-primary">
-      <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-4 p-3 sm:p-5 lg:flex-row lg:items-start lg:gap-5">
-        <AdminSidebar
-          activeTab={activeTab}
-          onSelectTab={setActiveTab}
-          onQuickSearch={jumpToSearch}
-          onLogout={() => void logout()}
-          recordCount={recordCount}
-          shortLinkCount={shortLinkCount}
-        />
+    <div className="flex min-h-screen flex-col bg-background-full text-text-primary lg:flex-row">
+      <AdminSidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onQuickSearch={jumpToSearch}
+        onLogout={() => void logout()}
+        recordCount={recordCount}
+        shortLinkCount={shortLinkCount}
+      />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3 px-1 pt-1">
-            <div className="flex min-w-0 flex-col gap-1">
-              <Breadcrumb>
-                <BreadcrumbItem onClick={() => setActiveTab('stats')}>Sub Console</BreadcrumbItem>
-                <BreadcrumbItem current>{currentTab.label}</BreadcrumbItem>
-              </Breadcrumb>
-              <h1 className="text-title-2-medium text-text-primary">{currentTab.label}</h1>
-              <p className="text-body-2-regular text-text-secondary">{currentTab.description}</p>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="border-b border-separator-border px-5 py-4 sm:px-8">
+          <div className="mx-auto flex w-full max-w-[1060px] flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-headline-semibold tracking-tight text-text-primary">
+                {currentTab.label}
+              </h1>
+              <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
+                {currentTab.description}
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              {activeTab !== 'tools' ? (
+            {activeTab !== 'tools' ? (
+              <div className="flex items-center gap-3">
+                <Switch size="sm" isSelected={autoRefresh} onChange={setAutoRefresh}>
+                  <span className="text-caption-1-medium text-text-secondary">自动刷新</span>
+                </Switch>
                 <Button
                   variant="secondary"
                   size="small"
@@ -132,53 +134,47 @@ export function AdminConsole() {
                 >
                   刷新
                 </Button>
-              ) : null}
-
-              <div className="flex items-center gap-3 rounded-2xl border border-border-button-default bg-background-primary-default px-3.5 py-2 shadow-xs">
-                <Switch size="sm" isSelected={autoRefresh} onChange={setAutoRefresh}>
-                  <span className="text-body-2-medium text-text-secondary">自动刷新（30s）</span>
-                </Switch>
               </div>
-            </div>
+            ) : null}
           </div>
-
-          <main className="min-w-0">
-            {activeTab === 'stats' ? (
-              <StatsPanel
-                autoRefresh={autoRefresh}
-                refreshSignal={refreshSignal}
-                onUnauthorized={resetAuthentication}
-                onCountsLoaded={handleStatsCountsLoaded}
-              />
-            ) : null}
-            {activeTab === 'records' ? (
-              <RecordsPanel
-                autoRefresh={autoRefresh}
-                refreshSignal={refreshSignal}
-                onUnauthorized={resetAuthentication}
-                onCountChange={setRecordCount}
-                focusSearchSignal={focusSearchSignal}
-              />
-            ) : null}
-            {activeTab === 'shortLinks' ? (
-              <ShortLinksPanel
-                autoRefresh={autoRefresh}
-                refreshSignal={refreshSignal}
-                onUnauthorized={resetAuthentication}
-                onCountChange={setShortLinkCount}
-              />
-            ) : null}
-            {activeTab === 'tools' ? <ToolsPanel onUnauthorized={resetAuthentication} /> : null}
-            {activeTab === 'system' ? (
-              <SystemPanel
-                autoRefresh={autoRefresh}
-                refreshSignal={refreshSignal}
-                sessionExpiresAt={expiresAt}
-                onUnauthorized={resetAuthentication}
-              />
-            ) : null}
-          </main>
         </div>
+
+        <main className="mx-auto flex w-full max-w-[1060px] flex-1 flex-col px-5 py-6 sm:px-8">
+          {activeTab === 'stats' ? (
+            <StatsPanel
+              autoRefresh={autoRefresh}
+              refreshSignal={refreshSignal}
+              onUnauthorized={resetAuthentication}
+              onCountsLoaded={handleStatsCountsLoaded}
+            />
+          ) : null}
+          {activeTab === 'records' ? (
+            <RecordsPanel
+              autoRefresh={autoRefresh}
+              refreshSignal={refreshSignal}
+              onUnauthorized={resetAuthentication}
+              onCountChange={setRecordCount}
+              focusSearchSignal={focusSearchSignal}
+            />
+          ) : null}
+          {activeTab === 'shortLinks' ? (
+            <ShortLinksPanel
+              autoRefresh={autoRefresh}
+              refreshSignal={refreshSignal}
+              onUnauthorized={resetAuthentication}
+              onCountChange={setShortLinkCount}
+            />
+          ) : null}
+          {activeTab === 'tools' ? <ToolsPanel onUnauthorized={resetAuthentication} /> : null}
+          {activeTab === 'system' ? (
+            <SystemPanel
+              autoRefresh={autoRefresh}
+              refreshSignal={refreshSignal}
+              sessionExpiresAt={expiresAt}
+              onUnauthorized={resetAuthentication}
+            />
+          ) : null}
+        </main>
       </div>
     </div>
   )

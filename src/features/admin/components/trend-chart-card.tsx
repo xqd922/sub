@@ -41,7 +41,7 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
   const maxDaily = Math.max(...visibleDaily.map((item) => item.totalHits), 1)
 
   return (
-    <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+    <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-caption-1-medium text-text-secondary">转换请求趋势</p>
@@ -49,7 +49,7 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
             <span className="text-title-1-semibold tabular-nums text-text-primary">
               {loading ? '—' : formatCount(rangeTotal)}
             </span>
-            <Chip variant="caption" color="blue">
+            <Chip variant="caption" color="soft">
               近 {range} 天累计
             </Chip>
           </div>
@@ -117,8 +117,8 @@ export function TrendChartCard({ daily, loading }: TrendChartCardProps) {
                         className={cx(
                           'animate-bar-rise w-full rounded-[6px] transition-colors duration-150',
                           isSelected
-                            ? 'bg-accent-500'
-                            : 'bg-accent-400/65 group-hover:bg-accent-500',
+                            ? 'bg-text-primary'
+                            : 'bg-text-tertiary/35 group-hover:bg-text-primary/80',
                         )}
                         style={{
                           height: `${pct}%`,

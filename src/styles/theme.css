@@ -32,17 +32,17 @@
    * primitives above. Content/data blues (charts, status chips, calendar
    * events, info notifications) deliberately keep referencing blue-*.
    * --------------------------------------------------------------------------*/
-  --color-accent-50:  var(--color-blue-50);
-  --color-accent-100: var(--color-blue-100);
-  --color-accent-200: var(--color-blue-200);
-  --color-accent-300: var(--color-blue-300);
-  --color-accent-400: var(--color-blue-400);
-  --color-accent-500: var(--color-blue-500);
-  --color-accent-600: var(--color-blue-600);
-  --color-accent-700: var(--color-blue-700);
-  --color-accent-800: var(--color-blue-800);
-  --color-accent-900: var(--color-blue-900);
-  --color-accent-950: var(--color-blue-950);
+  --color-accent-50:  var(--color-neutral-50);
+  --color-accent-100: var(--color-neutral-100);
+  --color-accent-200: var(--color-neutral-200);
+  --color-accent-300: var(--color-neutral-300);
+  --color-accent-400: var(--color-neutral-700);
+  --color-accent-500: var(--color-neutral-800);
+  --color-accent-600: var(--color-neutral-900);
+  --color-accent-700: var(--color-neutral-950);
+  --color-accent-800: var(--color-neutral-800);
+  --color-accent-900: var(--color-neutral-900);
+  --color-accent-950: var(--color-neutral-950);
 
   /* ----- Typography ----------------------------------------------------------
    * Font sizes, weights, line-heights, and tracking all match Tailwind v4
@@ -296,12 +296,12 @@
   --color-questionnaire-key-background:          var(--color-neutral-100);
   --color-questionnaire-key-hover-background:    var(--color-neutral-200);
   --color-agent-progress-ring:                     var(--color-neutral-700);
-  --color-button-ghost-background:                var(--color-accent-100);
-  --color-button-ghost-hover:                     var(--color-accent-200);
-  --color-button-ghost-active:                    var(--color-accent-300);
-  --color-button-ghost-disabled:                  var(--color-accent-50);
-  --color-button-ghost-foreground:                var(--color-accent-700);
-  --color-button-ghost-disabled-foreground:       var(--color-accent-300);
+  --color-button-ghost-background:                transparent;
+  --color-button-ghost-hover:                     var(--color-neutral-100);
+  --color-button-ghost-active:                    var(--color-neutral-200);
+  --color-button-ghost-disabled:                  transparent;
+  --color-button-ghost-foreground:                var(--color-neutral-600);
+  --color-button-ghost-disabled-foreground:       var(--color-neutral-300);
   --color-dropdown-item-hover-background:        var(--color-neutral-100);
   --color-kbd-background:                        var(--color-neutral-300);
   /* Kbd on a raised white surface (menus, the command palette): one step
@@ -425,6 +425,12 @@
 }
 
 .dark {
+  /* Monochrome accent stops tuned for crisp contrast on dark surfaces */
+  --color-accent-400: var(--color-neutral-400);
+  --color-accent-500: var(--color-neutral-500);
+  --color-accent-600: var(--color-neutral-600);
+  --color-accent-700: var(--color-neutral-700);
+
   /* Foreground */
   --color-foreground-full:            var(--color-neutral-700);
   --color-foreground-icon-primary:    var(--color-neutral-50);
@@ -498,11 +504,11 @@
   --color-questionnaire-key-background:          var(--color-neutral-700);
   --color-questionnaire-key-hover-background:    var(--color-neutral-600);
   --color-agent-progress-ring:                     color-mix(in srgb, var(--color-white) 50%, transparent);
-  --color-button-ghost-background:                var(--color-accent-900);
-  --color-button-ghost-hover:                     var(--color-accent-800);
-  --color-button-ghost-active:                    var(--color-accent-700);
-  --color-button-ghost-disabled:                  var(--color-neutral-800);
-  --color-button-ghost-foreground:                var(--color-accent-300);
+  --color-button-ghost-background:                transparent;
+  --color-button-ghost-hover:                     var(--color-neutral-800);
+  --color-button-ghost-active:                    var(--color-neutral-700);
+  --color-button-ghost-disabled:                  transparent;
+  --color-button-ghost-foreground:                var(--color-neutral-300);
   --color-button-ghost-disabled-foreground:       var(--color-neutral-600);
   --color-dropdown-item-hover-background:        color-mix(in srgb, var(--color-neutral-700) 60%, transparent);
   --color-kbd-background:                        var(--color-neutral-700);
@@ -615,6 +621,23 @@
   --color-calendar-event-emerald-background: var(--color-emerald-950);
   --color-calendar-event-emerald-title:      var(--color-emerald-300);
   --color-calendar-event-emerald-time:       var(--color-emerald-300);
+
+  /* Dark primary CTA: elevated graphite fill keeping white text legible */
+  --gradient-button-primary-default: linear-gradient(
+    180deg,
+    var(--color-neutral-600) 0%,
+    var(--color-neutral-700) 100%
+  );
+  --gradient-button-primary-hover: linear-gradient(
+    180deg,
+    var(--color-neutral-500) 0%,
+    var(--color-neutral-600) 100%
+  );
+  --gradient-button-primary-active: linear-gradient(
+    180deg,
+    var(--color-neutral-700) 0%,
+    var(--color-neutral-800) 100%
+  );
 
   /* Disabled primary CTA: dark, low-emphasis fill with readable muted text. */
   --gradient-button-primary-disabled: linear-gradient(

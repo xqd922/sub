@@ -84,9 +84,9 @@ export function SystemPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-headline-medium text-text-primary">环境配置状态</h2>
@@ -94,7 +94,7 @@ export function SystemPanel({
                 仅显示配置状态，不回显具体值
               </p>
             </div>
-            <RiShieldCheckLine className="size-5 text-foreground-icon-tertiary" aria-hidden />
+            <RiShieldCheckLine className="size-4 text-foreground-icon-tertiary" aria-hidden />
           </div>
 
           {loading ? (
@@ -117,8 +117,8 @@ export function SystemPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-5 shadow-card">
+        <div className="flex flex-col gap-5">
+          <div className="rounded-xl border border-separator-border bg-background-primary-default p-5">
             <div className="mb-4 flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-headline-medium text-text-primary">存储维护</h2>
@@ -126,7 +126,7 @@ export function SystemPanel({
                   检测 Cloudflare KV 读写耗时或扫描修复并发写入导致的索引遗漏
                 </p>
               </div>
-              <RiDatabase2Line className="size-5 text-foreground-icon-tertiary" aria-hidden />
+              <RiDatabase2Line className="size-4 text-foreground-icon-tertiary" aria-hidden />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -151,14 +151,14 @@ export function SystemPanel({
             </div>
 
             {pingResult ? (
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 text-body-2-medium text-text-primary">
+              <div className="mt-4 flex items-center gap-2 rounded-lg border border-separator-border bg-background-secondary-default/70 px-3.5 py-2.5 text-body-2-medium text-text-primary">
                 <StatusDot color={pingResult.ok ? 'green' : 'yellow'} />
                 <span className="tabular-nums">{pingResult.text}</span>
               </div>
             ) : null}
 
             {rebuildResult ? (
-              <div className="mt-3 rounded-xl border border-separator-border bg-background-secondary-default px-3.5 py-2.5 text-body-2-regular text-text-secondary">
+              <div className="mt-3 rounded-lg border border-separator-border bg-background-secondary-default/70 px-3.5 py-2.5 text-body-2-regular text-text-secondary">
                 {rebuildResult}
               </div>
             ) : null}
@@ -175,7 +175,7 @@ export function SystemPanel({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default shadow-card">
+      <div className="overflow-hidden rounded-xl border border-separator-border bg-background-primary-default">
         <div className="flex items-center justify-between px-5 py-4">
           <div>
             <h2 className="text-headline-medium text-text-primary">登录审计</h2>
@@ -184,7 +184,7 @@ export function SystemPanel({
             </p>
           </div>
           {system ? (
-            <Chip variant="caption" color="neutral">
+            <Chip variant="caption" color="soft">
               共 {system.loginLog.length} 条
             </Chip>
           ) : null}
