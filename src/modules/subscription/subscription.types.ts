@@ -1,5 +1,7 @@
 import type { Proxy } from '@/modules/proxy/proxy.types'
+import type { ClientDetectionHeaders } from '@/modules/renderer/client-detector'
 import type { ClientType } from '@/modules/renderer/renderer.types'
+import type { CustomClientRule } from '@/shared/admin.types'
 
 export interface SubscriptionInfo {
   name: string
@@ -22,6 +24,8 @@ export interface RenderConversionInput {
   subscription: SubscriptionInfo
   userAgent: string
   targetOverride?: string | null
+  clientHeaders?: ClientDetectionHeaders
+  customClientRules?: CustomClientRule[]
 }
 
 export interface RenderedConversionResponse {

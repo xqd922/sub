@@ -7,6 +7,7 @@ import {
 } from '@/modules/short-link/short-link.repository'
 import { AppError } from '@/server/app-error'
 import { jsonOk, parseJsonBody } from '@/server/route.utils'
+import type { TargetClientOverride } from '@/shared/admin.types'
 import {
   isAllowedSubscriptionInput,
   isValidCustomSlug,
@@ -14,6 +15,8 @@ import {
 } from '@/shared/url.utils'
 
 export const runtime = 'edge'
+
+const VALID_TARGETS = new Set<TargetClientOverride>(['auto', 'clash', 'singbox', 'v2rayng', 'browser'])
 
 function normalizeShortTarget(rawUrl: string): string {
   const { subscriptionUrl, target } = unwrapConversionUrl(rawUrl)
@@ -40,6 +43,7 @@ export const POST = withAdminAuth('创建短链接', async (request) => {
     expiresAt?: unknown
     maxHits?: unknown
     password?: unknown
+    defaultTarget?: unknown
   }>(request)
 
   if (!body?.targetUrl || typeof body.targetUrl !== 'string') {
@@ -74,6 +78,17 @@ export const POST = withAdminAuth('创建短链接', async (request) => {
     maxHits = Math.floor(parsed)
   }
 
+  let defaultTarget: TargetClientOverride | undefined
+  if (body.defaultTarget !== undefined && body.defaultTarget !== null && body.defaultTarget !== '') {
+    if (
+      typeof body.defaultTarget !== 'string' ||
+      !VALID_TARGETS.has(body.defaultTarget as TargetClientOverride)
+    ) {
+      throw AppError.validation('默认输出格式不正确', 'defaultTarget')
+    }
+    defaultTarget = body.defaultTarget as TargetClientOverride
+  }
+
   const shortLink = await createShortLink({
     targetUrl: normalizedTarget,
     name: typeof body.name === 'string' ? body.name.trim() || undefined : undefined,
@@ -83,6 +98,7 @@ export const POST = withAdminAuth('创建短链接', async (request) => {
     expiresAt,
     maxHits,
     password: typeof body.password === 'string' ? body.password.trim() || undefined : undefined,
+    defaultTarget,
   })
 
   if (!shortLink) {

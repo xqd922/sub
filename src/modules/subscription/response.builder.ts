@@ -97,10 +97,19 @@ export function buildResponseHeaders(
 export function renderConversionResponse(
   input: RenderConversionInput,
 ): RenderedConversionResponse {
-  const { formattedProxies, subscription, userAgent, targetOverride } = input
+  const {
+    formattedProxies,
+    subscription,
+    userAgent,
+    targetOverride,
+    clientHeaders,
+    customClientRules,
+  } = input
   const { isSingBox, isV2rayNG, isBrowser, clientType } = detectClientType(
     userAgent,
     targetOverride,
+    clientHeaders,
+    customClientRules,
   )
 
   if (isSingBox) {

@@ -145,11 +145,13 @@ export async function logConversion(params: {
   clientType: string
   nodeCount: number
   clientIp: string
+  userAgent?: string
   subscriptionName?: string
 }): Promise<ConvertRecord | null> {
   if (!(await isKvAvailable())) return null
 
-  const { originalUrl, clientType, nodeCount, clientIp, subscriptionName } = params
+  const { originalUrl, clientType, nodeCount, clientIp, userAgent, subscriptionName } = params
+  const cleanUa = userAgent?.trim().slice(0, 300) || undefined
 
   try {
     const id = await generateRecordId(originalUrl)
@@ -166,6 +168,7 @@ export async function logConversion(params: {
         hits: existing.hits + 1,
         nodeCount,
         lastIp: clientIp,
+        ...(cleanUa ? { lastUserAgent: cleanUa } : {}),
       }
       await saveRecord(updated)
       await incrementDailyHits(id)
@@ -183,6 +186,7 @@ export async function logConversion(params: {
       hits: 1,
       nodeCount,
       lastIp: clientIp,
+      ...(cleanUa ? { lastUserAgent: cleanUa } : {}),
     }
 
     await saveRecord(record)

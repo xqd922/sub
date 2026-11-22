@@ -6,7 +6,7 @@ import { Input } from '@/components/base/input/input'
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { Select, SelectItem } from '@/components/base/select/select'
 import { Switch } from '@/components/base/switch/switch'
-import type { ShortLink, UpdateShortLinkInput } from '@/shared/admin.types'
+import type { ShortLink, TargetClientOverride, UpdateShortLinkInput } from '@/shared/admin.types'
 import { formatDateTime } from '@/shared/format.utils'
 
 type ExpiryChoice = 'keep' | 'never' | '1d' | '7d' | '30d' | '90d'
@@ -31,6 +31,9 @@ export function ShortLinkEditModal({ link, onClose, onSave }: ShortLinkEditModal
   const [password, setPassword] = useState(link.password || '')
   const [maxHits, setMaxHits] = useState(link.maxHits ? String(link.maxHits) : '')
   const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>('keep')
+  const [defaultTarget, setDefaultTarget] = useState<TargetClientOverride>(
+    link.defaultTarget || 'auto',
+  )
   const [enabled, setEnabled] = useState(!link.disabled)
   const [saving, setSaving] = useState(false)
 
@@ -71,6 +74,11 @@ export function ShortLinkEditModal({ link, onClose, onSave }: ShortLinkEditModal
 
     if (enabled !== !link.disabled) {
       updates.disabled = !enabled
+    }
+
+    const existingTarget = link.defaultTarget || 'auto'
+    if (defaultTarget !== existingTarget) {
+      updates.defaultTarget = defaultTarget === 'auto' ? null : defaultTarget
     }
 
     if (Object.keys(updates).length === 0) {
@@ -153,14 +161,31 @@ export function ShortLinkEditModal({ link, onClose, onSave }: ShortLinkEditModal
             />
           </div>
 
-          <Input
-            label="访问密钥（留空公开访问）"
-            type="text"
-            inputDir="ltr"
-            value={password}
-            onChange={setPassword}
-            placeholder="设置后访问需携带 ?key=密钥"
-          />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Select
+              label="默认输出格式"
+              size="sm"
+              selectedKey={defaultTarget}
+              onSelectionChange={(key) => {
+                if (key) setDefaultTarget(String(key) as TargetClientOverride)
+              }}
+            >
+              <SelectItem id="auto">自动识别（按客户端 UA）</SelectItem>
+              <SelectItem id="clash">强制 Clash YAML</SelectItem>
+              <SelectItem id="singbox">强制 sing-box JSON</SelectItem>
+              <SelectItem id="v2rayng">强制 Base64 节点列表</SelectItem>
+              <SelectItem id="browser">浏览器预览</SelectItem>
+            </Select>
+
+            <Input
+              label="访问密钥（留空公开访问）"
+              type="text"
+              inputDir="ltr"
+              value={password}
+              onChange={setPassword}
+              placeholder="设置后访问需携带 ?key=密钥"
+            />
+          </div>
 
           <div className="flex items-center justify-between rounded-lg border border-separator-border bg-background-secondary-default/55 px-3 py-2.5">
             <span className="text-body-2-medium text-text-primary">允许通过短链访问</span>

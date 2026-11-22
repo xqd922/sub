@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
-import { detectClientType } from '@/modules/renderer/client-detector'
+import { getCustomClientRules } from '@/modules/record/client-rule.repository'
+import {
+  detectClientType,
+  extractClientHeaders,
+  parseShortLinkPathSegment,
+} from '@/modules/renderer/client-detector'
 import { resolveShortLinkDetailed } from '@/modules/short-link/short-link.repository'
 import { generateShortLink } from '@/modules/short-link/short-link.service'
 import { handleConversionRequest } from '@/modules/subscription/conversion.handler'
@@ -72,8 +77,9 @@ function renderPasswordPromptHtml(linkName: string, wrongKey: boolean, target?: 
 
 export async function handleShortLinkRedirect(
   request: Request,
-  id: string,
+  rawId: string,
 ): Promise<NextResponse> {
+  const { id, suffixTarget } = parseShortLinkPathSegment(rawId)
   if (!id || id.length < 2 || id.length > 64) {
     return NextResponse.redirect(new URL('/', request.url))
   }
@@ -82,7 +88,13 @@ export async function handleShortLinkRedirect(
     const incomingUrl = new URL(request.url)
     const incomingTarget = incomingUrl.searchParams.get('target')?.trim() || undefined
     const userAgent = request.headers.get('user-agent') || ''
-    const { clientType } = detectClientType(userAgent, incomingTarget)
+    const customRules = await getCustomClientRules()
+    const { clientType } = detectClientType(
+      userAgent,
+      incomingTarget || suffixTarget,
+      extractClientHeaders(request.headers),
+      customRules,
+    )
     const accessKey = extractAccessKey(request, incomingUrl)
     const clientIp = getClientIp(request)
 
@@ -90,6 +102,7 @@ export async function handleShortLinkRedirect(
       key: accessKey,
       clientIp,
       clientType,
+      userAgent,
     })
 
     if (resolved.status === 'not_found') {
@@ -111,7 +124,11 @@ export async function handleShortLinkRedirect(
     if (resolved.status === 'unauthorized') {
       if (clientType === 'browser') {
         return new NextResponse(
-          renderPasswordPromptHtml(resolved.link.name, Boolean(accessKey), incomingTarget),
+          renderPasswordPromptHtml(
+            resolved.link.name,
+            Boolean(accessKey),
+            incomingTarget || suffixTarget || undefined,
+          ),
           {
             status: 401,
             headers: {
@@ -133,7 +150,11 @@ export async function handleShortLinkRedirect(
     conversionUrl.pathname = '/sub'
     conversionUrl.searchParams.set('url', unwrapped.subscriptionUrl)
 
-    const effectiveTarget = incomingTarget || unwrapped.target
+    const linkDefaultTarget =
+      resolved.link.defaultTarget && resolved.link.defaultTarget !== 'auto'
+        ? resolved.link.defaultTarget
+        : undefined
+    const effectiveTarget = incomingTarget || suffixTarget || linkDefaultTarget || unwrapped.target
     if (effectiveTarget) {
       conversionUrl.searchParams.set('target', effectiveTarget)
     }

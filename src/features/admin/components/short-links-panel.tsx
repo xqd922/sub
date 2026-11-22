@@ -31,7 +31,7 @@ import { QrCodeModal } from '@/features/shared/components/qr-code-modal'
 import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
 import { useClipboard } from '@/features/shared/hooks/use-clipboard'
 import { showToast } from '@/features/shared/hooks/use-toast'
-import type { CreateShortLinkInput, ShortLink } from '@/shared/admin.types'
+import type { CreateShortLinkInput, ShortLink, TargetClientOverride } from '@/shared/admin.types'
 import { formatDateTime, formatRelativeTime } from '@/shared/format.utils'
 import { buildShortLinkPublicUrl } from '@/shared/url.utils'
 import { cx } from '@/utils/cx'
@@ -80,6 +80,9 @@ function exportShortLinksJson(links: ShortLink[]): void {
       ...(link.expiresAt ? { expiresAt: link.expiresAt } : {}),
       ...(link.maxHits ? { maxHits: link.maxHits } : {}),
       ...(link.password ? { password: link.password } : {}),
+      ...(link.defaultTarget && link.defaultTarget !== 'auto'
+        ? { defaultTarget: link.defaultTarget }
+        : {}),
     })),
   }
 
@@ -129,6 +132,7 @@ export function ShortLinksPanel({
   const [newExpiry, setNewExpiry] = useState<CreateExpiryPreset>('never')
   const [newMaxHits, setNewMaxHits] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [newDefaultTarget, setNewDefaultTarget] = useState<TargetClientOverride>('auto')
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
   const [qrLink, setQrLink] = useState<ShortLink | null>(null)
@@ -262,6 +266,7 @@ export function ShortLinksPanel({
       expiresAt,
       maxHits: parsedMaxHits && parsedMaxHits >= 1 ? parsedMaxHits : undefined,
       password: newPassword.trim() || undefined,
+      defaultTarget: newDefaultTarget !== 'auto' ? newDefaultTarget : undefined,
     })
     setCreating(false)
 
@@ -273,6 +278,7 @@ export function ShortLinksPanel({
       setNewExpiry('never')
       setNewMaxHits('')
       setNewPassword('')
+      setNewDefaultTarget('auto')
       setShowCreateForm(false)
     }
   }
@@ -424,7 +430,22 @@ export function ShortLinksPanel({
             </div>
 
             <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-12">
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
+                <Select
+                  label="默认输出格式"
+                  size="sm"
+                  selectedKey={newDefaultTarget}
+                  onSelectionChange={(key) => {
+                    if (key) setNewDefaultTarget(String(key) as TargetClientOverride)
+                  }}
+                >
+                  <SelectItem id="auto">自动识别</SelectItem>
+                  <SelectItem id="clash">Clash</SelectItem>
+                  <SelectItem id="singbox">sing-box</SelectItem>
+                  <SelectItem id="v2rayng">Base64</SelectItem>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
                 <Select
                   label="有效期"
                   size="sm"
@@ -441,13 +462,13 @@ export function ShortLinksPanel({
                 </Select>
               </div>
               <Input
-                label="访问上限（留空不限）"
+                label="访问上限"
                 size="small"
                 type="text"
                 inputDir="ltr"
                 value={newMaxHits}
                 onChange={(val) => setNewMaxHits(val.replace(/[^\d]/g, ''))}
-                placeholder="例如：10"
+                placeholder="不限"
                 className="md:col-span-2"
               />
               <Input
@@ -457,8 +478,8 @@ export function ShortLinksPanel({
                 inputDir="ltr"
                 value={newPassword}
                 onChange={setNewPassword}
-                placeholder="留空公开访问"
-                className="md:col-span-3"
+                placeholder="留空公开"
+                className="md:col-span-2"
               />
               <Input
                 label="备注说明（可选）"
@@ -466,7 +487,7 @@ export function ShortLinksPanel({
                 type="text"
                 value={newComment}
                 onChange={setNewComment}
-                placeholder="用途或到期提醒"
+                placeholder="用途或提醒"
                 className="md:col-span-3"
               />
               <div className="flex justify-end md:col-span-1">
@@ -579,6 +600,11 @@ export function ShortLinksPanel({
                                 className="size-3.5 shrink-0 text-foreground-icon-tertiary"
                                 aria-label="已开启密钥保护"
                               />
+                            ) : null}
+                            {link.defaultTarget && link.defaultTarget !== 'auto' ? (
+                              <Chip variant="caption" color="soft">
+                                {link.defaultTarget}
+                              </Chip>
                             ) : null}
                           </div>
                           <p

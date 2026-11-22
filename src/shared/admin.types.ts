@@ -1,5 +1,13 @@
 export type TargetClientOverride = 'auto' | 'clash' | 'singbox' | 'v2rayng' | 'browser'
 
+export interface CustomClientRule {
+  id: string
+  keyword: string
+  target: Exclude<TargetClientOverride, 'auto'>
+  note?: string
+  createdAt: number
+}
+
 export interface ConvertRecord {
   id: string
   originalUrl: string
@@ -11,6 +19,7 @@ export interface ConvertRecord {
   hits: number
   nodeCount: number
   lastIp: string
+  lastUserAgent?: string
   deleted?: boolean
 }
 
@@ -26,8 +35,10 @@ export interface ShortLink {
   expiresAt?: number | null
   maxHits?: number | null
   password?: string
+  defaultTarget?: TargetClientOverride
   lastIp?: string
   lastClientType?: string
+  lastUserAgent?: string
   clientHits?: Record<string, number>
 }
 
@@ -40,6 +51,7 @@ export interface CreateShortLinkInput {
   expiresAt?: number | null
   maxHits?: number | null
   password?: string
+  defaultTarget?: TargetClientOverride
 }
 
 export interface UpdateShortLinkInput {
@@ -50,6 +62,7 @@ export interface UpdateShortLinkInput {
   expiresAt?: number | null
   maxHits?: number | null
   password?: string | null
+  defaultTarget?: TargetClientOverride | null
 }
 
 export interface ShortLinkImportResult {

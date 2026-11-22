@@ -2,7 +2,7 @@ import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import { importShortLinks } from '@/modules/short-link/short-link.repository'
 import { AppError } from '@/server/app-error'
 import { jsonOk, parseJsonBody } from '@/server/route.utils'
-import type { CreateShortLinkInput } from '@/shared/admin.types'
+import type { CreateShortLinkInput, TargetClientOverride } from '@/shared/admin.types'
 import {
   isAllowedSubscriptionInput,
   isValidCustomSlug,
@@ -12,6 +12,7 @@ import {
 export const runtime = 'edge'
 
 const MAX_IMPORT_ITEMS = 200
+const VALID_TARGETS = new Set<TargetClientOverride>(['auto', 'clash', 'singbox', 'v2rayng', 'browser'])
 
 export const POST = withAdminAuth('导入短链接', async (request) => {
   const body = await parseJsonBody<{ links?: unknown[] }>(request)
@@ -80,6 +81,11 @@ export const POST = withAdminAuth('导入短链接', async (request) => {
           ? Math.floor(item.maxHits)
           : undefined,
       password: typeof item.password === 'string' ? item.password.trim() || undefined : undefined,
+      defaultTarget:
+        typeof item.defaultTarget === 'string' &&
+        VALID_TARGETS.has(item.defaultTarget as TargetClientOverride)
+          ? (item.defaultTarget as TargetClientOverride)
+          : undefined,
     })
   }
 

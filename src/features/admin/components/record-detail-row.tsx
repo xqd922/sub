@@ -30,6 +30,12 @@ export function RecordDetailRow({ record }: RecordDetailRowProps) {
               {record.lastIp || '—'}
             </dd>
           </div>
+          <div className="sm:col-span-2">
+            <dt className="inline text-text-tertiary">最近 User-Agent：</dt>
+            <dd dir="ltr" className="inline select-all font-mono break-all text-text-secondary">
+              {record.lastUserAgent || '—'}
+            </dd>
+          </div>
           <div>
             <dt className="inline text-text-tertiary">创建时间：</dt>
             <dd className="inline tabular-nums text-text-secondary">

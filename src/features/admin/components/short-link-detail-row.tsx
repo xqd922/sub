@@ -1,8 +1,16 @@
 'use client'
 
 import { Chip } from '@/components/base/badges/chip'
-import type { ShortLink } from '@/shared/admin.types'
+import type { ShortLink, TargetClientOverride } from '@/shared/admin.types'
 import { formatDateTime } from '@/shared/format.utils'
+
+const TARGET_LABELS: Record<TargetClientOverride, string> = {
+  auto: '自动识别',
+  clash: 'Clash YAML',
+  singbox: 'sing-box JSON',
+  v2rayng: 'Base64 节点',
+  browser: '浏览器预览',
+}
 
 interface ShortLinkDetailRowProps {
   link: ShortLink
@@ -58,6 +66,20 @@ export function ShortLinkDetailRow({ link }: ShortLinkDetailRowProps) {
           </div>
 
           <div>
+            <dt className="inline text-text-tertiary">默认输出格式：</dt>
+            <dd className="inline text-text-primary">
+              {TARGET_LABELS[link.defaultTarget || 'auto']}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="inline text-text-tertiary">快捷后缀：</dt>
+            <dd dir="ltr" className="inline font-mono text-text-secondary">
+              /s/{link.id}.yaml · .json · .txt
+            </dd>
+          </div>
+
+          <div>
             <dt className="inline text-text-tertiary">最近客户端 / IP：</dt>
             <dd dir="ltr" className="inline font-mono text-text-secondary">
               {link.lastClientType || '—'} · {link.lastIp || '—'}
@@ -68,6 +90,13 @@ export function ShortLinkDetailRow({ link }: ShortLinkDetailRowProps) {
             <dt className="inline text-text-tertiary">创建时间：</dt>
             <dd className="inline tabular-nums text-text-secondary">
               {formatDateTime(link.createdAt)}
+            </dd>
+          </div>
+
+          <div className="sm:col-span-2">
+            <dt className="inline text-text-tertiary">最近 User-Agent：</dt>
+            <dd dir="ltr" className="inline select-all font-mono break-all text-text-secondary">
+              {link.lastUserAgent || '—'}
             </dd>
           </div>
 

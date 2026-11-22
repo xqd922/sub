@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  addCustomClientRule,
+  deleteCustomClientRule,
+  getCustomClientRules,
+} from '@/modules/record/client-rule.repository'
 import { rebuildKvIndexes } from '@/modules/record/index-maintenance.service'
 import {
   createRecordManually,
@@ -189,9 +194,61 @@ describe('record and short-link KV flows', () => {
     // JSON 批量导入：新短码导入成功，已存在短码跳过
     const importResult = await importShortLinks([
       { targetUrl: ssNode, slug: 'hk-vip', name: '重复跳过' },
-      { targetUrl: ssNode, slug: 'jp-backup', name: '日本备用' },
+      { targetUrl: ssNode, slug: 'jp-backup', name: '日本备用', defaultTarget: 'singbox' },
     ])
     expect(importResult).toEqual({ imported: 1, skipped: 1, failed: 0 })
+
+    // 短链路径后缀 `.json` / `.yaml` / `.txt` 与默认输出格式 defaultTarget 验证
+    const defaultSingboxRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/jp-backup', {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      'jp-backup',
+    )
+    expect(defaultSingboxRes.status).toBe(200)
+    expect(defaultSingboxRes.headers.get('Content-Type')).toContain('application/json')
+
+    const suffixYamlRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/jp-backup.yaml', {
+        headers: { 'User-Agent': 'sing-box/1.14' },
+      }),
+      'jp-backup.yaml',
+    )
+    expect(suffixYamlRes.status).toBe(200)
+    expect(suffixYamlRes.headers.get('Content-Type')).toContain('text/yaml')
+
+    const suffixTxtRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/jp-backup.txt', {
+        headers: { 'User-Agent': 'clash.meta/v1.19' },
+      }),
+      'jp-backup.txt',
+    )
+    expect(suffixTxtRes.status).toBe(200)
+    expect(suffixTxtRes.headers.get('Content-Type')).toContain('text/plain')
+
+    // 记录原始 User-Agent 与自定义 KV UA 规则生效验证
+    const { rule } = await addCustomClientRule({
+      keyword: 'NewBrandBox',
+      target: 'singbox',
+      note: '测试新客户端',
+    })
+    expect((await getCustomClientRules()).some((r) => r.id === rule.id)).toBe(true)
+
+    await updateShortLink('jp-backup', { defaultTarget: null })
+    const customRuleRes = await handleShortLinkRedirect(
+      new Request('https://sub.example.com/s/jp-backup', {
+        headers: { 'User-Agent': 'NewBrandBox/0.9' },
+      }),
+      'jp-backup',
+    )
+    expect(customRuleRes.status).toBe(200)
+    expect(customRuleRes.headers.get('Content-Type')).toContain('application/json')
+
+    const allLinks = await getAllShortLinks()
+    expect(allLinks.find((item) => item.id === 'jp-backup')?.lastUserAgent).toBe('NewBrandBox/0.9')
+
+    const remainingRules = await deleteCustomClientRule(rule.id)
+    expect(remainingRules).toEqual([])
   })
 
   it('reports disabledRecords and totalShortLinks in getStats()', async () => {

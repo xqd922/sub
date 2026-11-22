@@ -6,6 +6,7 @@ import type {
   CreateShortLinkInput,
   ShortLink,
   ShortLinkImportResult,
+  TargetClientOverride,
   UpdateShortLinkInput,
 } from '@/shared/admin.types'
 import { extractNameFromUrl, isValidCustomSlug } from '@/shared/url.utils'
@@ -24,6 +25,20 @@ export interface ResolveShortLinkContext {
   key?: string | null
   clientIp?: string
   clientType?: string
+  userAgent?: string
+}
+
+const VALID_DEFAULT_TARGETS = new Set<TargetClientOverride>([
+  'auto',
+  'clash',
+  'singbox',
+  'v2rayng',
+  'browser',
+])
+
+function normalizeDefaultTarget(value?: TargetClientOverride | null): TargetClientOverride | undefined {
+  if (!value || value === 'auto') return undefined
+  return VALID_DEFAULT_TARGETS.has(value) ? value : undefined
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -138,6 +153,7 @@ export async function createShortLink(
   const password = normalizeOptionalString(input.password)
   const expiresAt = normalizeExpiresAt(input.expiresAt)
   const maxHits = normalizeMaxHits(input.maxHits)
+  const defaultTarget = normalizeDefaultTarget(input.defaultTarget)
   const disabled = Boolean(input.disabled)
 
   if (customSlug) {
@@ -159,9 +175,9 @@ export async function createShortLink(
   try {
     const urlHash = await getUrlHash(targetUrl)
 
-    // 仅在未指定自定义短码且未配置独立限流/加密策略时复用同一目标地址的短链
+    // 仅在未指定自定义短码且未配置独立限流/加密/输出格式策略时复用同一目标地址的短链
     const hasCustomPolicy = Boolean(
-      customSlug || comment || password || expiresAt || maxHits || disabled,
+      customSlug || comment || password || expiresAt || maxHits || defaultTarget || disabled,
     )
     if (!hasCustomPolicy) {
       const existingId = (await kv.get(`${KV_KEYS.SHORT_URL_PREFIX}${urlHash}`)) as string | null
@@ -190,6 +206,7 @@ export async function createShortLink(
       ...(expiresAt ? { expiresAt } : {}),
       ...(maxHits ? { maxHits } : {}),
       ...(password ? { password } : {}),
+      ...(defaultTarget ? { defaultTarget } : {}),
     }
 
     const putTasks: Array<Promise<void>> = [
@@ -277,6 +294,12 @@ export async function updateShortLink(
       const cleaned = normalizeMaxHits(updates.maxHits)
       if (cleaned) updated.maxHits = cleaned
       else delete updated.maxHits
+    }
+
+    if (updates.defaultTarget !== undefined) {
+      const cleaned = normalizeDefaultTarget(updates.defaultTarget)
+      if (cleaned) updated.defaultTarget = cleaned
+      else delete updated.defaultTarget
     }
 
     const tasks: Array<Promise<void>> = [
@@ -369,12 +392,14 @@ export async function resolveShortLinkDetailed(
       clientHits[context.clientType] = (clientHits[context.clientType] || 0) + 1
     }
 
+    const cleanUa = context.userAgent?.trim().slice(0, 300) || undefined
     const updated: ShortLink = {
       ...shortLink,
       hits: shortLink.hits + 1,
       lastAccess: Date.now(),
       ...(context.clientIp ? { lastIp: context.clientIp } : {}),
       ...(context.clientType ? { lastClientType: context.clientType } : {}),
+      ...(cleanUa ? { lastUserAgent: cleanUa } : {}),
       ...(Object.keys(clientHits).length > 0 ? { clientHits } : {}),
     }
 

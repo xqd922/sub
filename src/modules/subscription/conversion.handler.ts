@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { getCustomClientRules } from '@/modules/record/client-rule.repository'
 import { isUrlEnabled, logConversion } from '@/modules/record/record.repository'
+import { extractClientHeaders } from '@/modules/renderer/client-detector'
 import {
   formatProxiesIfNeeded,
   shouldFormatNodeNames,
@@ -112,7 +114,10 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       throw AppError.invalidSubscriptionUrl(url)
     }
 
-    const enabled = await isUrlEnabled(url)
+    const [enabled, customClientRules] = await Promise.all([
+      isUrlEnabled(url),
+      getCustomClientRules(),
+    ])
     if (!enabled) {
       throw AppError.validation('该订阅链接已被禁用', 'url')
     }
@@ -157,6 +162,8 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       subscription,
       userAgent,
       targetOverride,
+      clientHeaders: extractClientHeaders(request.headers),
+      customClientRules,
     })
 
     logger.info('\n=== 客户端信息 ===')
@@ -172,6 +179,7 @@ export async function handleConversionRequest(request: Request): Promise<NextRes
       clientType: rendered.clientType,
       nodeCount: proxies.length,
       clientIp,
+      userAgent,
       subscriptionName: subscription.name,
     }).catch((err) => {
       logger.warn('记录转换失败:', err)

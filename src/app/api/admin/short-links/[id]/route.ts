@@ -2,10 +2,12 @@ import { withAdminAuth } from '@/modules/admin-auth/admin.guard'
 import { deleteShortLink, updateShortLink } from '@/modules/short-link/short-link.repository'
 import { AppError } from '@/server/app-error'
 import { jsonOk, parseJsonBody } from '@/server/route.utils'
-import type { UpdateShortLinkInput } from '@/shared/admin.types'
+import type { TargetClientOverride, UpdateShortLinkInput } from '@/shared/admin.types'
 import { isAllowedSubscriptionInput, unwrapConversionUrl } from '@/shared/url.utils'
 
 export const runtime = 'edge'
+
+const VALID_TARGETS = new Set<TargetClientOverride>(['auto', 'clash', 'singbox', 'v2rayng', 'browser'])
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -21,6 +23,7 @@ export const PATCH = withAdminAuth<RouteContext>('更新短链接', async (reque
     expiresAt?: unknown
     maxHits?: unknown
     password?: unknown
+    defaultTarget?: unknown
   }>(request)
 
   if (!body) {
@@ -93,6 +96,19 @@ export const PATCH = withAdminAuth<RouteContext>('更新短链接', async (reque
       throw AppError.validation('访问密钥必须是字符串', 'password')
     }
     updates.password = body.password === null ? null : body.password.trim() || null
+  }
+
+  if (body.defaultTarget !== undefined) {
+    if (body.defaultTarget === null || body.defaultTarget === '' || body.defaultTarget === 'auto') {
+      updates.defaultTarget = null
+    } else if (
+      typeof body.defaultTarget === 'string' &&
+      VALID_TARGETS.has(body.defaultTarget as TargetClientOverride)
+    ) {
+      updates.defaultTarget = body.defaultTarget as TargetClientOverride
+    } else {
+      throw AppError.validation('默认输出格式不正确', 'defaultTarget')
+    }
   }
 
   if (Object.keys(updates).length === 0) {

@@ -7,6 +7,7 @@ import { StatusDot } from '@/components/base/badges/status-dot'
 import { Button } from '@/components/base/buttons/button'
 import { AlertDialog } from '@/components/base/modal/modal'
 import { Skeleton } from '@/components/base/skeleton/skeleton'
+import { ClientRulesCard } from '@/features/admin/components/client-rules-card'
 import { useAdminSystem } from '@/features/admin/hooks/use-admin-system'
 import { useAutoRefresh } from '@/features/shared/hooks/use-auto-refresh'
 import { showToast } from '@/features/shared/hooks/use-toast'
@@ -171,6 +172,8 @@ export function SystemPanel({
           </div>
         </div>
       </div>
+
+      <ClientRulesCard refreshSignal={refreshSignal} onUnauthorized={onUnauthorized} />
 
       <div className="overflow-hidden rounded-xl border border-separator-border bg-background-primary-default">
         <div className="flex items-center justify-between px-5 py-4">

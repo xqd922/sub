@@ -68,6 +68,7 @@ export function ConversionResultCard({
   }
 
   const clashImportHref = `clash://install-config?url=${encodeURIComponent(url)}`
+  const singboxImportHref = `sing-box://import-remote-profile?url=${encodeURIComponent(url)}`
 
   return (
     <div className="flex flex-col gap-3">
@@ -155,6 +156,13 @@ export function ConversionResultCard({
           <a href={clashImportHref} className={ACTION_BUTTON_CLASS}>
             <RiDownload2Line className="size-3.5" aria-hidden />
             <span>导入 Clash</span>
+          </a>
+        ) : null}
+
+        {target === 'auto' || target === 'singbox' ? (
+          <a href={singboxImportHref} className={ACTION_BUTTON_CLASS}>
+            <RiDownload2Line className="size-3.5" aria-hidden />
+            <span>导入 sing-box</span>
           </a>
         ) : null}
       </div>
