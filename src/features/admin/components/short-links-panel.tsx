@@ -11,6 +11,7 @@ import { Tabs } from '@cloudflare/kumo/components/tabs'
 import { Tooltip } from '@cloudflare/kumo/components/tooltip'
 import {
   RiAddLine,
+  RiCheckboxMultipleLine,
   RiDeleteBinLine,
   RiDownloadLine,
   RiEditLine,
@@ -26,6 +27,7 @@ import {
   RiUploadLine,
 } from '@remixicon/react'
 import { Button } from '@/components/base/buttons/button'
+import { Checkbox } from '@/components/base/checkbox/checkbox'
 import { Input } from '@/components/base/input/input'
 import { AlertDialog, Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { SearchField } from '@/components/base/search-field/search-field'
@@ -39,6 +41,7 @@ import { showToast } from '@/features/shared/hooks/use-toast'
 import type { CreateShortLinkInput, ShortLink, TargetClientOverride } from '@/shared/admin.types'
 import { formatDateTime, formatRelativeTime } from '@/shared/format.utils'
 import { buildShortLinkPublicUrl } from '@/shared/url.utils'
+import { cx } from '@/utils/cx'
 
 interface ShortLinksPanelProps {
   onUnauthorized?: () => void
@@ -49,11 +52,11 @@ type StatusFilter = 'all' | 'active' | 'disabled' | 'inactive'
 type CreateExpiryPreset = 'never' | '1d' | '7d' | '30d' | '90d'
 type LinkHealthState = 'active' | 'disabled' | 'expired' | 'limit_reached'
 
-const STATUS_TABS: Array<{ value: StatusFilter; label: string }> = [
-  { value: 'all', label: '全部' },
-  { value: 'active', label: '正常' },
-  { value: 'disabled', label: '已禁用' },
-  { value: 'inactive', label: '已失效' },
+const STATUS_TABS: Array<{ value: StatusFilter; label: string; className: string }> = [
+  { value: 'all', label: '全部', className: 'flex-1 justify-center sm:flex-none' },
+  { value: 'active', label: '正常', className: 'flex-1 justify-center sm:flex-none' },
+  { value: 'disabled', label: '已禁用', className: 'flex-1 justify-center sm:flex-none' },
+  { value: 'inactive', label: '已失效', className: 'flex-1 justify-center sm:flex-none' },
 ]
 
 const CREATE_EXPIRY_MS: Record<Exclude<CreateExpiryPreset, 'never'>, number> = {
@@ -114,6 +117,76 @@ const STATE_BADGE: Record<
   limit_reached: { label: '达上限', variant: 'error' },
 }
 
+interface ShortLinkActionsMenuProps {
+  link: ShortLink
+  onCopy: (link: ShortLink) => void
+  onOpenTarget: (link: ShortLink) => void
+  onOpenQr: (link: ShortLink) => void
+  onEdit: (link: ShortLink) => void
+  onToggleEnabled: (link: ShortLink) => void
+  onDelete: (link: ShortLink) => void
+}
+
+function ShortLinkActionsMenu({
+  link,
+  onCopy,
+  onOpenTarget,
+  onOpenQr,
+  onEdit,
+  onToggleEnabled,
+  onDelete,
+}: ShortLinkActionsMenuProps) {
+  return (
+    <DropdownMenu.Content align="end">
+      <DropdownMenu.Item
+        icon={<RiFileCopyLine className="size-4" aria-hidden />}
+        onClick={() => onCopy(link)}
+      >
+        复制短链
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={<RiExternalLinkLine className="size-4" aria-hidden />}
+        onClick={() => onOpenTarget(link)}
+      >
+        打开预览
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={<RiQrCodeLine className="size-4" aria-hidden />}
+        onClick={() => onOpenQr(link)}
+      >
+        查看二维码
+      </DropdownMenu.Item>
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item
+        icon={<RiEditLine className="size-4" aria-hidden />}
+        onClick={() => onEdit(link)}
+      >
+        编辑配置
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={
+          link.disabled ? (
+            <RiPlayCircleLine className="size-4" aria-hidden />
+          ) : (
+            <RiPauseCircleLine className="size-4" aria-hidden />
+          )
+        }
+        onClick={() => onToggleEnabled(link)}
+      >
+        {link.disabled ? '启用短链' : '禁用短链'}
+      </DropdownMenu.Item>
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item
+        variant="danger"
+        icon={<RiDeleteBinLine className="size-4" aria-hidden />}
+        onClick={() => onDelete(link)}
+      >
+        删除短链
+      </DropdownMenu.Item>
+    </DropdownMenu.Content>
+  )
+}
+
 export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
   const {
     shortLinks,
@@ -133,6 +206,7 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [drawerLinkId, setDrawerLinkId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [mobileSelectMode, setMobileSelectMode] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [newTargetUrl, setNewTargetUrl] = useState('')
   const [newName, setNewName] = useState('')
@@ -233,6 +307,14 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
     await deleteLinks(Array.from(selectedIds))
     if (drawerLinkId && selectedIds.has(drawerLinkId)) setDrawerLinkId(null)
     setSelectedIds(new Set())
+    setMobileSelectMode(false)
+  }
+
+  const toggleMobileSelectMode = () => {
+    setMobileSelectMode((prev) => {
+      if (prev) setSelectedIds(new Set())
+      return !prev
+    })
   }
 
   const resetCreateForm = () => {
@@ -303,50 +385,81 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
     <div className="flex flex-col gap-4">
       <LayerCard className="overflow-hidden p-0">
         <div className="flex flex-col gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:px-4">
-          <div className="w-full sm:min-w-[200px] sm:flex-1">
-            <SearchField
+          <div className="flex w-full items-center gap-2 sm:min-w-[200px] sm:flex-1">
+            <div className="min-w-0 flex-1">
+              <SearchField
+                size="small"
+                shape="rounded"
+                fieldClassName="h-9 sm:h-8"
+                value={search}
+                onChange={setSearch}
+                placeholder="搜索短链名称、短码、备注或目标链接"
+                clearLabel="清除搜索"
+              />
+            </div>
+            <Button
+              variant="primary"
               size="small"
-              shape="rounded"
-              fieldClassName="h-9 sm:h-8"
-              value={search}
-              onChange={setSearch}
-              placeholder="搜索短链名称、短码、备注或目标链接"
-              clearLabel="清除搜索"
-            />
+              leadingIcon={RiAddLine}
+              className="h-9 shrink-0 sm:hidden"
+              onClick={() => setCreateModalOpen(true)}
+            >
+              创建
+            </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Tabs
-              variant="segmented"
-              size="sm"
-              tabs={STATUS_TABS}
-              value={statusFilter}
-              onValueChange={(next) => setStatusFilter(next as StatusFilter)}
-            />
+          <Tabs
+            variant="segmented"
+            size="sm"
+            className="w-full sm:w-auto"
+            listClassName="w-full sm:w-auto"
+            tabs={STATUS_TABS}
+            value={statusFilter}
+            onValueChange={(next) => setStatusFilter(next as StatusFilter)}
+          />
 
-            <Select
-              aria-label="排序方式"
-              size="sm"
-              selectedKey={sortKey}
-              onSelectionChange={(key) => {
-                if (key) setSortKey(String(key) as SortKey)
-              }}
-              className="w-30"
-            >
-              <SelectItem id="createdAt">创建时间</SelectItem>
-              <SelectItem id="hits">命中次数</SelectItem>
-              <SelectItem id="lastAccess">最近访问</SelectItem>
-            </Select>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={(event) => void handleImportFile(event)}
+            className="hidden"
+          />
 
-            <input
-              ref={importInputRef}
-              type="file"
-              accept="application/json,.json"
-              onChange={(event) => void handleImportFile(event)}
-              className="hidden"
-            />
+          <div className="flex items-center justify-between gap-2 sm:contents">
+            <div className="flex items-center gap-2">
+              <Select
+                aria-label="排序方式"
+                size="sm"
+                selectedKey={sortKey}
+                onSelectionChange={(key) => {
+                  if (key) setSortKey(String(key) as SortKey)
+                }}
+                className="w-[104px] sm:w-30"
+              >
+                <SelectItem id="createdAt">创建时间</SelectItem>
+                <SelectItem id="hits">命中次数</SelectItem>
+                <SelectItem id="lastAccess">最近访问</SelectItem>
+              </Select>
 
-            <div className="ms-auto flex items-center gap-1.5 sm:ms-0">
+              <span className="hidden text-caption-1-regular whitespace-nowrap tabular-nums text-text-tertiary min-[380px]:inline sm:hidden">
+                {filteredLinks.length} 条
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:ms-auto">
+              <Button
+                variant={mobileSelectMode ? 'primary' : 'secondary'}
+                size="small"
+                leadingIcon={RiCheckboxMultipleLine}
+                aria-label={mobileSelectMode ? '退出多选' : '批量多选'}
+                className="lg:hidden"
+                disabled={!mobileSelectMode && filteredLinks.length === 0}
+                onClick={toggleMobileSelectMode}
+              >
+                {mobileSelectMode ? '完成' : '多选'}
+              </Button>
+
               <Tooltip
                 content={importing ? '导入中…' : '导入 JSON 备份（兼容 Sink）'}
                 side="bottom"
@@ -383,6 +496,7 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
                 variant="primary"
                 size="small"
                 leadingIcon={RiAddLine}
+                className="hidden sm:inline-flex"
                 onClick={() => setCreateModalOpen(true)}
               >
                 创建短链
@@ -391,42 +505,67 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
           </div>
         </div>
 
-        {selectedIds.size > 0 ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-4 py-2.5">
-            <span className="text-body-2-medium tabular-nums text-text-primary">
-              已选中 {selectedIds.size} 条短链接
-            </span>
-            <div className="flex items-center gap-1.5">
+        {selectedIds.size > 0 || mobileSelectMode ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-3.5 py-2.5 sm:px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-body-2-medium tabular-nums text-text-primary">
+                {selectedIds.size > 0 ? `已选 ${selectedIds.size} 条` : '勾选短链进行批量操作'}
+              </span>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="lg:hidden"
+                disabled={filteredLinks.length === 0}
+                onClick={toggleSelectAll}
+              >
+                {allVisibleSelected ? '取消全选' : '全选'}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 variant="secondary"
                 size="xs"
+                className="h-7 sm:h-6"
+                disabled={selectedIds.size === 0}
                 onClick={() => void batchSetEnabled(Array.from(selectedIds), true)}
               >
-                批量启用
+                启用
               </Button>
               <Button
                 variant="secondary"
                 size="xs"
+                className="h-7 sm:h-6"
+                disabled={selectedIds.size === 0}
                 onClick={() => void batchSetEnabled(Array.from(selectedIds), false)}
               >
-                批量禁用
+                禁用
               </Button>
               <Button
                 variant="danger"
                 size="xs"
                 leadingIcon={RiDeleteBinLine}
+                className="h-7 sm:h-6"
+                disabled={selectedIds.size === 0}
                 onClick={() => setBatchDeleteOpen(true)}
               >
-                批量删除
+                删除
               </Button>
-              <Button variant="ghost" size="xs" onClick={() => setSelectedIds(new Set())}>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="h-7 sm:h-6"
+                onClick={() => {
+                  setSelectedIds(new Set())
+                  setMobileSelectMode(false)
+                }}
+              >
                 取消
               </Button>
             </div>
           </div>
         ) : null}
 
-        <div className="overflow-x-auto bg-background-primary-default">
+        <div className="bg-background-primary-default">
           {loading ? (
             <div className="py-16 text-center text-body-2-regular text-text-tertiary">
               加载短链列表中…
@@ -457,214 +596,320 @@ export function ShortLinksPanel({ onUnauthorized }: ShortLinksPanelProps) {
               />
             </div>
           ) : (
-            <Table className="console-table min-w-[720px]">
-              <Table.Header variant="compact">
-                <Table.Row>
-                  <Table.CheckHead
-                    checked={allVisibleSelected}
-                    indeterminate={someVisibleSelected}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="全选"
-                  />
-                  <Table.Head>短链 / 短码</Table.Head>
-                  <Table.Head>状态</Table.Head>
-                  <Table.Head>目标链接</Table.Head>
-                  <Table.Head className="text-end">命中</Table.Head>
-                  <Table.Head>有效期</Table.Head>
-                  <Table.Head>最近访问</Table.Head>
-                  <Table.Head className="text-end">操作</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
+            <>
+              <div className="divide-y divide-separator-border lg:hidden">
                 {filteredLinks.map((link) => {
                   const state = getLinkState(link, now)
                   const isSelected = selectedIds.has(link.id)
+                  const showCheckboxes = mobileSelectMode || selectedIds.size > 0
                   return (
-                    <Table.Row
+                    <div
                       key={link.id}
-                      variant={isSelected ? 'selected' : 'default'}
-                      onClick={() => setDrawerLinkId(link.id)}
-                      className="cursor-pointer transition-colors hover:bg-background-secondary-default/65"
+                      className={cx(
+                        'flex items-start gap-2.5 px-4 py-3.5 transition-colors',
+                        isSelected && 'bg-accent-500/6',
+                      )}
                     >
-                      <Table.CheckCell
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelect(link.id)}
-                        onClick={(event) => event.stopPropagation()}
-                        aria-label={`选择 ${link.name}`}
-                      />
+                      {showCheckboxes ? (
+                        <Checkbox
+                          size="sm"
+                          isSelected={isSelected}
+                          onChange={() => toggleSelect(link.id)}
+                          aria-label={`选择 ${link.name}`}
+                          className="mt-1 shrink-0"
+                        />
+                      ) : null}
 
-                      <Table.Cell className="max-w-56">
-                        <div className="flex items-center gap-1.5">
-                          <p
-                            className="truncate text-body-2-medium text-text-primary"
-                            title={link.name}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          showCheckboxes ? toggleSelect(link.id) : setDrawerLinkId(link.id)
+                        }
+                        className="min-w-0 flex-1 cursor-pointer rounded-lg text-start outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                            <span
+                              className="truncate text-body-semibold text-text-primary"
+                              title={link.name}
+                            >
+                              {link.name}
+                            </span>
+                            {link.password ? (
+                              <RiLockLine
+                                className="size-3.5 shrink-0 text-foreground-icon-tertiary"
+                                aria-label="已开启密钥保护"
+                              />
+                            ) : null}
+                          </span>
+                          <Badge
+                            variant={STATE_BADGE[state].variant}
+                            appearance="dot"
+                            className="shrink-0"
                           >
-                            {link.name}
-                          </p>
-                          {link.password ? (
-                            <RiLockLine
-                              className="size-3.5 shrink-0 text-foreground-icon-tertiary"
-                              aria-label="已开启密钥保护"
-                            />
-                          ) : null}
+                            {STATE_BADGE[state].label}
+                          </Badge>
+                        </span>
+                        <span className="mt-1 flex min-w-0 items-center gap-1.5">
+                          <span
+                            dir="ltr"
+                            className="truncate rounded bg-background-secondary-default px-1.5 py-0.5 font-mono text-caption-2-medium text-text-secondary"
+                          >
+                            /s/{link.id}
+                          </span>
                           {link.defaultTarget && link.defaultTarget !== 'auto' ? (
-                            <Badge variant="outline" className="font-mono">
+                            <Badge variant="outline" className="shrink-0 font-mono">
                               {link.defaultTarget}
                             </Badge>
                           ) : null}
-                        </div>
-                        <div className="mt-0.5" onClick={(event) => event.stopPropagation()}>
-                          <InlineCopyText
-                            variant="mono-secondary"
-                            value={getShortLinkUrl(link)}
-                            labels={{ copyAction: '复制短链地址', copied: '已复制' }}
-                          >
-                            {`/s/${link.id}`}
-                          </InlineCopyText>
-                        </div>
-                      </Table.Cell>
-
-                      <Table.Cell>
-                        <Badge variant={STATE_BADGE[state].variant} appearance="dot">
-                          {STATE_BADGE[state].label}
-                        </Badge>
-                      </Table.Cell>
-
-                      <Table.Cell className="max-w-56">
-                        <p
+                        </span>
+                        <span
                           dir="ltr"
-                          className="truncate font-mono text-caption-1-regular text-text-secondary"
+                          className="mt-1.5 block truncate font-mono text-caption-1-regular text-text-tertiary"
                           title={link.targetUrl}
                         >
                           {link.targetUrl}
-                        </p>
-                        {link.comment ? (
-                          <p
-                            className="mt-0.5 truncate text-caption-1-regular text-text-tertiary"
-                            title={link.comment}
-                          >
-                            {link.comment}
-                          </p>
-                        ) : null}
-                      </Table.Cell>
+                        </span>
+                        <span className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption-1-regular text-text-secondary">
+                          <span className="tabular-nums">
+                            {link.maxHits ? `${link.hits}/${link.maxHits}` : `${link.hits}`} 命中
+                          </span>
+                          <span className="tabular-nums">
+                            {link.expiresAt
+                              ? `至 ${new Date(link.expiresAt).toISOString().slice(0, 10)}`
+                              : '永久'}
+                          </span>
+                          <span className="ms-auto whitespace-nowrap text-text-tertiary">
+                            {formatRelativeTime(link.lastAccess)}
+                          </span>
+                        </span>
+                      </button>
 
-                      <Table.Cell className="text-end text-body-2-regular tabular-nums text-text-primary">
-                        {link.maxHits ? `${link.hits}/${link.maxHits}` : link.hits}
-                      </Table.Cell>
-
-                      <Table.Cell
-                        className="text-body-2-regular whitespace-nowrap tabular-nums text-text-secondary"
-                        title={link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
-                      >
-                        {link.expiresAt
-                          ? new Date(link.expiresAt).toISOString().slice(0, 10)
-                          : '永久'}
-                      </Table.Cell>
-
-                      <Table.Cell
-                        className="text-body-2-regular whitespace-nowrap text-text-secondary"
-                        title={formatDateTime(link.lastAccess)}
-                      >
-                        {formatRelativeTime(link.lastAccess)}
-                      </Table.Cell>
-
-                      <Table.Cell onClick={(event) => event.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <Tooltip
-                            content="复制短链地址"
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                iconOnly
-                                leadingIcon={RiFileCopyLine}
-                                aria-label="复制短链"
-                                onClick={() => void handleCopyShortLink(link)}
-                              />
-                            }
+                      {!showCheckboxes ? (
+                        <div className="flex shrink-0 items-center gap-0.5 -me-1">
+                          <Button
+                            variant="ghost"
+                            size="small"
+                            iconOnly
+                            leadingIcon={RiFileCopyLine}
+                            aria-label={`复制短链：${link.name}`}
+                            onClick={() => void handleCopyShortLink(link)}
                           />
-
-                          <Tooltip
-                            content="查看详情抽屉"
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                iconOnly
-                                leadingIcon={RiInformationLine}
-                                aria-label="查看详情"
-                                onClick={() => setDrawerLinkId(link.id)}
-                              />
-                            }
-                          />
-
                           <DropdownMenu>
                             <DropdownMenu.Trigger
                               render={
                                 <Button
                                   variant="ghost"
-                                  size="xs"
+                                  size="small"
                                   iconOnly
                                   leadingIcon={RiMore2Fill}
-                                  aria-label="更多操作"
+                                  aria-label={`更多操作：${link.name}`}
                                 />
                               }
                             />
-                            <DropdownMenu.Content align="end">
-                              <DropdownMenu.Item
-                                icon={<RiExternalLinkLine className="size-4" aria-hidden />}
-                                onClick={() => handleOpenTarget(link)}
-                              >
-                                打开预览
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                icon={<RiQrCodeLine className="size-4" aria-hidden />}
-                                onClick={() => setQrLink(link)}
-                              >
-                                查看二维码
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Separator />
-                              <DropdownMenu.Item
-                                icon={<RiEditLine className="size-4" aria-hidden />}
-                                onClick={() => setEditingLink(link)}
-                              >
-                                编辑配置
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                icon={
-                                  link.disabled ? (
-                                    <RiPlayCircleLine className="size-4" aria-hidden />
-                                  ) : (
-                                    <RiPauseCircleLine className="size-4" aria-hidden />
-                                  )
-                                }
-                                onClick={() => void setEnabled(link.id, Boolean(link.disabled))}
-                              >
-                                {link.disabled ? '启用短链' : '禁用短链'}
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Separator />
-                              <DropdownMenu.Item
-                                variant="danger"
-                                icon={<RiDeleteBinLine className="size-4" aria-hidden />}
-                                onClick={() => setDeletingLink(link)}
-                              >
-                                删除短链
-                              </DropdownMenu.Item>
-                            </DropdownMenu.Content>
+                            <ShortLinkActionsMenu
+                              link={link}
+                              onCopy={(item) => void handleCopyShortLink(item)}
+                              onOpenTarget={handleOpenTarget}
+                              onOpenQr={setQrLink}
+                              onEdit={setEditingLink}
+                              onToggleEnabled={(item) =>
+                                void setEnabled(item.id, Boolean(item.disabled))
+                              }
+                              onDelete={setDeletingLink}
+                            />
                           </DropdownMenu>
                         </div>
-                      </Table.Cell>
-                    </Table.Row>
+                      ) : null}
+                    </div>
                   )
                 })}
-              </Table.Body>
-            </Table>
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
+                <Table className="console-table min-w-[720px]">
+                  <Table.Header variant="compact">
+                    <Table.Row>
+                      <Table.CheckHead
+                        checked={allVisibleSelected}
+                        indeterminate={someVisibleSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="全选"
+                      />
+                      <Table.Head>短链 / 短码</Table.Head>
+                      <Table.Head>状态</Table.Head>
+                      <Table.Head>目标链接</Table.Head>
+                      <Table.Head className="text-end">命中</Table.Head>
+                      <Table.Head>有效期</Table.Head>
+                      <Table.Head>最近访问</Table.Head>
+                      <Table.Head className="text-end">操作</Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {filteredLinks.map((link) => {
+                      const state = getLinkState(link, now)
+                      const isSelected = selectedIds.has(link.id)
+                      return (
+                        <Table.Row
+                          key={link.id}
+                          variant={isSelected ? 'selected' : 'default'}
+                          onClick={() => setDrawerLinkId(link.id)}
+                          className="cursor-pointer transition-colors hover:bg-background-secondary-default/65"
+                        >
+                          <Table.CheckCell
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(link.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`选择 ${link.name}`}
+                          />
+
+                          <Table.Cell className="max-w-56">
+                            <div className="flex items-center gap-1.5">
+                              <p
+                                className="truncate text-body-2-medium text-text-primary"
+                                title={link.name}
+                              >
+                                {link.name}
+                              </p>
+                              {link.password ? (
+                                <RiLockLine
+                                  className="size-3.5 shrink-0 text-foreground-icon-tertiary"
+                                  aria-label="已开启密钥保护"
+                                />
+                              ) : null}
+                              {link.defaultTarget && link.defaultTarget !== 'auto' ? (
+                                <Badge variant="outline" className="font-mono">
+                                  {link.defaultTarget}
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <div className="mt-0.5" onClick={(event) => event.stopPropagation()}>
+                              <InlineCopyText
+                                variant="mono-secondary"
+                                value={getShortLinkUrl(link)}
+                                labels={{ copyAction: '复制短链地址', copied: '已复制' }}
+                              >
+                                {`/s/${link.id}`}
+                              </InlineCopyText>
+                            </div>
+                          </Table.Cell>
+
+                          <Table.Cell>
+                            <Badge variant={STATE_BADGE[state].variant} appearance="dot">
+                              {STATE_BADGE[state].label}
+                            </Badge>
+                          </Table.Cell>
+
+                          <Table.Cell className="max-w-56">
+                            <p
+                              dir="ltr"
+                              className="truncate font-mono text-caption-1-regular text-text-secondary"
+                              title={link.targetUrl}
+                            >
+                              {link.targetUrl}
+                            </p>
+                            {link.comment ? (
+                              <p
+                                className="mt-0.5 truncate text-caption-1-regular text-text-tertiary"
+                                title={link.comment}
+                              >
+                                {link.comment}
+                              </p>
+                            ) : null}
+                          </Table.Cell>
+
+                          <Table.Cell className="text-end text-body-2-regular tabular-nums text-text-primary">
+                            {link.maxHits ? `${link.hits}/${link.maxHits}` : link.hits}
+                          </Table.Cell>
+
+                          <Table.Cell
+                            className="text-body-2-regular whitespace-nowrap tabular-nums text-text-secondary"
+                            title={link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
+                          >
+                            {link.expiresAt
+                              ? new Date(link.expiresAt).toISOString().slice(0, 10)
+                              : '永久'}
+                          </Table.Cell>
+
+                          <Table.Cell
+                            className="text-body-2-regular whitespace-nowrap text-text-secondary"
+                            title={formatDateTime(link.lastAccess)}
+                          >
+                            {formatRelativeTime(link.lastAccess)}
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(event) => event.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              <Tooltip
+                                content="复制短链地址"
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    iconOnly
+                                    leadingIcon={RiFileCopyLine}
+                                    aria-label="复制短链"
+                                    onClick={() => void handleCopyShortLink(link)}
+                                  />
+                                }
+                              />
+
+                              <Tooltip
+                                content="查看详情抽屉"
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    iconOnly
+                                    leadingIcon={RiInformationLine}
+                                    aria-label="查看详情"
+                                    onClick={() => setDrawerLinkId(link.id)}
+                                  />
+                                }
+                              />
+
+                              <DropdownMenu>
+                                <DropdownMenu.Trigger
+                                  render={
+                                    <Button
+                                      variant="ghost"
+                                      size="xs"
+                                      iconOnly
+                                      leadingIcon={RiMore2Fill}
+                                      aria-label="更多操作"
+                                    />
+                                  }
+                                />
+                                <ShortLinkActionsMenu
+                                  link={link}
+                                  onCopy={(item) => void handleCopyShortLink(item)}
+                                  onOpenTarget={handleOpenTarget}
+                                  onOpenQr={setQrLink}
+                                  onEdit={setEditingLink}
+                                  onToggleEnabled={(item) =>
+                                    void setEnabled(item.id, Boolean(item.disabled))
+                                  }
+                                  onDelete={setDeletingLink}
+                                />
+                              </DropdownMenu>
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      )
+                    })}
+                  </Table.Body>
+                </Table>
+              </div>
+            </>
           )}
         </div>
       </LayerCard>
 
       <p className="text-center text-caption-1-regular tabular-nums text-text-tertiary">
-        共 {shortLinks.length} 条短链 · 点击行查看配额与格式直链 · 导入导出兼容 Sink JSON
+        <span className="sm:hidden">共 {shortLinks.length} 条 · 点击查看配额与格式直链</span>
+        <span className="hidden sm:inline">
+          共 {shortLinks.length} 条短链 · 点击行查看配额与格式直链 · 导入导出兼容 Sink JSON
+        </span>
       </p>
 
       <ShortLinkDetailDrawer

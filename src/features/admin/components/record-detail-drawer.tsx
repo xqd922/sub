@@ -87,12 +87,13 @@ export function RecordDetailDrawer({
       footer={
         record ? (
           <>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-1.5">
               <Button
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiLinkM}
                 disabled={shortening}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onCreateShortLink(record)}
               >
                 {shortening ? '生成中…' : '生成短链'}
@@ -101,6 +102,7 @@ export function RecordDetailDrawer({
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiQrCodeLine}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onOpenQr(record)}
               >
                 二维码
@@ -109,22 +111,25 @@ export function RecordDetailDrawer({
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiExternalLinkLine}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onPreview(record)}
               >
-                预览
+                预览配置
               </Button>
               <Button
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiEditLine}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onRename(record)}
               >
-                改名
+                重命名
               </Button>
             </div>
             <Button
               variant={record.deleted ? 'primary' : 'secondary'}
               size="xs"
+              className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
               onClick={() => onToggleEnabled(record)}
             >
               {record.deleted ? '启用订阅' : '禁用订阅'}
@@ -170,8 +175,8 @@ export function RecordDetailDrawer({
 
           {/* Online Health Inspection */}
           <section className="rounded-xl border border-separator-border bg-background-secondary-default/45 p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <h3 className="text-body-semibold text-text-primary">上游节点检测</h3>
                 <p className="mt-0.5 text-caption-1-regular text-text-tertiary">
                   实时拉取上游订阅并解析节点协议、地区与流量配额
@@ -182,6 +187,7 @@ export function RecordDetailDrawer({
                 size="xs"
                 leadingIcon={RiPulseLine}
                 disabled={inspecting}
+                className="h-8 shrink-0 rounded-lg sm:h-6 sm:rounded-sm"
                 onClick={() => onInspect(record)}
               >
                 {inspecting ? '检测中…' : inspection ? '重新检测' : '立即检测'}
@@ -259,37 +265,37 @@ export function RecordDetailDrawer({
               Metadata
             </h3>
             <dl className="grid grid-cols-2 gap-3 rounded-xl border border-separator-border bg-background-secondary-default/35 p-3.5 text-body-2-regular">
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">最近客户端</dt>
-                <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
+                <dd dir="ltr" className="mt-0.5 truncate font-mono text-text-primary">
                   {record.clientType || '—'}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">节点数 / 命中次数</dt>
                 <dd className="mt-0.5 tabular-nums text-text-primary">
                   {record.nodeCount} 节点 · {record.hits} 次
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">最后访问 IP</dt>
-                <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
+                <dd dir="ltr" className="mt-0.5 break-all font-mono text-text-primary">
                   {record.lastIp || '—'}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">最后访问时间</dt>
                 <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(record.lastAccess)}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">首次登记</dt>
                 <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(record.createdAt)}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">最近更新</dt>
                 <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(record.updatedAt)}

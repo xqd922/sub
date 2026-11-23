@@ -93,15 +93,17 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
   return (
     <>
       <LayerCard className="overflow-hidden p-0">
-        <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
-          <div className="min-w-0">
+        <LayerCard.Secondary className="my-0 flex items-start justify-between gap-3 border-b border-separator-border px-4 py-3.5 sm:items-center sm:px-5">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-headline-semibold text-text-primary">客户端 UA 适配规则</h2>
+              <h2 className="text-body-semibold text-text-primary sm:text-headline-semibold">
+                客户端 UA 适配规则
+              </h2>
               <Badge variant="outline" className="tabular-nums">
                 {rules.length}
               </Badge>
             </div>
-            <p className="mt-0.5 text-body-2-regular text-text-secondary">
+            <p className="mt-1 text-caption-1-regular text-text-secondary sm:mt-0.5 sm:text-body-2-regular">
               按 User-Agent 关键词覆写目标输出格式（不区分大小写，优先级高于内置识别表）
             </p>
           </div>
@@ -109,13 +111,14 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
             variant="secondary"
             size="small"
             leadingIcon={RiAddLine}
+            className="shrink-0"
             onClick={() => setAddModalOpen(true)}
           >
             添加适配
           </Button>
         </LayerCard.Secondary>
 
-        <div className="overflow-x-auto bg-background-primary-default">
+        <div className="bg-background-primary-default">
           {loading ? (
             <div className="py-12 text-center text-body-2-regular text-text-tertiary">
               加载客户端适配规则中…
@@ -130,48 +133,90 @@ export function ClientRulesCard({ onUnauthorized }: ClientRulesCardProps) {
               />
             </div>
           ) : (
-            <Table className="console-table min-w-[520px]">
-              <Table.Header variant="compact">
-                <Table.Row>
-                  <Table.Head>User-Agent 关键词</Table.Head>
-                  <Table.Head>输出格式</Table.Head>
-                  <Table.Head>备注</Table.Head>
-                  <Table.Head className="text-end">操作</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
+            <>
+              <div className="divide-y divide-separator-border lg:hidden">
                 {rules.map((rule) => (
-                  <Table.Row key={rule.id}>
-                    <Table.Cell dir="ltr" className="font-mono text-body-2-medium text-text-primary">
-                      {rule.keyword}
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge variant="info">{TARGET_LABEL[rule.target]}</Badge>
-                    </Table.Cell>
-                    <Table.Cell className="text-body-2-regular text-text-secondary">
-                      {rule.note || '—'}
-                    </Table.Cell>
-                    <Table.Cell className="text-end">
-                      <Tooltip
-                        content="删除规则"
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            iconOnly
-                            leadingIcon={RiDeleteBinLine}
-                            aria-label="删除规则"
-                            disabled={deletingId === rule.id}
-                            className="text-text-tertiary hover:text-text-error-primary"
-                            onClick={() => void handleDelete(rule.id)}
-                          />
-                        }
-                      />
-                    </Table.Cell>
-                  </Table.Row>
+                  <div key={rule.id} className="flex items-start gap-3 px-4 py-3.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          dir="ltr"
+                          className="break-all font-mono text-body-2-semibold text-text-primary"
+                        >
+                          {rule.keyword}
+                        </span>
+                        <Badge variant="info" className="shrink-0">
+                          {TARGET_LABEL[rule.target]}
+                        </Badge>
+                      </div>
+                      {rule.note ? (
+                        <p className="mt-1 line-clamp-2 text-caption-1-regular text-text-tertiary">
+                          {rule.note}
+                        </p>
+                      ) : null}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="small"
+                      iconOnly
+                      leadingIcon={RiDeleteBinLine}
+                      aria-label={`删除规则 ${rule.keyword}`}
+                      disabled={deletingId === rule.id}
+                      className="shrink-0 text-text-tertiary hover:text-text-error-primary"
+                      onClick={() => void handleDelete(rule.id)}
+                    />
+                  </div>
                 ))}
-              </Table.Body>
-            </Table>
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
+                <Table className="console-table min-w-[520px]">
+                  <Table.Header variant="compact">
+                    <Table.Row>
+                      <Table.Head>User-Agent 关键词</Table.Head>
+                      <Table.Head>输出格式</Table.Head>
+                      <Table.Head>备注</Table.Head>
+                      <Table.Head className="text-end">操作</Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {rules.map((rule) => (
+                      <Table.Row key={rule.id}>
+                        <Table.Cell
+                          dir="ltr"
+                          className="font-mono text-body-2-medium text-text-primary"
+                        >
+                          {rule.keyword}
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Badge variant="info">{TARGET_LABEL[rule.target]}</Badge>
+                        </Table.Cell>
+                        <Table.Cell className="text-body-2-regular text-text-secondary">
+                          {rule.note || '—'}
+                        </Table.Cell>
+                        <Table.Cell className="text-end">
+                          <Tooltip
+                            content="删除规则"
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                iconOnly
+                                leadingIcon={RiDeleteBinLine}
+                                aria-label="删除规则"
+                                disabled={deletingId === rule.id}
+                                className="text-text-tertiary hover:text-text-error-primary"
+                                onClick={() => void handleDelete(rule.id)}
+                              />
+                            }
+                          />
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              </div>
+            </>
           )}
         </div>
       </LayerCard>

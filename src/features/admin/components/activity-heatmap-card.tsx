@@ -39,7 +39,7 @@ export function TopRecordsCard({ records }: TopRecordsCardProps) {
 
   return (
     <LayerCard className="flex h-full flex-col overflow-hidden">
-      <LayerCard.Secondary className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
+      <LayerCard.Secondary className="my-0 flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
         <span className="inline-flex items-center gap-1.5 text-body-semibold text-text-primary">
           <RiFireLine className="size-4 text-brand-cloudflare" aria-hidden />
           热门订阅 Top 5
@@ -52,34 +52,42 @@ export function TopRecordsCard({ records }: TopRecordsCardProps) {
           <p className="py-10 text-center text-body-2-regular text-text-tertiary">暂无订阅数据</p>
         ) : (
           <ol className="flex flex-col gap-3">
-            {topRecords.map((record, index) => (
-              <li
-                key={record.id}
-                className="flex items-center gap-3 rounded-md px-1 py-0.5 transition-colors hover:bg-background-secondary-default/55"
-              >
-                <span className="w-5 shrink-0 font-mono text-caption-1-medium tabular-nums text-text-tertiary">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span
-                  className="min-w-0 flex-1 truncate text-body-2-medium text-text-primary"
-                  title={record.name}
+            {topRecords.map((record, index) => {
+              const barWidth = `${Math.max((record.hits / maxRecordHits) * 100, 4)}%`
+              return (
+                <li
+                  key={record.id}
+                  className="flex flex-col gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-background-secondary-default/55 sm:flex-row sm:items-center sm:gap-3"
                 >
-                  {record.name}
-                </span>
-                <div className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-background-secondary-default sm:block xl:w-32">
-                  <div
-                    className={cx(
-                      'h-full rounded-full transition-all duration-300',
-                      index === 0 ? 'bg-accent-500' : 'bg-accent-500/45',
-                    )}
-                    style={{ width: `${Math.max((record.hits / maxRecordHits) * 100, 4)}%` }}
-                  />
-                </div>
-                <span className="w-14 shrink-0 text-end text-body-2-regular tabular-nums text-text-secondary">
-                  {formatCount(record.hits)}
-                </span>
-              </li>
-            ))}
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+                    <span className="w-5 shrink-0 font-mono text-caption-1-medium tabular-nums text-text-tertiary">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span
+                      className="min-w-0 flex-1 truncate text-body-2-medium text-text-primary"
+                      title={record.name}
+                    >
+                      {record.name}
+                    </span>
+                    <span className="shrink-0 text-end text-body-2-regular tabular-nums text-text-secondary sm:hidden">
+                      {formatCount(record.hits)}
+                    </span>
+                  </div>
+                  <div className="ms-7 h-1.5 overflow-hidden rounded-full bg-background-secondary-default sm:ms-0 sm:w-24 sm:shrink-0 xl:w-32">
+                    <div
+                      className={cx(
+                        'h-full rounded-full transition-all duration-300',
+                        index === 0 ? 'bg-accent-500' : 'bg-accent-500/45',
+                      )}
+                      style={{ width: barWidth }}
+                    />
+                  </div>
+                  <span className="hidden w-14 shrink-0 text-end text-body-2-regular tabular-nums text-text-secondary sm:inline">
+                    {formatCount(record.hits)}
+                  </span>
+                </li>
+              )
+            })}
           </ol>
         )}
       </LayerCard.Primary>
@@ -109,7 +117,7 @@ export function ActivityHeatmapCard({ daily }: ActivityHeatmapCardProps) {
 
   return (
     <LayerCard className="overflow-hidden">
-      <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
+      <LayerCard.Secondary className="my-0 flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
         <h2 className="text-body-semibold text-text-primary">近 30 天活跃度</h2>
         <span className="text-caption-1-regular tabular-nums text-text-secondary">
           {hovered

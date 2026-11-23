@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useId, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { LayerCard } from '@cloudflare/kumo/components/layer-card'
 import { Tabs } from '@cloudflare/kumo/components/tabs'
+import { RiArrowRightLine, RiLineChartLine } from '@remixicon/react'
 import { Skeleton } from '@/components/base/skeleton/skeleton'
 import type { DailyStats, HourlyStats } from '@/shared/admin.types'
 import {
@@ -20,10 +22,10 @@ interface TrendChartCardProps {
   loading: boolean
 }
 
-const RANGE_TABS: Array<{ value: RangeKey; label: string }> = [
-  { value: '24h', label: '24 小时' },
-  { value: '7d', label: '7 天' },
-  { value: '30d', label: '30 天' },
+const RANGE_TABS: Array<{ value: RangeKey; label: string; className: string }> = [
+  { value: '24h', label: '24 小时', className: 'flex-1 justify-center sm:flex-none' },
+  { value: '7d', label: '7 天', className: 'flex-1 justify-center sm:flex-none' },
+  { value: '30d', label: '30 天', className: 'flex-1 justify-center sm:flex-none' },
 ]
 
 const RANGE_SUMMARY_LABEL: Record<RangeKey, string> = {
@@ -227,14 +229,31 @@ export function TrendChartCard({ daily, hourly, loading }: TrendChartCardProps) 
         : '按小时实时聚合 · 本地时区'
       : 'Cloudflare KV 按日汇总'
 
+  const handleChartPointer = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (points.length === 0) return
+    if (event.type === 'pointermove' && event.pointerType === 'touch' && event.buttons === 0) {
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (rect.width <= 0) return
+    const relativeX = ((event.clientX - rect.left) / rect.width) * chartWidth
+    const clampedX = Math.max(PAD_LEFT, Math.min(PAD_LEFT + plotWidth, relativeX))
+    const ratio = plotWidth > 0 ? (clampedX - PAD_LEFT) / plotWidth : 0
+    const idx = Math.round(ratio * (points.length - 1))
+    const targetPoint = points[Math.max(0, Math.min(points.length - 1, idx))]
+    if (targetPoint) setHoveredKey(targetPoint.key)
+  }
+
   return (
     <LayerCard className="overflow-hidden">
-      <LayerCard.Secondary className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3 sm:px-5">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-          <h2 className="text-body-semibold text-text-primary">转换请求趋势</h2>
-          <span className="text-headline-semibold tracking-[-0.015em] tabular-nums text-text-primary">
-            {loading ? '—' : formatCount(rangeTotal)}
-          </span>
+      <LayerCard.Secondary className="my-0 flex flex-col items-stretch gap-2.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2.5 gap-y-0.5 sm:justify-start">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-body-semibold text-text-primary">转换请求趋势</h2>
+            <span className="text-headline-semibold tracking-[-0.015em] tabular-nums text-text-primary">
+              {loading ? '—' : formatCount(rangeTotal)}
+            </span>
+          </div>
           <span className="text-caption-1-regular tabular-nums text-text-tertiary">
             {RANGE_SUMMARY_LABEL[range]}
           </span>
@@ -243,6 +262,8 @@ export function TrendChartCard({ daily, hourly, loading }: TrendChartCardProps) 
         <Tabs
           variant="segmented"
           size="sm"
+          className="w-full sm:w-auto"
+          listClassName="w-full sm:w-auto"
           tabs={RANGE_TABS}
           value={range}
           onValueChange={(next) => {
@@ -254,10 +275,25 @@ export function TrendChartCard({ daily, hourly, loading }: TrendChartCardProps) 
 
       <LayerCard.Primary className="p-4 sm:p-5">
         {loading ? (
-          <Skeleton className="h-[228px] w-full rounded-lg" />
+          <Skeleton className="h-[168px] w-full rounded-lg sm:h-[228px]" />
         ) : series.length === 0 ? (
-          <div className="flex h-[204px] items-center justify-center rounded-lg border border-dashed border-separator-border bg-background-secondary-default/40 text-body-2-regular text-text-tertiary">
-            暂无趋势数据，完成首次订阅转换后将自动生成曲线
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-separator-border bg-background-secondary-default/40 px-4 py-8 text-center sm:py-10">
+            <span className="flex size-9 items-center justify-center rounded-full bg-background-primary-default ring-1 ring-separator-border">
+              <RiLineChartLine className="size-4 text-foreground-icon-tertiary" aria-hidden />
+            </span>
+            <div>
+              <p className="text-body-2-medium text-text-secondary">暂无趋势数据</p>
+              <p className="mt-1 text-caption-1-regular text-text-tertiary">
+                完成一次订阅转换后将自动生成曲线
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-border-button-default bg-background-primary-default px-3 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:border-border-button-hover hover:bg-background-secondary-default hover:text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+            >
+              去首页转换
+              <RiArrowRightLine className="size-3.5" aria-hidden />
+            </Link>
           </div>
         ) : (
           <>
@@ -294,9 +330,11 @@ export function TrendChartCard({ daily, hourly, loading }: TrendChartCardProps) 
                 viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT}`}
                 width="100%"
                 height={CHART_HEIGHT}
-                className="block h-[204px] w-full overflow-visible select-none"
+                className="block h-[196px] w-full touch-pan-y overflow-visible select-none sm:h-[204px]"
                 role="img"
                 aria-label={`${RANGE_SUMMARY_LABEL[range]}趋势图`}
+                onPointerDown={handleChartPointer}
+                onPointerMove={handleChartPointer}
                 onMouseLeave={() => setHoveredKey(null)}
               >
                 <defs>

@@ -17,6 +17,7 @@ import {
   applyThemeWithTransition,
   useThemeMode,
 } from '@/components/application/theme/theme-toggle'
+import { Modal } from '@/components/base/modal/modal'
 import type { AdminTabKey } from '@/features/admin/components/admin-sidebar'
 
 interface PaletteItem {
@@ -159,74 +160,89 @@ export function AdminCommandPalette({
   }
 
   return (
-    <CommandPalette.Root
-      open={open}
+    <Modal
+      isOpen={open}
       onOpenChange={(nextOpen) => {
         onOpenChange(nextOpen)
         if (!nextOpen) setSearch('')
       }}
-      items={filteredGroups}
-      value={search}
-      onValueChange={setSearch}
-      itemToStringValue={(group: PaletteGroup) => group.label}
-      onSelect={(item: PaletteItem) => handleSelect(item)}
-      getSelectableItems={(allGroups: PaletteGroup[]) =>
-        allGroups.flatMap((group) => group.items)
-      }
+      size="lg"
+      aria-label="快捷导航与命令面板"
+      overlayClassName="items-start pt-[calc(env(safe-area-inset-top)+2.5rem)] sm:pt-[12vh]"
+      className="gap-0 overflow-hidden rounded-2xl p-0"
     >
-      <CommandPalette.Input placeholder="输入命令或搜索控制台页面…" />
-      <CommandPalette.List>
-        <CommandPalette.Results>
-          {(group: PaletteGroup) => (
-            <CommandPalette.Group key={group.id} items={group.items}>
-              <CommandPalette.GroupLabel>{group.label}</CommandPalette.GroupLabel>
-              <CommandPalette.Items>
-                {(item: PaletteItem) => {
-                  const Icon = item.icon
-                  return (
-                    <CommandPalette.Item
-                      key={item.id}
-                      value={item}
-                      onClick={() => handleSelect(item)}
-                    >
-                      <span className="flex min-w-0 flex-1 items-center gap-2.5">
-                        <Icon className="size-4 shrink-0 text-kumo-subtle" aria-hidden />
-                        <span className="truncate text-body-medium text-kumo-default">
-                          {item.title}
+      <CommandPalette.Panel
+        open={open}
+        items={filteredGroups}
+        value={search}
+        onValueChange={setSearch}
+        itemToStringValue={(group: PaletteGroup) => group.label}
+        onSelect={(item: PaletteItem) => handleSelect(item)}
+        getSelectableItems={(allGroups: PaletteGroup[]) =>
+          allGroups.flatMap((group) => group.items)
+        }
+        className="max-h-[72dvh] rounded-none bg-background-primary-default sm:max-h-[60vh]"
+      >
+        <CommandPalette.Input placeholder="输入命令或搜索控制台页面…" />
+        <CommandPalette.List className="rounded-none bg-background-primary-default ring-0 border-t border-separator-border">
+          <CommandPalette.Results>
+            {(group: PaletteGroup) => (
+              <CommandPalette.Group key={group.id} items={group.items}>
+                <CommandPalette.GroupLabel>{group.label}</CommandPalette.GroupLabel>
+                <CommandPalette.Items>
+                  {(item: PaletteItem) => {
+                    const Icon = item.icon
+                    return (
+                      <CommandPalette.Item
+                        key={item.id}
+                        value={item}
+                        onClick={() => handleSelect(item)}
+                        className="py-2.5 sm:py-1.5"
+                      >
+                        <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <Icon
+                            className="size-4 shrink-0 text-foreground-icon-secondary"
+                            aria-hidden
+                          />
+                          <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-2.5">
+                            <span className="truncate text-body-medium text-text-primary">
+                              {item.title}
+                            </span>
+                            <span className="truncate text-caption-1-regular text-text-tertiary sm:text-body-2-regular">
+                              {item.hint}
+                            </span>
+                          </span>
                         </span>
-                        <span className="hidden truncate text-body-2-regular text-kumo-subtle sm:inline">
-                          {item.hint}
-                        </span>
-                      </span>
-                    </CommandPalette.Item>
-                  )
-                }}
-              </CommandPalette.Items>
-            </CommandPalette.Group>
-          )}
-        </CommandPalette.Results>
-        <CommandPalette.Empty>未找到匹配的页面或命令</CommandPalette.Empty>
-      </CommandPalette.List>
-      <CommandPalette.Footer>
-        <span className="flex items-center gap-1.5 text-caption-1-regular text-kumo-subtle">
-          <kbd className="rounded border border-kumo-hairline bg-kumo-base px-1.5 py-0.5 font-mono text-caption-2-medium">
-            ↑↓
-          </kbd>
-          <span>选择</span>
-        </span>
-        <span className="flex items-center gap-1.5 text-caption-1-regular text-kumo-subtle">
-          <kbd className="rounded border border-kumo-hairline bg-kumo-base px-1.5 py-0.5 font-mono text-caption-2-medium">
-            ↵
-          </kbd>
-          <span>执行</span>
-        </span>
-        <span className="flex items-center gap-1.5 text-caption-1-regular text-kumo-subtle">
-          <kbd className="rounded border border-kumo-hairline bg-kumo-base px-1.5 py-0.5 font-mono text-caption-2-medium">
-            Esc
-          </kbd>
-          <span>关闭</span>
-        </span>
-      </CommandPalette.Footer>
-    </CommandPalette.Root>
+                      </CommandPalette.Item>
+                    )
+                  }}
+                </CommandPalette.Items>
+              </CommandPalette.Group>
+            )}
+          </CommandPalette.Results>
+          <CommandPalette.Empty>未找到匹配的页面或命令</CommandPalette.Empty>
+        </CommandPalette.List>
+        <div className="hidden items-center justify-between border-t border-separator-border bg-background-secondary-default px-4 py-2.5 sm:flex">
+          <span className="flex items-center gap-1.5 text-caption-1-regular text-text-tertiary">
+            <kbd className="rounded border border-separator-border bg-background-primary-default px-1.5 py-0.5 font-mono text-caption-2-medium text-text-secondary">
+              ↑↓
+            </kbd>
+            <span>选择</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-caption-1-regular text-text-tertiary">
+            <kbd className="rounded border border-separator-border bg-background-primary-default px-1.5 py-0.5 font-mono text-caption-2-medium text-text-secondary">
+              ↵
+            </kbd>
+            <span>执行</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-caption-1-regular text-text-tertiary">
+            <kbd className="rounded border border-separator-border bg-background-primary-default px-1.5 py-0.5 font-mono text-caption-2-medium text-text-secondary">
+              Esc
+            </kbd>
+            <span>关闭</span>
+          </span>
+        </div>
+      </CommandPalette.Panel>
+    </Modal>
   )
 }

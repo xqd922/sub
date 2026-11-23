@@ -114,12 +114,19 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
                 )}
               >
                 <div className="flex min-h-5 items-center justify-between gap-1.5">
-                  <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-body-2-medium text-text-secondary">
-                    <Icon className="size-3.5 shrink-0 text-foreground-icon-tertiary" aria-hidden />
+                  <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-caption-1-medium text-text-secondary sm:text-body-2-medium">
+                    <Icon
+                      className="hidden size-3.5 shrink-0 text-foreground-icon-tertiary sm:inline-block"
+                      aria-hidden
+                    />
                     <span className="truncate">{tile.label}</span>
                   </span>
                   {tile.statusBadge ? (
-                    <Badge variant={tile.statusBadge.variant} appearance="dot">
+                    <Badge
+                      variant={tile.statusBadge.variant}
+                      appearance="dot"
+                      className="shrink-0"
+                    >
                       {tile.statusBadge.label}
                     </Badge>
                   ) : null}
@@ -144,7 +151,7 @@ export function StatsPanel({ onUnauthorized }: StatsPanelProps) {
       {/* Row 3: Geometrically Balanced 50/50 Split */}
       <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-5 lg:grid-cols-2">
         <LayerCard className="flex h-full flex-col overflow-hidden">
-          <LayerCard.Secondary className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
+          <LayerCard.Secondary className="my-0 flex items-center justify-between gap-2 px-4 py-3 sm:px-5">
             <h2 className="text-body-semibold text-text-primary">客户端分布</h2>
             <span className="text-caption-1-regular tabular-nums text-text-tertiary">
               {totalClientHits > 0 ? `${formatCount(totalClientHits)} 次请求` : '暂无请求'}

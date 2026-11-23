@@ -38,7 +38,7 @@ const TARGET_TABS: Array<{ value: TargetClientOverride; label: string }> = [
 ]
 
 const ACTION_BUTTON_CLASS =
-  'inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-md border border-separator-border bg-background-primary-default px-2.5 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:border-border-button-hover hover:bg-background-secondary-default hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring'
+  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-separator-border bg-background-primary-default px-3 text-caption-1-medium text-text-secondary transition-colors duration-150 hover:border-border-button-hover hover:bg-background-secondary-default hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring sm:h-7.5 sm:px-2.5'
 
 export function ConversionResultCard({
   url,
@@ -75,6 +75,8 @@ export function ConversionResultCard({
 
   const clashImportHref = `clash://install-config?url=${encodeURIComponent(url)}`
   const singboxImportHref = `sing-box://import-remote-profile?url=${encodeURIComponent(url)}`
+  const showClashImport = target === 'auto' || target === 'clash'
+  const showSingboxImport = target === 'auto' || target === 'singbox'
 
   return (
     <LayerCard className="w-full overflow-hidden">
@@ -86,7 +88,11 @@ export function ConversionResultCard({
           value={target}
           onValueChange={(value) => onChangeTarget(value as TargetClientOverride)}
         />
-        <Badge variant="success" appearance="dot">
+        <Badge
+          variant="success"
+          appearance="dot"
+          className="hidden min-[380px]:inline-flex"
+        >
           已就绪
         </Badge>
       </LayerCard.Secondary>
@@ -102,13 +108,14 @@ export function ConversionResultCard({
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
+          <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={() => void handleCopyClick()}
               className={cx(
                 ACTION_BUTTON_CLASS,
+                'w-full justify-center sm:w-auto',
                 copied && 'border-status-lime-text/30 bg-status-lime-background/50 text-status-lime-text',
               )}
             >
@@ -125,7 +132,7 @@ export function ConversionResultCard({
                 type="button"
                 disabled={shortLoading}
                 onClick={onGenerateShort}
-                className={ACTION_BUTTON_CLASS}
+                className={cx(ACTION_BUTTON_CLASS, 'w-full justify-center sm:w-auto')}
               >
                 <RiLinksLine className="size-3.5" aria-hidden />
                 <span>{shortLoading ? '生成中…' : hasShortUrl ? '重生成短链' : '生成短链'}</span>
@@ -139,6 +146,7 @@ export function ConversionResultCard({
                 aria-pressed={showQr}
                 className={cx(
                   ACTION_BUTTON_CLASS,
+                  'w-full justify-center sm:w-auto',
                   showQr && 'border-accent-500/40 bg-accent-500/10 text-text-primary',
                 )}
               >
@@ -148,28 +156,45 @@ export function ConversionResultCard({
             ) : null}
 
             {onPreview ? (
-              <button type="button" onClick={onPreview} className={ACTION_BUTTON_CLASS}>
+              <button
+                type="button"
+                onClick={onPreview}
+                className={cx(ACTION_BUTTON_CLASS, 'w-full justify-center sm:w-auto')}
+              >
                 <RiExternalLinkLine className="size-3.5" aria-hidden />
                 <span>预览配置</span>
               </button>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            {target === 'auto' || target === 'clash' ? (
-              <a href={clashImportHref} className={ACTION_BUTTON_CLASS}>
-                <RiDownload2Line className="size-3.5" aria-hidden />
-                <span>导入 Clash</span>
-              </a>
-            ) : null}
+          {showClashImport || showSingboxImport ? (
+            <div
+              className={cx(
+                'grid gap-1.5 sm:flex sm:flex-wrap sm:items-center',
+                showClashImport && showSingboxImport ? 'grid-cols-2' : 'grid-cols-1',
+              )}
+            >
+              {showClashImport ? (
+                <a
+                  href={clashImportHref}
+                  className={cx(ACTION_BUTTON_CLASS, 'w-full justify-center sm:w-auto')}
+                >
+                  <RiDownload2Line className="size-3.5" aria-hidden />
+                  <span>导入 Clash</span>
+                </a>
+              ) : null}
 
-            {target === 'auto' || target === 'singbox' ? (
-              <a href={singboxImportHref} className={ACTION_BUTTON_CLASS}>
-                <RiDownload2Line className="size-3.5" aria-hidden />
-                <span>导入 sing-box</span>
-              </a>
-            ) : null}
-          </div>
+              {showSingboxImport ? (
+                <a
+                  href={singboxImportHref}
+                  className={cx(ACTION_BUTTON_CLASS, 'w-full justify-center sm:w-auto')}
+                >
+                  <RiDownload2Line className="size-3.5" aria-hidden />
+                  <span>导入 sing-box</span>
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {children}

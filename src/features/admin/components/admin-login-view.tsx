@@ -154,7 +154,7 @@ export function AdminLoginView({ onSubmit }: AdminLoginViewProps) {
 
       {/* Right Login Panel */}
       <div className="flex min-h-dvh flex-col bg-background-full">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-separator-border/70 px-4 sm:px-6 lg:border-b-0 lg:px-8">
+        <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-separator-border/70 px-4 pt-[env(safe-area-inset-top)] sm:px-6 lg:border-b-0 lg:px-8">
           <Link
             href="/"
             className="flex items-center gap-2 text-body-semibold tracking-[-0.015em] text-text-primary lg:hidden"
@@ -178,7 +178,7 @@ export function AdminLoginView({ onSubmit }: AdminLoginViewProps) {
           </div>
         </header>
 
-        <main className="flex flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8">
+        <main className="flex flex-1 flex-col items-center justify-center px-5 pt-10 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:px-8">
           <div className="w-full max-w-[380px]">
             {/* Compact Mobile Cover Banner */}
             <div className="mb-6 flex items-center justify-between rounded-xl border border-cover-border bg-cover-bg px-4 py-3 text-cover-text lg:hidden">

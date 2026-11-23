@@ -10,6 +10,8 @@ import { Tabs } from '@cloudflare/kumo/components/tabs'
 import { Tooltip } from '@cloudflare/kumo/components/tooltip'
 import {
   RiAddLine,
+  RiCheckboxMultipleLine,
+  RiDatabase2Line,
   RiDeleteBinLine,
   RiDownloadLine,
   RiEditLine,
@@ -25,6 +27,7 @@ import {
   RiQrCodeLine,
 } from '@remixicon/react'
 import { Button } from '@/components/base/buttons/button'
+import { Checkbox } from '@/components/base/checkbox/checkbox'
 import { Input } from '@/components/base/input/input'
 import { AlertDialog, Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/base/modal/modal'
 import { SearchField } from '@/components/base/search-field/search-field'
@@ -40,6 +43,7 @@ import { showToast } from '@/features/shared/hooks/use-toast'
 import type { ConvertRecord, InspectSubscriptionResult, ShortLink } from '@/shared/admin.types'
 import { escapeCsvCell, formatDateTime, formatRelativeTime } from '@/shared/format.utils'
 import { buildConversionUrl } from '@/shared/url.utils'
+import { cx } from '@/utils/cx'
 
 interface RecordsPanelProps {
   onUnauthorized?: () => void
@@ -49,10 +53,10 @@ interface RecordsPanelProps {
 type SortKey = 'lastAccess' | 'hits' | 'createdAt' | 'nodeCount'
 type StatusFilter = 'all' | 'enabled' | 'disabled'
 
-const STATUS_TABS: Array<{ value: StatusFilter; label: string }> = [
-  { value: 'all', label: '全部' },
-  { value: 'enabled', label: '正常' },
-  { value: 'disabled', label: '已禁用' },
+const STATUS_TABS: Array<{ value: StatusFilter; label: string; className: string }> = [
+  { value: 'all', label: '全部', className: 'flex-1 justify-center sm:flex-none' },
+  { value: 'enabled', label: '正常', className: 'flex-1 justify-center sm:flex-none' },
+  { value: 'disabled', label: '已禁用', className: 'flex-1 justify-center sm:flex-none' },
 ]
 
 function exportRecordsCsv(records: ConvertRecord[]): void {
@@ -92,6 +96,98 @@ function exportRecordsCsv(records: ConvertRecord[]): void {
   URL.revokeObjectURL(downloadUrl)
 }
 
+interface RecordActionsMenuProps {
+  record: ConvertRecord
+  isInspecting: boolean
+  isShortening: boolean
+  onCopy: (record: ConvertRecord) => void
+  onInspect: (record: ConvertRecord) => void
+  onCreateShortLink: (record: ConvertRecord) => void
+  onOpenQr: (record: ConvertRecord) => void
+  onPreview: (record: ConvertRecord) => void
+  onRename: (record: ConvertRecord) => void
+  onToggleEnabled: (record: ConvertRecord) => void
+  onDelete: (record: ConvertRecord) => void
+}
+
+function RecordActionsMenu({
+  record,
+  isInspecting,
+  isShortening,
+  onCopy,
+  onInspect,
+  onCreateShortLink,
+  onOpenQr,
+  onPreview,
+  onRename,
+  onToggleEnabled,
+  onDelete,
+}: RecordActionsMenuProps) {
+  return (
+    <DropdownMenu.Content align="end">
+      <DropdownMenu.Item
+        icon={<RiFileCopyLine className="size-4" aria-hidden />}
+        onClick={() => onCopy(record)}
+      >
+        复制转换链接
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={<RiPulseLine className="size-4" aria-hidden />}
+        disabled={isInspecting}
+        onClick={() => onInspect(record)}
+      >
+        {isInspecting ? '检测中…' : '在线检测节点'}
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={<RiLinkM className="size-4" aria-hidden />}
+        disabled={isShortening}
+        onClick={() => onCreateShortLink(record)}
+      >
+        {isShortening ? '生成短链中…' : '生成短链'}
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={<RiQrCodeLine className="size-4" aria-hidden />}
+        onClick={() => onOpenQr(record)}
+      >
+        查看二维码
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={<RiExternalLinkLine className="size-4" aria-hidden />}
+        onClick={() => onPreview(record)}
+      >
+        预览配置
+      </DropdownMenu.Item>
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item
+        icon={<RiEditLine className="size-4" aria-hidden />}
+        onClick={() => onRename(record)}
+      >
+        重命名
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        icon={
+          record.deleted ? (
+            <RiPlayCircleLine className="size-4" aria-hidden />
+          ) : (
+            <RiPauseCircleLine className="size-4" aria-hidden />
+          )
+        }
+        onClick={() => onToggleEnabled(record)}
+      >
+        {record.deleted ? '启用订阅' : '禁用订阅'}
+      </DropdownMenu.Item>
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item
+        variant="danger"
+        icon={<RiDeleteBinLine className="size-4" aria-hidden />}
+        onClick={() => onDelete(record)}
+      >
+        删除记录
+      </DropdownMenu.Item>
+    </DropdownMenu.Content>
+  )
+}
+
 export function RecordsPanel({
   onUnauthorized,
   focusSearchSignal = 0,
@@ -113,6 +209,7 @@ export function RecordsPanel({
   const [sortKey, setSortKey] = useState<SortKey>('lastAccess')
   const [drawerRecordId, setDrawerRecordId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [mobileSelectMode, setMobileSelectMode] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [newUrl, setNewUrl] = useState('')
   const [newName, setNewName] = useState('')
@@ -262,6 +359,14 @@ export function RecordsPanel({
     await removeRecords(ids)
     if (drawerRecordId && selectedIds.has(drawerRecordId)) setDrawerRecordId(null)
     setSelectedIds(new Set())
+    setMobileSelectMode(false)
+  }
+
+  const toggleMobileSelectMode = () => {
+    setMobileSelectMode((prev) => {
+      if (prev) setSelectedIds(new Set())
+      return !prev
+    })
   }
 
   const handleAddConfirm = async () => {
@@ -280,43 +385,74 @@ export function RecordsPanel({
     <div className="flex flex-col gap-4">
       <LayerCard className="overflow-hidden p-0">
         <div className="flex flex-col gap-2.5 border-b border-separator-border bg-background-secondary-default/45 p-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:px-4">
-          <div ref={searchContainerRef} className="w-full sm:min-w-[200px] sm:flex-1">
-            <SearchField
+          <div className="flex w-full items-center gap-2 sm:min-w-[200px] sm:flex-1">
+            <div ref={searchContainerRef} className="min-w-0 flex-1">
+              <SearchField
+                size="small"
+                shape="rounded"
+                fieldClassName="h-9 sm:h-8"
+                value={search}
+                onChange={setSearch}
+                placeholder="搜索订阅名称、链接、客户端或 ID"
+                clearLabel="清除搜索"
+              />
+            </div>
+            <Button
+              variant="primary"
               size="small"
-              shape="rounded"
-              fieldClassName="h-9 sm:h-8"
-              value={search}
-              onChange={setSearch}
-              placeholder="搜索订阅名称、链接、客户端或 ID"
-              clearLabel="清除搜索"
-            />
+              leadingIcon={RiAddLine}
+              className="h-9 shrink-0 sm:hidden"
+              onClick={() => setAddModalOpen(true)}
+            >
+              登记
+            </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Tabs
-              variant="segmented"
-              size="sm"
-              tabs={STATUS_TABS}
-              value={statusFilter}
-              onValueChange={(next) => setStatusFilter(next as StatusFilter)}
-            />
+          <Tabs
+            variant="segmented"
+            size="sm"
+            className="w-full sm:w-auto"
+            listClassName="w-full sm:w-auto"
+            tabs={STATUS_TABS}
+            value={statusFilter}
+            onValueChange={(next) => setStatusFilter(next as StatusFilter)}
+          />
 
-            <Select
-              aria-label="排序方式"
-              size="sm"
-              selectedKey={sortKey}
-              onSelectionChange={(key) => {
-                if (key) setSortKey(String(key) as SortKey)
-              }}
-              className="w-32"
-            >
-              <SelectItem id="lastAccess">最近访问</SelectItem>
-              <SelectItem id="hits">命中次数</SelectItem>
-              <SelectItem id="createdAt">创建时间</SelectItem>
-              <SelectItem id="nodeCount">节点数量</SelectItem>
-            </Select>
+          <div className="flex items-center justify-between gap-2 sm:contents">
+            <div className="flex items-center gap-2">
+              <Select
+                aria-label="排序方式"
+                size="sm"
+                selectedKey={sortKey}
+                onSelectionChange={(key) => {
+                  if (key) setSortKey(String(key) as SortKey)
+                }}
+                className="w-[108px] sm:w-32"
+              >
+                <SelectItem id="lastAccess">最近访问</SelectItem>
+                <SelectItem id="hits">命中次数</SelectItem>
+                <SelectItem id="createdAt">创建时间</SelectItem>
+                <SelectItem id="nodeCount">节点数量</SelectItem>
+              </Select>
 
-            <div className="ms-auto flex items-center gap-1.5 sm:ms-0">
+              <span className="hidden text-caption-1-regular whitespace-nowrap tabular-nums text-text-tertiary min-[380px]:inline sm:hidden">
+                {filteredRecords.length} 条
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:ms-auto">
+              <Button
+                variant={mobileSelectMode ? 'primary' : 'secondary'}
+                size="small"
+                leadingIcon={RiCheckboxMultipleLine}
+                aria-label={mobileSelectMode ? '退出多选' : '批量多选'}
+                className="lg:hidden"
+                disabled={!mobileSelectMode && filteredRecords.length === 0}
+                onClick={toggleMobileSelectMode}
+              >
+                {mobileSelectMode ? '完成' : '多选'}
+              </Button>
+
               <Tooltip
                 content="导出当前列表为 CSV"
                 side="bottom"
@@ -337,6 +473,7 @@ export function RecordsPanel({
                 variant="primary"
                 size="small"
                 leadingIcon={RiAddLine}
+                className="hidden sm:inline-flex"
                 onClick={() => setAddModalOpen(true)}
               >
                 登记订阅
@@ -345,42 +482,67 @@ export function RecordsPanel({
           </div>
         </div>
 
-        {selectedIds.size > 0 ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-4 py-2.5">
-            <span className="text-body-2-medium tabular-nums text-text-primary">
-              已选中 {selectedIds.size} 条记录
-            </span>
-            <div className="flex items-center gap-1.5">
+        {selectedIds.size > 0 || mobileSelectMode ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator-border bg-accent-500/8 px-3.5 py-2.5 sm:px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-body-2-medium tabular-nums text-text-primary">
+                {selectedIds.size > 0 ? `已选 ${selectedIds.size} 条` : '勾选订阅进行批量操作'}
+              </span>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="lg:hidden"
+                disabled={filteredRecords.length === 0}
+                onClick={toggleSelectAll}
+              >
+                {allVisibleSelected ? '取消全选' : '全选'}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 variant="secondary"
                 size="xs"
+                className="h-7 sm:h-6"
+                disabled={selectedIds.size === 0}
                 onClick={() => void batchSetEnabled(Array.from(selectedIds), true)}
               >
-                批量启用
+                启用
               </Button>
               <Button
                 variant="secondary"
                 size="xs"
+                className="h-7 sm:h-6"
+                disabled={selectedIds.size === 0}
                 onClick={() => void batchSetEnabled(Array.from(selectedIds), false)}
               >
-                批量禁用
+                禁用
               </Button>
               <Button
                 variant="danger"
                 size="xs"
                 leadingIcon={RiDeleteBinLine}
+                className="h-7 sm:h-6"
+                disabled={selectedIds.size === 0}
                 onClick={() => setBatchDeleteOpen(true)}
               >
-                批量删除
+                删除
               </Button>
-              <Button variant="ghost" size="xs" onClick={() => setSelectedIds(new Set())}>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="h-7 sm:h-6"
+                onClick={() => {
+                  setSelectedIds(new Set())
+                  setMobileSelectMode(false)
+                }}
+              >
                 取消
               </Button>
             </div>
           </div>
         ) : null}
 
-        <div className="overflow-x-auto bg-background-primary-default">
+        <div className="bg-background-primary-default">
           {loading ? (
             <div className="py-16 text-center text-body-2-regular text-text-tertiary">
               加载订阅记录中…
@@ -411,194 +573,281 @@ export function RecordsPanel({
               />
             </div>
           ) : (
-            <Table className="console-table min-w-[680px]">
-              <Table.Header variant="compact">
-                <Table.Row>
-                  <Table.CheckHead
-                    checked={allVisibleSelected}
-                    indeterminate={someVisibleSelected}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="全选"
-                  />
-                  <Table.Head>订阅</Table.Head>
-                  <Table.Head>状态</Table.Head>
-                  <Table.Head>客户端</Table.Head>
-                  <Table.Head className="text-end">节点 / 命中</Table.Head>
-                  <Table.Head>最近访问</Table.Head>
-                  <Table.Head className="text-end">操作</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
+            <>
+              <div className="divide-y divide-separator-border lg:hidden">
                 {filteredRecords.map((record) => {
                   const isSelected = selectedIds.has(record.id)
                   const isShortening = shorteningId === record.id
                   const isInspecting = inspectingId === record.id
+                  const showCheckboxes = mobileSelectMode || selectedIds.size > 0
                   return (
-                    <Table.Row
+                    <div
                       key={record.id}
-                      variant={isSelected ? 'selected' : 'default'}
-                      onClick={() => setDrawerRecordId(record.id)}
-                      className="cursor-pointer transition-colors hover:bg-background-secondary-default/65"
+                      className={cx(
+                        'flex items-start gap-2.5 px-4 py-3.5 transition-colors',
+                        isSelected && 'bg-accent-500/6',
+                      )}
                     >
-                      <Table.CheckCell
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelect(record.id)}
-                        onClick={(event) => event.stopPropagation()}
-                        aria-label={`选择 ${record.name}`}
-                      />
+                      {showCheckboxes ? (
+                        <Checkbox
+                          size="sm"
+                          isSelected={isSelected}
+                          onChange={() => toggleSelect(record.id)}
+                          aria-label={`选择 ${record.name}`}
+                          className="mt-1 shrink-0"
+                        />
+                      ) : null}
 
-                      <Table.Cell className="max-w-72">
-                        <p
-                          className="truncate text-body-2-medium text-text-primary"
-                          title={record.name}
-                        >
-                          {record.name}
-                        </p>
-                        <p
+                      <button
+                        type="button"
+                        onClick={() =>
+                          showCheckboxes
+                            ? toggleSelect(record.id)
+                            : setDrawerRecordId(record.id)
+                        }
+                        className="min-w-0 flex-1 cursor-pointer rounded-lg text-start outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            className="min-w-0 flex-1 truncate text-body-semibold text-text-primary"
+                            title={record.name}
+                          >
+                            {record.name}
+                          </span>
+                          <Badge
+                            variant={record.deleted ? 'warning' : 'success'}
+                            appearance="dot"
+                            className="shrink-0"
+                          >
+                            {record.deleted ? '已禁用' : '正常'}
+                          </Badge>
+                        </span>
+                        <span
                           dir="ltr"
-                          className="mt-0.5 truncate font-mono text-caption-1-regular text-text-tertiary"
+                          className="mt-1 block truncate font-mono text-caption-1-regular text-text-tertiary"
                           title={record.originalUrl}
                         >
                           {record.originalUrl}
-                        </p>
-                      </Table.Cell>
-
-                      <Table.Cell>
-                        <Badge variant={record.deleted ? 'warning' : 'success'} appearance="dot">
-                          {record.deleted ? '已禁用' : '正常'}
-                        </Badge>
-                      </Table.Cell>
-
-                      <Table.Cell>
-                        <span className="font-mono text-caption-1-regular text-text-secondary">
-                          {record.clientType || '—'}
                         </span>
-                      </Table.Cell>
+                        <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption-1-regular text-text-secondary">
+                          {record.clientType ? (
+                            <span className="rounded bg-background-secondary-default px-1.5 py-0.5 font-mono text-caption-2-medium text-text-secondary">
+                              {record.clientType}
+                            </span>
+                          ) : null}
+                          <span className="inline-flex items-center gap-1 tabular-nums">
+                            <RiDatabase2Line className="size-3 text-foreground-icon-tertiary" aria-hidden />
+                            {record.nodeCount} 节点
+                          </span>
+                          <span className="tabular-nums">{record.hits} 命中</span>
+                          <span className="ms-auto whitespace-nowrap text-text-tertiary">
+                            {formatRelativeTime(record.lastAccess)}
+                          </span>
+                        </span>
+                      </button>
 
-                      <Table.Cell className="text-end text-body-2-regular tabular-nums">
-                        <span className="text-text-primary">{record.nodeCount}</span>
-                        <span className="mx-1 text-text-tertiary">/</span>
-                        <span className="text-text-secondary">{record.hits}</span>
-                      </Table.Cell>
-
-                      <Table.Cell
-                        className="text-body-2-regular whitespace-nowrap text-text-secondary"
-                        title={formatDateTime(record.lastAccess)}
-                      >
-                        {formatRelativeTime(record.lastAccess)}
-                      </Table.Cell>
-
-                      <Table.Cell onClick={(event) => event.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <Tooltip
-                            content="复制转换链接"
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                iconOnly
-                                leadingIcon={RiFileCopyLine}
-                                aria-label="复制转换链接"
-                                onClick={() => void handleCopyConversionLink(record)}
-                              />
-                            }
+                      {!showCheckboxes ? (
+                        <div className="flex shrink-0 items-center gap-0.5 -me-1">
+                          <Button
+                            variant="ghost"
+                            size="small"
+                            iconOnly
+                            leadingIcon={RiFileCopyLine}
+                            aria-label={`复制转换链接：${record.name}`}
+                            onClick={() => void handleCopyConversionLink(record)}
                           />
-
-                          <Tooltip
-                            content="查看详情抽屉"
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                iconOnly
-                                leadingIcon={RiInformationLine}
-                                aria-label="查看详情"
-                                onClick={() => setDrawerRecordId(record.id)}
-                              />
-                            }
-                          />
-
                           <DropdownMenu>
                             <DropdownMenu.Trigger
                               render={
                                 <Button
                                   variant="ghost"
-                                  size="xs"
+                                  size="small"
                                   iconOnly
                                   leadingIcon={RiMore2Fill}
-                                  aria-label="更多操作"
+                                  aria-label={`更多操作：${record.name}`}
                                 />
                               }
                             />
-                            <DropdownMenu.Content align="end">
-                              <DropdownMenu.Item
-                                icon={<RiPulseLine className="size-4" aria-hidden />}
-                                disabled={isInspecting}
-                                onClick={() => void handleInspectRecord(record)}
-                              >
-                                {isInspecting ? '检测中…' : '在线检测节点'}
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                icon={<RiLinkM className="size-4" aria-hidden />}
-                                disabled={isShortening}
-                                onClick={() => void handleCreateShortLink(record)}
-                              >
-                                {isShortening ? '生成短链中…' : '生成短链'}
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                icon={<RiQrCodeLine className="size-4" aria-hidden />}
-                                onClick={() => setQrRecord(record)}
-                              >
-                                查看二维码
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                icon={<RiExternalLinkLine className="size-4" aria-hidden />}
-                                onClick={() => handlePreview(record)}
-                              >
-                                预览配置
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Separator />
-                              <DropdownMenu.Item
-                                icon={<RiEditLine className="size-4" aria-hidden />}
-                                onClick={() => openRenameModal(record)}
-                              >
-                                重命名
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                icon={
-                                  record.deleted ? (
-                                    <RiPlayCircleLine className="size-4" aria-hidden />
-                                  ) : (
-                                    <RiPauseCircleLine className="size-4" aria-hidden />
-                                  )
-                                }
-                                onClick={() => void setEnabled(record.id, Boolean(record.deleted))}
-                              >
-                                {record.deleted ? '启用订阅' : '禁用订阅'}
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Separator />
-                              <DropdownMenu.Item
-                                variant="danger"
-                                icon={<RiDeleteBinLine className="size-4" aria-hidden />}
-                                onClick={() => setDeletingRecord(record)}
-                              >
-                                删除记录
-                              </DropdownMenu.Item>
-                            </DropdownMenu.Content>
+                            <RecordActionsMenu
+                              record={record}
+                              isInspecting={isInspecting}
+                              isShortening={isShortening}
+                              onCopy={(item) => void handleCopyConversionLink(item)}
+                              onInspect={(item) => void handleInspectRecord(item)}
+                              onCreateShortLink={(item) => void handleCreateShortLink(item)}
+                              onOpenQr={setQrRecord}
+                              onPreview={handlePreview}
+                              onRename={openRenameModal}
+                              onToggleEnabled={(item) =>
+                                void setEnabled(item.id, Boolean(item.deleted))
+                              }
+                              onDelete={setDeletingRecord}
+                            />
                           </DropdownMenu>
                         </div>
-                      </Table.Cell>
-                    </Table.Row>
+                      ) : null}
+                    </div>
                   )
                 })}
-              </Table.Body>
-            </Table>
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
+                <Table className="console-table min-w-[680px]">
+                  <Table.Header variant="compact">
+                    <Table.Row>
+                      <Table.CheckHead
+                        checked={allVisibleSelected}
+                        indeterminate={someVisibleSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="全选"
+                      />
+                      <Table.Head>订阅</Table.Head>
+                      <Table.Head>状态</Table.Head>
+                      <Table.Head>客户端</Table.Head>
+                      <Table.Head className="text-end">节点 / 命中</Table.Head>
+                      <Table.Head>最近访问</Table.Head>
+                      <Table.Head className="text-end">操作</Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {filteredRecords.map((record) => {
+                      const isSelected = selectedIds.has(record.id)
+                      const isShortening = shorteningId === record.id
+                      const isInspecting = inspectingId === record.id
+                      return (
+                        <Table.Row
+                          key={record.id}
+                          variant={isSelected ? 'selected' : 'default'}
+                          onClick={() => setDrawerRecordId(record.id)}
+                          className="cursor-pointer transition-colors hover:bg-background-secondary-default/65"
+                        >
+                          <Table.CheckCell
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(record.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`选择 ${record.name}`}
+                          />
+
+                          <Table.Cell className="max-w-72">
+                            <p
+                              className="truncate text-body-2-medium text-text-primary"
+                              title={record.name}
+                            >
+                              {record.name}
+                            </p>
+                            <p
+                              dir="ltr"
+                              className="mt-0.5 truncate font-mono text-caption-1-regular text-text-tertiary"
+                              title={record.originalUrl}
+                            >
+                              {record.originalUrl}
+                            </p>
+                          </Table.Cell>
+
+                          <Table.Cell>
+                            <Badge
+                              variant={record.deleted ? 'warning' : 'success'}
+                              appearance="dot"
+                            >
+                              {record.deleted ? '已禁用' : '正常'}
+                            </Badge>
+                          </Table.Cell>
+
+                          <Table.Cell>
+                            <span className="font-mono text-caption-1-regular text-text-secondary">
+                              {record.clientType || '—'}
+                            </span>
+                          </Table.Cell>
+
+                          <Table.Cell className="text-end text-body-2-regular tabular-nums">
+                            <span className="text-text-primary">{record.nodeCount}</span>
+                            <span className="mx-1 text-text-tertiary">/</span>
+                            <span className="text-text-secondary">{record.hits}</span>
+                          </Table.Cell>
+
+                          <Table.Cell
+                            className="text-body-2-regular whitespace-nowrap text-text-secondary"
+                            title={formatDateTime(record.lastAccess)}
+                          >
+                            {formatRelativeTime(record.lastAccess)}
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(event) => event.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              <Tooltip
+                                content="复制转换链接"
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    iconOnly
+                                    leadingIcon={RiFileCopyLine}
+                                    aria-label="复制转换链接"
+                                    onClick={() => void handleCopyConversionLink(record)}
+                                  />
+                                }
+                              />
+
+                              <Tooltip
+                                content="查看详情抽屉"
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    iconOnly
+                                    leadingIcon={RiInformationLine}
+                                    aria-label="查看详情"
+                                    onClick={() => setDrawerRecordId(record.id)}
+                                  />
+                                }
+                              />
+
+                              <DropdownMenu>
+                                <DropdownMenu.Trigger
+                                  render={
+                                    <Button
+                                      variant="ghost"
+                                      size="xs"
+                                      iconOnly
+                                      leadingIcon={RiMore2Fill}
+                                      aria-label="更多操作"
+                                    />
+                                  }
+                                />
+                                <RecordActionsMenu
+                                  record={record}
+                                  isInspecting={isInspecting}
+                                  isShortening={isShortening}
+                                  onCopy={(item) => void handleCopyConversionLink(item)}
+                                  onInspect={(item) => void handleInspectRecord(item)}
+                                  onCreateShortLink={(item) => void handleCreateShortLink(item)}
+                                  onOpenQr={setQrRecord}
+                                  onPreview={handlePreview}
+                                  onRename={openRenameModal}
+                                  onToggleEnabled={(item) =>
+                                    void setEnabled(item.id, Boolean(item.deleted))
+                                  }
+                                  onDelete={setDeletingRecord}
+                                />
+                              </DropdownMenu>
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      )
+                    })}
+                  </Table.Body>
+                </Table>
+              </div>
+            </>
           )}
         </div>
       </LayerCard>
 
       <p className="text-center text-caption-1-regular tabular-nums text-text-tertiary">
-        共 {records.length} 条记录（点击任意行展开侧边详情抽屉 · 禁用后订阅将立即返回 400）
+        <span className="sm:hidden">共 {records.length} 条 · 点击查看详情 · 禁用后立即返回 400</span>
+        <span className="hidden sm:inline">
+          共 {records.length} 条记录（点击任意行展开侧边详情抽屉 · 禁用后订阅将立即返回 400）
+        </span>
       </p>
 
       <RecordDetailDrawer

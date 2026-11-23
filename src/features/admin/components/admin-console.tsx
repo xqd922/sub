@@ -121,16 +121,17 @@ export function AdminConsole() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="border-b border-separator-border bg-background-primary-default/75 py-3 backdrop-blur-sm sm:py-3.5">
-          <div className="mx-auto flex w-full max-w-[1160px] flex-wrap items-center justify-between gap-2 px-4 sm:px-8">
+        {/* Desktop Workspace Header (mobile uses the single-row sticky app bar) */}
+        <div className="hidden border-b border-separator-border bg-background-primary-default/75 py-3.5 backdrop-blur-sm lg:block">
+          <div className="mx-auto flex w-full max-w-[1160px] flex-wrap items-center justify-between gap-2 px-8">
             <div className="min-w-0 flex-1">
-              <div className="hidden items-center gap-1.5 text-caption-1-regular text-text-tertiary sm:flex">
+              <div className="flex items-center gap-1.5 text-caption-1-regular text-text-tertiary">
                 <span>Console</span>
                 <span>/</span>
                 <span className="text-text-secondary">{currentTab.code}</span>
               </div>
-              <div className="flex min-w-0 items-baseline gap-x-3 sm:mt-0.5">
-                <h1 className="shrink-0 text-title-3-semibold tracking-[-0.015em] text-text-primary sm:text-title-2-semibold">
+              <div className="mt-0.5 flex min-w-0 items-baseline gap-x-3">
+                <h1 className="shrink-0 text-title-2-semibold tracking-[-0.015em] text-text-primary">
                   {currentTab.label}
                 </h1>
                 <p className="min-w-0 truncate text-body-2-regular text-text-secondary">
@@ -141,7 +142,7 @@ export function AdminConsole() {
           </div>
         </div>
 
-        <main className="mx-auto flex w-full max-w-[1160px] flex-1 flex-col px-4 py-5 sm:px-8 sm:py-6">
+        <main className="mx-auto flex w-full max-w-[1160px] flex-1 flex-col px-3.5 pt-3.5 pb-[calc(env(safe-area-inset-bottom)+5.25rem)] sm:px-6 sm:pt-5 lg:px-8 lg:py-6">
           {activeTab === 'stats' ? <StatsPanel onUnauthorized={resetAuthentication} /> : null}
           {activeTab === 'records' ? (
             <RecordsPanel

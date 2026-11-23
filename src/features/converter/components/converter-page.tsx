@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Badge } from '@cloudflare/kumo/components/badge'
-import { RiSettings3Line } from '@remixicon/react'
+import {
+  RiFlashlightLine,
+  RiQrScanLine,
+  RiSettings3Line,
+  RiSmartphoneLine,
+} from '@remixicon/react'
 import { ConversionResultCard } from '@/features/converter/components/conversion-result-card'
 import { ShortLinkBar } from '@/features/converter/components/short-link-bar'
 import { SubscriptionInputForm } from '@/features/converter/components/subscription-input-form'
@@ -22,6 +27,24 @@ const PROTOCOL_PREVIEW = [
   'Snell',
   'TUIC',
   'WireGuard',
+] as const
+
+const HOME_HIGHLIGHTS = [
+  {
+    icon: RiFlashlightLine,
+    title: '边缘实时解析',
+    description: '18 种协议无需回源',
+  },
+  {
+    icon: RiSmartphoneLine,
+    title: '客户端自适应',
+    description: 'Clash / sing-box / v2rayNG',
+  },
+  {
+    icon: RiQrScanLine,
+    title: '短链与扫码',
+    description: '一键导入手机客户端',
+  },
 ] as const
 
 export function ConverterPage() {
@@ -75,7 +98,7 @@ export function ConverterPage() {
         className="console-dot-grid pointer-events-none fixed inset-0 opacity-65 [mask-image:radial-gradient(ellipse_62%_50%_at_50%_26%,#000_25%,transparent_100%)]"
       />
 
-      <header className="sticky top-0 z-20 flex h-13 transform-gpu items-center justify-between border-b border-separator-border/80 bg-background-full/85 px-4 backdrop-blur-md sm:px-6">
+      <header className="sticky top-0 z-20 flex min-h-13 transform-gpu items-center justify-between border-b border-separator-border/80 bg-background-full/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md sm:px-6">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden
@@ -101,7 +124,7 @@ export function ConverterPage() {
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-1 flex-col items-center px-4 pt-[11vh] pb-20 sm:px-6 sm:pt-[18vh]">
+      <main className="relative z-10 flex flex-1 flex-col items-center px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+4rem)] sm:px-6 sm:pt-[16vh]">
         <div className="flex w-full max-w-[640px] flex-col">
           <div className="mb-8 text-center">
             <h1 className="text-title-1-semibold tracking-[-0.02em] text-text-primary sm:text-display-4-semibold sm:tracking-[-0.025em]">
@@ -122,18 +145,41 @@ export function ConverterPage() {
           />
 
           {!convertedUrl ? (
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
+            <div className="mt-5 grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center">
               {PROTOCOL_PREVIEW.map((protocol) => (
                 <span
                   key={protocol}
-                  className="rounded-md border border-separator-border/80 bg-background-primary-default/75 px-2 py-0.5 font-mono text-caption-1-regular text-text-tertiary"
+                  className="inline-flex items-center justify-center rounded-md border border-separator-border/80 bg-background-primary-default/75 px-2 py-1 font-mono text-caption-2-regular text-text-tertiary sm:py-0.5 sm:text-caption-1-regular"
                 >
                   {protocol}
                 </span>
               ))}
-              <span className="rounded-md border border-separator-border/60 bg-background-secondary-default/70 px-2 py-0.5 text-caption-1-medium tabular-nums text-text-secondary">
+              <span className="inline-flex items-center justify-center rounded-md border border-separator-border/60 bg-background-secondary-default/70 px-2 py-1 text-caption-2-medium tabular-nums text-text-secondary sm:py-0.5 sm:text-caption-1-medium">
                 +11 协议
               </span>
+            </div>
+          ) : null}
+
+          {!convertedUrl ? (
+            <div className="mt-8 grid grid-cols-1 gap-2.5 rounded-2xl border border-separator-border/70 bg-background-primary-default/55 p-3.5 sm:mt-10 sm:grid-cols-3 sm:gap-3">
+              {HOME_HIGHLIGHTS.map((item) => {
+                const Icon = item.icon
+                return (
+                  <div key={item.title} className="flex items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-separator-border bg-background-primary-default">
+                      <Icon className="size-4 text-foreground-icon-secondary" aria-hidden />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-caption-1-semibold text-text-primary">
+                        {item.title}
+                      </span>
+                      <span className="mt-0.5 block truncate text-caption-1-regular text-text-tertiary">
+                        {item.description}
+                      </span>
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           ) : null}
 
@@ -186,6 +232,14 @@ export function ConverterPage() {
               ) : null}
             </div>
           </div>
+        </div>
+
+        <div className="mt-auto flex w-full max-w-[640px] items-center justify-center gap-2 pt-14 text-caption-2-regular text-text-tertiary">
+          <span
+            aria-hidden
+            className="size-1.5 rounded-full bg-brand-cloudflare shadow-[0_0_6px_var(--color-brand-cloudflare)]"
+          />
+          <span>Cloudflare Edge · 18 种协议 · 无需登录</span>
         </div>
       </main>
     </div>

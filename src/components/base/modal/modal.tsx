@@ -66,7 +66,7 @@ type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean
 export type ModalSize = "sm" | "md" | "lg" | "xl";
 
 const styles = sortCx({
-  overlay: "group/modal fixed inset-x-0 top-0 z-100 flex h-(--visual-viewport-height) items-center justify-center p-4 sm:p-6",
+  overlay: "group/modal fixed inset-x-0 top-0 z-100 flex h-(--visual-viewport-height) items-center justify-center p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-6",
   backdrop: [
     "absolute inset-0 bg-black/70",
     "transition-opacity duration-300 ease-out",

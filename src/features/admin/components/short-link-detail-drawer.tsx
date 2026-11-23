@@ -74,19 +74,21 @@ export function ShortLinkDetailDrawer({
       footer={
         link ? (
           <>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-1.5">
               <Button
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiExternalLinkLine}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onOpenTarget(link)}
               >
-                预览配置
+                预览
               </Button>
               <Button
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiQrCodeLine}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onOpenQr(link)}
               >
                 二维码
@@ -95,14 +97,16 @@ export function ShortLinkDetailDrawer({
                 variant="secondary"
                 size="xs"
                 leadingIcon={RiEditLine}
+                className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
                 onClick={() => onEdit(link)}
               >
-                编辑配置
+                编辑
               </Button>
             </div>
             <Button
               variant={link.disabled ? 'primary' : 'secondary'}
               size="xs"
+              className="h-9 w-full rounded-lg text-body-2-medium sm:h-6 sm:w-auto sm:rounded-sm sm:text-caption-1-medium"
               onClick={() => onToggleEnabled(link)}
             >
               {link.disabled ? '启用短链' : '禁用短链'}
@@ -205,39 +209,39 @@ export function ShortLinkDetailDrawer({
               Metadata
             </h3>
             <dl className="grid grid-cols-2 gap-3 rounded-xl border border-separator-border bg-background-secondary-default/35 p-3.5 text-body-2-regular">
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">默认输出格式</dt>
-                <dd className="mt-0.5 text-text-primary">
+                <dd className="mt-0.5 truncate text-text-primary">
                   {TARGET_LABELS[link.defaultTarget || 'auto']}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">累计命中</dt>
                 <dd className="mt-0.5 tabular-nums text-text-primary">
                   {link.maxHits ? `${link.hits} / ${link.maxHits}` : `${link.hits} 次`}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">过期时间</dt>
                 <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {link.expiresAt ? formatDateTime(link.expiresAt) : '永不过期'}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">创建时间</dt>
                 <dd className="mt-0.5 tabular-nums text-text-secondary">
                   {formatDateTime(link.createdAt)}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">最近客户端</dt>
-                <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
+                <dd dir="ltr" className="mt-0.5 truncate font-mono text-text-primary">
                   {link.lastClientType || '—'}
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-caption-1-regular text-text-tertiary">最近 IP</dt>
-                <dd dir="ltr" className="mt-0.5 font-mono text-text-primary">
+                <dd dir="ltr" className="mt-0.5 break-all font-mono text-text-primary">
                   {link.lastIp || '—'}
                 </dd>
               </div>
